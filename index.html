@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Order Dashboard</title>
+<title>[TSMC] - Dashboard device sale and tracking order</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1078,7 +1078,7 @@ function renderTrackingTable(rows) {
     });
     
     // Limit to top 300 to prevent browser lag if data is huge
-    const limit = Math.min(sortedRows.length, ${fmtNum(rows.length)});
+    const limit = Math.min(sortedRows.length, 99999);
     const displayRows = sortedRows.slice(0, limit);
     
     const countTag = document.getElementById('tag-tracking-count');
