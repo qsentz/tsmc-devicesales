@@ -171,6 +171,8 @@
   .hero-nums .big{font-family:var(--font-serif); font-size:50px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
   .hero-nums .lbl{font-size:11px; color:var(--accent-bright); margin-top:4px; font-weight:700; letter-spacing:.03em;}
   .hero-nums .of-total{font-size:10.5px; color:var(--muted); margin-top:6px;}
+  .hero-nums .prebook-badge{margin-top:4px; color:var(--gold); font-weight:700;}
+  .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
   .hero-right{border-left:1px solid var(--border); padding-left:20px;}
   .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 8px; font-weight:700; color:var(--text-dim);}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(84px,1fr)); gap:7px;}
@@ -725,6 +727,7 @@ function buildSkeleton(){
           <div class="big" id="val-complete">0</div>
           <div class="lbl">TOTAL ORDER COMPLETED</div>
           <div class="of-total" id="tag-grandtotal"></div>
+          <div class="of-total prebook-badge" id="tag-completeprebook"></div>
         </div>
       </div>
       <div class="hero-right">
@@ -889,6 +892,8 @@ function updateDashboard(rows){
 
   // ---- Total order completed ----
   document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
+  const prebookPct = M.completeCount ? (M.prebookTotal / M.completeCount * 100).toFixed(1) : '0.0';
+  document.getElementById('tag-completeprebook').innerHTML = `Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${prebookPct}%)`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
   drawRing(document.getElementById('ringComplete'), M.grandTotal ? M.completeCount/M.grandTotal*100 : 0, '#A23A2E');
   const statusColors = {
