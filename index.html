@@ -173,21 +173,26 @@
   .menu-sub{font-size:10px; color:var(--muted); margin-top:4px;}
   .menu-sub b{color:var(--ais); font-weight:700;}
 
-  /* Metric tile cards — used for Top Selling Device/Accessory and
-     Top Campaigns/Service Care. Value sits above a thin indicator bar,
-     so the bar can never cover the number. */
-  .metric-section{display:grid; grid-template-columns:1fr 1fr; gap:22px;}
-  .metric-section h3{font-size:11px; margin:0 0 10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em;}
-  .metric-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px;}
-  .metric-tile{border:1px solid var(--border); border-radius:9px; padding:9px 10px; background:#FAFBFC; transition:transform .15s ease, box-shadow .15s ease;}
-  .metric-tile:hover{transform:translateY(-2px); box-shadow:var(--shadow-hover);}
-  .metric-tile .mt-top{display:flex; align-items:baseline; justify-content:space-between; gap:6px; margin-bottom:4px;}
-  .metric-tile .mt-rank{font-size:9.5px; color:var(--muted); font-weight:800;}
-  .metric-tile .mt-count{font-size:16px; font-weight:800;}
-  .metric-tile .mt-name{font-size:11px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:7px;}
-  .metric-tile .mt-bar{height:4px; border-radius:3px; background:#EEF1F5; overflow:hidden;}
-  .metric-tile .mt-bar i{display:block; height:100%; border-radius:3px;}
-  @media(max-width:900px){ .metric-section{grid-template-columns:1fr;} }
+  /* Compact ranked list cards — used for Top Selling Device/Accessory and
+     Top Campaigns/Service Care. The proportional bar is a low-opacity
+     background sitting BEHIND the row (not a separate track), so name and
+     count stay fully legible on top of it — no overlap, no wasted space. */
+  .rank-card{border-top:3px solid var(--ais);}
+  .rank-card.alt{border-top-color:var(--partner);}
+  .rank-section{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 10px; background:#F5F6F8; border-radius:6px; margin-bottom:6px;}
+  .rank-col-header .lbl{font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-col-header .cnt{font-size:12px; font-weight:800; color:var(--text); flex:0 0 auto;}
+  .rank-list{display:flex; flex-direction:column; gap:1px;}
+  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:5px 8px; border-radius:5px; overflow:hidden;}
+  .rank-bar{position:absolute; left:0; top:0; bottom:0; opacity:.16; border-radius:5px; transition:width .5s ease;}
+  .rank-name{position:relative; z-index:1; font-size:11.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-count{position:relative; z-index:1; font-size:11.5px; font-weight:800; flex:0 0 auto;}
+  .rank-slider-row{display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);}
+  .rank-slider-row .rank-slider-lbl{font-size:10.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
+  .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--ais);}
+  .rank-slider-row .rank-slider-val{font-size:11.5px; font-weight:800; min-width:22px; text-align:right;}
+  @media(max-width:900px){ .rank-section{grid-template-columns:1fr;} }
 
   table{width:100%; border-collapse:collapse; font-size:11.5px;}
   th{text-align:left; color:var(--muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; position:sticky; top:0; background:var(--card);}
@@ -254,6 +259,7 @@ let charts = {};
 let dashboardBuilt = false;
 let refreshTimer = null;
 let isLoading = false;
+let lastMetrics = null;
 
 function getConfig(){
   const params = new URLSearchParams(location.search);
@@ -414,13 +420,16 @@ function computeMetrics(rows){
   const completeRows = rows.filter(r => r.state === 'COMPLETE');
   const prebookRows = completeRows.filter(r => !isBlank(r.preBookingNo));
 
-  // AIS vs Partner. A Pre-Booking order is already included inside its
-  // AIS/PARTNER group count, so the headline percentage is computed on
-  // the non-Pre-Booking amount of each group (count - preCount) against
-  // the non-Pre-Booking grand total — otherwise Pre-Booking rows would
-  // effectively be counted twice in the split (once as themselves, once
-  // folded into the parent group's %). Pre-Booking is still shown in full
-  // as its own subset line. Same "FIX" logic as Order by Menu below.
+  // AIS vs Partner. The headline % for each group is its share of the
+  // grand total (count / otTotal), same as before — that's the number
+  // that has to add up to 100% across AIS + PARTNER. Pre-Booking % is
+  // computed against that SAME grand total (preCount / otTotal), not
+  // against the group's own count, so it uses the same denominator as
+  // the headline % and can be subtracted from it: headline% − preBooking%
+  // = the non-Pre-Booking share of that group. (Using preCount/count for
+  // the Pre-Booking % — a different, smaller denominator — was the bug:
+  // it made the two percentages incomparable, so subtracting them gave a
+  // wrong "non-Pre-Booking" number.)
   const otRows = completeRows.filter(r => r.orderType);
   const otCounts = {AIS:0, PARTNER:0};
   otRows.forEach(r => otCounts[grp(r.orderType)]++);
@@ -432,7 +441,6 @@ function computeMetrics(rows){
     AIS: otCounts.AIS - prebookByGrp.AIS,
     PARTNER: otCounts.PARTNER - prebookByGrp.PARTNER
   };
-  const nonPrebookTotal = nonPrebookByGrp.AIS + nonPrebookByGrp.PARTNER;
 
   // Sub stock destination
   const stockRows = completeRows.filter(r => !isBlank(r.subStockDestination));
@@ -529,28 +537,34 @@ function computeMetrics(rows){
   const validName = n => n && n !== '-' && n !== 'Invalid' && n.length < 100;
   const devRows = completeRows.filter(r => r.menu !== 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
   const accRows = completeRows.filter(r => r.menu === 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
-  const deviceTop = topN(devRows, 'commercialName', 10);
-  const accessoryTop = topN(accRows, 'commercialName', 10);
+  // Fetch a generous top-N pool (30) once; the on-screen "SHOW" slider just
+  // slices this pool client-side without recomputing from raw rows.
+  const deviceTop = topN(devRows, 'commercialName', 30);
+  const accessoryTop = topN(accRows, 'commercialName', 30);
   const deviceItems = new Set(devRows.map(r => r.commercialName)).size;
   const accessoryItems = new Set(accRows.map(r => r.commercialName)).size;
+  const deviceOrders = devRows.length;
+  const accessoryOrders = accRows.length;
 
   // Top campaigns / service care
   const campRows = completeRows.filter(r => !isBlank(r.campaignName));
   const svcRows = completeRows.filter(r => !isBlank(r.serviceCareTitle));
-  const campTop = topN(campRows, 'campaignName', 10);
-  const svcTop = topN(svcRows, 'serviceCareTitle', 10);
+  const campTop = topN(campRows, 'campaignName', 30);
+  const svcTop = topN(svcRows, 'serviceCareTitle', 30);
   const campItems = new Set(campRows.map(r => r.campaignName)).size;
   const svcItems = new Set(svcRows.map(r => r.serviceCareTitle)).size;
+  const campOrders = campRows.length;
+  const svcOrders = svcRows.length;
 
   return {
     grandTotal, completeCount, statusTiles,
-    otCounts, otTotal, prebookByGrp, prebookTotal, nonPrebookByGrp, nonPrebookTotal,
+    otCounts, otTotal, prebookByGrp, prebookTotal, nonPrebookByGrp,
     stockArr, stockTotal,
     menuArr,
     mode, buckets, volTotal,
     durTotal, tierCounts, otDur, slowest, durBuckets,
-    deviceTop, accessoryTop, deviceItems, accessoryItems,
-    campTop, svcTop, campItems, svcItems
+    deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
+    campTop, svcTop, campItems, svcItems, campOrders, svcOrders
   };
 }
 
@@ -599,21 +613,43 @@ function buildSkeleton(){
     </div>
 
     <div class="row-single">
-      <div class="card">
+      <div class="card rank-card">
         <h2>Top Selling Device &amp; Accessory</h2>
-        <div class="metric-section">
-          <div><h3 id="hdr-device-items">Device</h3><div class="metric-grid soft" id="body-device-list"></div></div>
-          <div><h3 id="hdr-accessory-items">Accessory</h3><div class="metric-grid soft" id="body-accessory-list"></div></div>
+        <div class="rank-section">
+          <div>
+            <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
+            <div class="rank-list soft" id="body-device-list"></div>
+          </div>
+          <div>
+            <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
+            <div class="rank-list soft" id="body-accessory-list"></div>
+          </div>
+        </div>
+        <div class="rank-slider-row">
+          <span class="rank-slider-lbl">SHOW</span>
+          <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
+          <span class="rank-slider-val" id="sliderDeviceVal">10</span>
         </div>
       </div>
     </div>
 
     <div class="row-single">
-      <div class="card">
+      <div class="card rank-card alt">
         <h2>Top Campaigns &amp; Service Care</h2>
-        <div class="metric-section">
-          <div><h3 id="hdr-camp-items">Campaign</h3><div class="metric-grid soft" id="body-camp-list"></div></div>
-          <div><h3 id="hdr-svc-items">Service Care</h3><div class="metric-grid soft" id="body-svc-list"></div></div>
+        <div class="rank-section">
+          <div>
+            <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
+            <div class="rank-list soft" id="body-camp-list"></div>
+          </div>
+          <div>
+            <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
+            <div class="rank-list soft" id="body-svc-list"></div>
+          </div>
+        </div>
+        <div class="rank-slider-row">
+          <span class="rank-slider-lbl">SHOW</span>
+          <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
+          <span class="rank-slider-val" id="sliderCampaignVal">10</span>
         </div>
       </div>
     </div>
@@ -639,15 +675,36 @@ function buildSkeleton(){
 }
 
 /* ===================== RENDER / UPDATE ===================== */
-function metricTiles(items, max, color){
-  return items.map((i,idx) => {
+function rankRows(items, count, color){
+  const shown = items.slice(0, count);
+  const max = Math.max(1, ...shown.map(i => i.count));
+  return shown.map(i => {
     const pct = max ? i.count/max*100 : 0;
-    return `<div class="metric-tile">
-      <div class="mt-top"><span class="mt-rank">#${idx+1}</span><span class="mt-count">${fmtNum(i.count)}</span></div>
-      <div class="mt-name" title="${esc(i.name)}">${esc(i.name)}</div>
-      <div class="mt-bar"><i style="width:${pct}%;background:${color}"></i></div>
+    return `<div class="rank-row">
+      <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
+      <div class="rank-name" title="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+}
+
+/* Re-render just the Top Selling / Top Campaigns lists from the cached
+   metrics, sliced to however many rows the "SHOW" slider is set to. Called
+   both after a data refresh and whenever a slider is dragged. */
+function renderDeviceAccessory(){
+  if (!lastMetrics) return;
+  const n = parseInt(document.getElementById('sliderDevice').value, 10);
+  document.getElementById('sliderDeviceVal').textContent = n;
+  // Direct innerHTML swap (no cross-fade) so dragging the slider feels instant.
+  document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--ais)');
+  document.getElementById('body-accessory-list').innerHTML = rankRows(lastMetrics.accessoryTop, n, 'var(--partner)');
+}
+function renderCampaignService(){
+  if (!lastMetrics) return;
+  const n = parseInt(document.getElementById('sliderCampaign').value, 10);
+  document.getElementById('sliderCampaignVal').textContent = n;
+  document.getElementById('body-camp-list').innerHTML = rankRows(lastMetrics.campTop, n, 'var(--ais)');
+  document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--partner)');
 }
 
 function updateDashboard(rows){
@@ -674,26 +731,29 @@ function updateDashboard(rows){
   softUpdate(document.getElementById('tiles-status'), tilesHtml);
 
   // ---- AIS Shop vs Partner ----
-  // Percentage is based on each group's non-Pre-Booking count against the
-  // non-Pre-Booking grand total (see comment in computeMetrics) so
-  // Pre-Booking orders aren't folded into the split twice. The headline
-  // count still shows every completed order in the group.
+  // Headline % = count / grand total (sums to 100% across AIS+PARTNER).
+  // Pre-Booking % uses the SAME grand total as its denominator (see
+  // comment in computeMetrics), so headline% − Pre-Booking% = the
+  // non-Pre-Booking % shown on its own line, and the two always add
+  // back up to the headline %.
   document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
-  const grpRow = (name, color, count, preCount, nonPrebookCount, nonPrebookTotal) => {
-    const pct = nonPrebookTotal ? nonPrebookCount/nonPrebookTotal*100 : 0;
-    const prePct = count ? preCount/count*100 : 0;
+  const grpRow = (name, color, count, preCount, nonPrebookCount, total) => {
+    const pct = total ? count/total*100 : 0;
+    const prePct = total ? preCount/total*100 : 0;
+    const nonPrePct = total ? nonPrebookCount/total*100 : 0;
     return `<div class="grp-row">
       <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
       <div class="grp-nums">
         <div class="n">${fmtNum(count)}</div>
         <div class="p">${fmtPct(pct)}</div>
+        <div class="pre-badge">ไม่รวม Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
         <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
       </div>
     </div>`;
   };
   softUpdate(document.getElementById('body-aispartner'),
-    grpRow('AIS','var(--ais)', M.otCounts.AIS, M.prebookByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookTotal) +
-    grpRow('PARTNER','var(--partner)', M.otCounts.PARTNER, M.prebookByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookTotal));
+    grpRow('AIS','var(--ais)', M.otCounts.AIS, M.prebookByGrp.AIS, M.nonPrebookByGrp.AIS, M.otTotal) +
+    grpRow('PARTNER','var(--partner)', M.otCounts.PARTNER, M.prebookByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.otTotal));
 
   // ---- Sub stock destination ----
   const stockPalette = ['#2F5EA3','#5B4B8A','#8A6D3B','#4A6B6E','#8A94A3'];
@@ -756,21 +816,20 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>`;
   softUpdate(document.getElementById('body-avgp90'), otRowsHtml);
 
-  // ---- Top selling device & accessory (metric-tile cards) ----
-  const maxDev = Math.max(1, ...M.deviceTop.map(i=>i.count));
-  const maxAcc = Math.max(1, ...M.accessoryTop.map(i=>i.count));
+  // ---- Top selling device & accessory / Top campaigns & service care ----
+  // Metrics are cached so the "SHOW" sliders can re-slice + re-render
+  // instantly without recomputing from the raw rows.
+  lastMetrics = M;
   document.getElementById('hdr-device-items').textContent = `Device — ${fmtNum(M.deviceItems)} items`;
+  document.getElementById('cnt-device').textContent = fmtNum(M.deviceOrders);
   document.getElementById('hdr-accessory-items').textContent = `Accessory — ${fmtNum(M.accessoryItems)} items`;
-  softUpdate(document.getElementById('body-device-list'), metricTiles(M.deviceTop, maxDev, 'var(--ais)'));
-  softUpdate(document.getElementById('body-accessory-list'), metricTiles(M.accessoryTop, maxAcc, 'var(--partner)'));
-
-  // ---- Top campaigns & service care (metric-tile cards) ----
-  const maxCamp = Math.max(1, ...M.campTop.map(i=>i.count));
-  const maxSvc = Math.max(1, ...M.svcTop.map(i=>i.count));
+  document.getElementById('cnt-accessory').textContent = fmtNum(M.accessoryOrders);
   document.getElementById('hdr-camp-items').textContent = `Campaign — ${fmtNum(M.campItems)} campaigns`;
+  document.getElementById('cnt-camp').textContent = fmtNum(M.campOrders);
   document.getElementById('hdr-svc-items').textContent = `Service Care — ${fmtNum(M.svcItems)} types`;
-  softUpdate(document.getElementById('body-camp-list'), metricTiles(M.campTop, maxCamp, 'var(--ais)'));
-  softUpdate(document.getElementById('body-svc-list'), metricTiles(M.svcTop, maxSvc, 'var(--partner)'));
+  document.getElementById('cnt-svc').textContent = fmtNum(M.svcOrders);
+  renderDeviceAccessory();
+  renderCampaignService();
 
   // ---- Slowest orders ----
   const slowHtml = M.slowest.map(s => `<tr>
@@ -932,6 +991,8 @@ async function loadData(isAuto){
     document.getElementById('configPanel').classList.toggle('open');
   });
   document.getElementById('btnRefresh').addEventListener('click', () => { resetRefreshBar(); loadData(false); });
+  document.getElementById('sliderDevice').addEventListener('input', renderDeviceAccessory);
+  document.getElementById('sliderCampaign').addEventListener('input', renderCampaignService);
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
