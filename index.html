@@ -173,29 +173,25 @@
   .menu-sub{font-size:10px; color:var(--muted); margin-top:4px;}
   .menu-sub b{color:var(--ais); font-weight:700;}
 
-  /* Ranked cards — use the same visual language as Order by Menu,
-     with two independent columns for side-by-side comparison. */
+  /* Compact ranked list cards — used for Top Selling Device/Accessory and
+     Top Campaigns/Service Care. The proportional bar is a low-opacity
+     background sitting BEHIND the row (not a separate track), so name and
+     count stay fully legible on top of it — no overlap, no wasted space. */
   .rank-card{border-top:3px solid var(--ais);}
   .rank-card.alt{border-top-color:var(--partner);}
-  .rank-section{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
-  .rank-col{min-width:0;}
-  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:7px 10px; background:#F5F6F8; border-radius:7px; margin-bottom:10px;}
+  .rank-section{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 9px; background:#F5F6F8; border-radius:6px; margin-bottom:6px;}
   .rank-col-header .lbl{font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:12px; font-weight:800; color:var(--text); flex:0 0 auto;}
-  .rank-list{display:flex; flex-direction:column;}
-  .rank-item{margin-bottom:10px;}
-  .rank-item:last-child{margin-bottom:0;}
-  .rank-item .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:5px;}
-  .rank-item .name{font-size:12px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-item .val{font-size:12.5px; font-weight:800; flex:0 0 auto;}
-  .rank-track{background:#EEF1F5; border-radius:6px; height:10px; overflow:hidden;}
-  .rank-fill{height:100%; border-radius:6px; transition:width .6s ease;}
-  .rank-sub{font-size:10px; color:var(--muted); margin-top:4px;}
-  .rank-slider-row{display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border);}
+  .rank-list{display:flex; flex-direction:column; gap:1px;}
+  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 7px; border-radius:5px; overflow:hidden;}
+  .rank-bar{position:absolute; left:0; top:0; bottom:0; opacity:.16; border-radius:5px; transition:width .5s ease;}
+  .rank-name{position:relative; z-index:1; font-size:11.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-count{position:relative; z-index:1; font-size:11.5px; font-weight:800; flex:0 0 auto;}
+  .rank-slider-row{display:flex; align-items:center; gap:8px; margin-top:9px; padding-top:8px; border-top:1px solid var(--border);}
   .rank-slider-row .rank-slider-lbl{font-size:10.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--ais);}
   .rank-slider-row .rank-slider-val{font-size:11.5px; font-weight:800; min-width:22px; text-align:right;}
-  .stock-total{font-size:10px; color:var(--muted); text-align:right; margin-top:7px;}
   @media(max-width:900px){ .rank-section{grid-template-columns:1fr;} }
 
   table{width:100%; border-collapse:collapse; font-size:11.5px;}
@@ -364,21 +360,6 @@ function topN(rows, field, n){
   return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count).slice(0, n);
 }
 function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
-
-// Round displayed percentages to one decimal place while guaranteeing that
-// a complete distribution sums to exactly 100.0%. Bar widths still use the
-// original exact percentages, so the visual proportions remain accurate.
-function allocateRoundedPcts(items, total){
-  if (!items.length || !total) return items.map(() => 0);
-  const scale = 10;
-  const raw = items.map(x => x.count / total * 100 * scale);
-  const base = raw.map(x => Math.floor(x));
-  let remaining = Math.round(100 * scale) - base.reduce((a,b) => a+b, 0);
-  const order = raw.map((x,i) => ({i, remainder:x-base[i]}))
-    .sort((a,b) => b.remainder-a.remainder);
-  for (let k=0; k<remaining; k++) base[order[k % order.length].i]++;
-  return base.map(x => x / scale);
-}
 function fmtNum(n){ return n.toLocaleString('en-US'); }
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -635,11 +616,11 @@ function buildSkeleton(){
       <div class="card rank-card">
         <h2>Top Selling Device &amp; Accessory</h2>
         <div class="rank-section">
-          <div class="rank-col">
+          <div>
             <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
             <div class="rank-list soft" id="body-device-list"></div>
           </div>
-          <div class="rank-col">
+          <div>
             <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
             <div class="rank-list soft" id="body-accessory-list"></div>
           </div>
@@ -656,11 +637,11 @@ function buildSkeleton(){
       <div class="card rank-card alt">
         <h2>Top Campaigns &amp; Service Care</h2>
         <div class="rank-section">
-          <div class="rank-col">
+          <div>
             <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
             <div class="rank-list soft" id="body-camp-list"></div>
           </div>
-          <div class="rank-col">
+          <div>
             <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
             <div class="rank-list soft" id="body-svc-list"></div>
           </div>
@@ -699,9 +680,10 @@ function rankRows(items, count, color){
   const max = Math.max(1, ...shown.map(i => i.count));
   return shown.map(i => {
     const pct = max ? i.count/max*100 : 0;
-    return `<div class="rank-item">
-      <div class="top"><div class="name" title="${esc(i.name)}">${esc(i.name)}</div><div class="val">${fmtNum(i.count)}</div></div>
-      <div class="rank-track"><div class="rank-fill" style="width:${pct}%;background:${color}"></div></div>
+    return `<div class="rank-row">
+      <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
+      <div class="rank-name" title="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
 }
@@ -775,16 +757,14 @@ function updateDashboard(rows){
 
   // ---- Sub stock destination ----
   const stockPalette = ['#2F5EA3','#5B4B8A','#8A6D3B','#4A6B6E','#8A94A3'];
-  const stockPcts = allocateRoundedPcts(M.stockArr, M.stockTotal);
   const stockHtml = M.stockArr.map((s,i) => {
-    const exactPct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
-    const displayPct = stockPcts[i] || 0;
+    const pct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
     const c = stockPalette[i % stockPalette.length];
     return `<div class="bar-row">
-      <div class="top"><span class="name">${esc(s.name)}</span><span class="val">${fmtNum(s.count)} (${displayPct.toFixed(1)}%)</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${exactPct}%;background:${c}"></div></div>
+      <div class="top"><span class="name">${esc(s.name)}</span><span class="val">${fmtNum(s.count)} (${fmtPct(pct)})</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c}"></div></div>
     </div>`;
-  }).join('') + (M.stockArr.length ? `<div class="stock-total">รวม ${stockPcts.reduce((a,b)=>a+b,0).toFixed(1)}%</div>` : '');
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('body-substock'), stockHtml);
 
   // ---- Duration overview tiers ----
@@ -1011,8 +991,22 @@ async function loadData(isAuto){
     document.getElementById('configPanel').classList.toggle('open');
   });
   document.getElementById('btnRefresh').addEventListener('click', () => { resetRefreshBar(); loadData(false); });
-  document.getElementById('sliderDevice').addEventListener('input', renderDeviceAccessory);
-  document.getElementById('sliderCampaign').addEventListener('input', renderCampaignService);
+
+  // The ranking sliders are created dynamically inside buildSkeleton().
+  // Bind them after the skeleton has been built, otherwise the elements do not exist yet.
+  const bindRankSliders = () => {
+    const sliderDevice = document.getElementById('sliderDevice');
+    const sliderCampaign = document.getElementById('sliderCampaign');
+    if (sliderDevice && !sliderDevice.dataset.bound) {
+      sliderDevice.addEventListener('input', renderDeviceAccessory);
+      sliderDevice.dataset.bound = '1';
+    }
+    if (sliderCampaign && !sliderCampaign.dataset.bound) {
+      sliderCampaign.addEventListener('input', renderCampaignService);
+      sliderCampaign.dataset.bound = '1';
+    }
+  };
+
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
@@ -1025,6 +1019,17 @@ async function loadData(isAuto){
 
   if (cfg.sheetId) { loadData(false); startAutoRefresh(); }
   else document.getElementById('configPanel').classList.add('open');
+
+  // Initial dashboard is built asynchronously by loadData(); poll briefly until
+  // the dynamically-created sliders exist, then attach their input handlers.
+  const sliderBinderTimer = setInterval(() => {
+    const sliderDevice = document.getElementById('sliderDevice');
+    const sliderCampaign = document.getElementById('sliderCampaign');
+    if (sliderDevice || sliderCampaign) {
+      bindRankSliders();
+      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound) clearInterval(sliderBinderTimer);
+    }
+  }, 50);
 })();
 </script>
 </body>
