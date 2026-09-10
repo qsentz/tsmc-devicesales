@@ -173,14 +173,16 @@
   .menu-sub{font-size:10px; color:var(--muted); margin-top:4px;}
   .menu-sub b{color:var(--ais); font-weight:700;}
 
-  /* Compact ranked list cards — used for Top Selling Device/Accessory and
-     Top Campaigns/Service Care. The proportional bar is a low-opacity
-     background sitting BEHIND the row (not a separate track), so name and
-     count stay fully legible on top of it — no overlap, no wasted space. */
+  /* Combined ranking card: one outer card with two independent sub-cards. */
   .rank-card{border-top:3px solid var(--ais);}
-  .rank-card.alt{border-top-color:var(--partner);}
-  .rank-section{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 9px; background:#F5F6F8; border-radius:6px; margin-bottom:6px;}
+  .rank-subcards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .rank-subcard{border:1px solid var(--border); border-radius:9px; padding:10px 10px 9px; background:#FCFDFE; min-width:0;}
+  .rank-subcard.alt{border-top:2px solid var(--partner);}
+  .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;}
+  .rank-subcard-head h3{font-size:11.5px; margin:0; font-weight:800; color:var(--text);}
+  .rank-subcard-head .tag{font-size:10px; color:var(--muted); font-weight:600;}
+  .rank-section{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 8px; background:#F5F6F8; border-radius:6px; margin-bottom:6px;}
   .rank-col-header .lbl{font-size:10.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:12px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
@@ -192,7 +194,7 @@
   .rank-slider-row .rank-slider-lbl{font-size:10.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--ais);}
   .rank-slider-row .rank-slider-val{font-size:11.5px; font-weight:800; min-width:22px; text-align:right;}
-  @media(max-width:900px){ .rank-section{grid-template-columns:1fr;} }
+  @media(max-width:900px){ .rank-subcards,.rank-section{grid-template-columns:1fr;} }
 
   table{width:100%; border-collapse:collapse; font-size:11.5px;}
   th{text-align:left; color:var(--muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); font-size:10px; text-transform:uppercase; position:sticky; top:0; background:var(--card);}
@@ -380,14 +382,12 @@ function hourLabel(d, mode){
    so periodic auto-refresh never causes a hard flash/blank state. */
 function softUpdate(el, html){
   if (!el) return;
-  if (!dashboardBuilt){ el.innerHTML = html; return; }
-  el.style.opacity = '0.32';
-  requestAnimationFrame(() => {
-    setTimeout(() => {
-      el.innerHTML = html;
-      requestAnimationFrame(() => { el.style.opacity = '1'; });
-    }, 90);
-  });
+  // Keep the current DOM visible while data is fetched. Once the new payload is
+  // ready, replace only the small content region in one frame — no blank state,
+  // opacity flash, or full-dashboard rebuild during auto-refresh.
+  if (el.innerHTML !== html) {
+    requestAnimationFrame(() => { el.innerHTML = html; });
+  }
 }
 
 /* Animate a number counting up/down to its new value, for extra polish
@@ -614,42 +614,45 @@ function buildSkeleton(){
 
     <div class="row-single">
       <div class="card rank-card">
-        <h2>Top Selling Device &amp; Accessory</h2>
-        <div class="rank-section">
-          <div>
-            <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
-            <div class="rank-list soft" id="body-device-list"></div>
+        <h2>Top Selling &amp; Marketing Performance</h2>
+        <div class="rank-subcards">
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
+            <div class="rank-section">
+              <div>
+                <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
+                <div class="rank-list soft" id="body-device-list"></div>
+              </div>
+              <div>
+                <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
+                <div class="rank-list soft" id="body-accessory-list"></div>
+              </div>
+            </div>
+            <div class="rank-slider-row">
+              <span class="rank-slider-lbl">SHOW</span>
+              <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
+              <span class="rank-slider-val" id="sliderDeviceVal">10</span>
+            </div>
           </div>
-          <div>
-            <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
-            <div class="rank-list soft" id="body-accessory-list"></div>
-          </div>
-        </div>
-        <div class="rank-slider-row">
-          <span class="rank-slider-lbl">SHOW</span>
-          <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
-          <span class="rank-slider-val" id="sliderDeviceVal">10</span>
-        </div>
-      </div>
-    </div>
 
-    <div class="row-single">
-      <div class="card rank-card alt">
-        <h2>Top Campaigns &amp; Service Care</h2>
-        <div class="rank-section">
-          <div>
-            <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
-            <div class="rank-list soft" id="body-camp-list"></div>
+          <div class="rank-subcard alt">
+            <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
+            <div class="rank-section">
+              <div>
+                <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
+                <div class="rank-list soft" id="body-camp-list"></div>
+              </div>
+              <div>
+                <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
+                <div class="rank-list soft" id="body-svc-list"></div>
+              </div>
+            </div>
+            <div class="rank-slider-row">
+              <span class="rank-slider-lbl">SHOW</span>
+              <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
+              <span class="rank-slider-val" id="sliderCampaignVal">10</span>
+            </div>
           </div>
-          <div>
-            <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
-            <div class="rank-list soft" id="body-svc-list"></div>
-          </div>
-        </div>
-        <div class="rank-slider-row">
-          <span class="rank-slider-lbl">SHOW</span>
-          <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
-          <span class="rank-slider-val" id="sliderCampaignVal">10</span>
         </div>
       </div>
     </div>
@@ -693,7 +696,9 @@ function rankRows(items, count, color){
    both after a data refresh and whenever a slider is dragged. */
 function renderDeviceAccessory(){
   if (!lastMetrics) return;
-  const n = parseInt(document.getElementById('sliderDevice').value, 10);
+  const slider = document.getElementById('sliderDevice');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
   document.getElementById('sliderDeviceVal').textContent = n;
   // Direct innerHTML swap (no cross-fade) so dragging the slider feels instant.
   document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--ais)');
@@ -701,7 +706,9 @@ function renderDeviceAccessory(){
 }
 function renderCampaignService(){
   if (!lastMetrics) return;
-  const n = parseInt(document.getElementById('sliderCampaign').value, 10);
+  const slider = document.getElementById('sliderCampaign');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
   document.getElementById('sliderCampaignVal').textContent = n;
   document.getElementById('body-camp-list').innerHTML = rankRows(lastMetrics.campTop, n, 'var(--ais)');
   document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--partner)');
