@@ -1118,44 +1118,6 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
   softUpdate(document.getElementById('body-slowest'), slowHtml);
 
-  // ---- Revenue overview ----
-  document.getElementById('tag-revtotal').textContent = M.hasRevenueData ? `Net: ${fmtCurrency(M.netRevenue)}` : '';
-  if (!M.hasRevenueData){
-    softUpdate(document.getElementById('revenue-card-body'),
-      '<div class="empty" style="grid-column:1/-1;">ไม่พบข้อมูลราคา (priceIncAmt / priceDiscountAmt) ใน Sheet นี้</div>');
-  } else {
-    const revTiles = [
-      {n: fmtCurrency(M.gmvTotal), l: 'GMV (ราคาเต็ม)', bg:'var(--gold-bg)', fg:'#D9B679'},
-      {n: fmtCurrency(M.discountTotal), l: 'ส่วนลดรวม', bg:'var(--accent-bg)', fg:'#E8A79C'},
-      {n: fmtCurrency(M.netRevenue), l: 'Net Revenue', bg:'var(--green-bg)', fg:'#A9C79E'},
-      {n: fmtCurrency(M.avgOrderValue), l: 'Avg Order Value', bg:'var(--slate-bg)', fg:'#9DBECE'}
-    ];
-    softUpdate(document.getElementById('tiles-revenue'), revTiles.map(t => `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
-      <div class="n">${t.n}</div>
-      <div class="l">${t.l}</div>
-    </div>`).join(''));
-
-    const revGrpTotal = M.revByGrp.AIS + M.revByGrp.PARTNER;
-    const revGrpRow = (name, color, amount) => {
-      const pct = revGrpTotal ? amount/revGrpTotal*100 : 0;
-      return `<div class="grp-row">
-        <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
-        <div class="grp-nums">
-          <div class="n">${fmtCurrency(amount)}</div>
-          <div class="p">${fmtPct(pct)}</div>
-        </div>
-      </div>`;
-    };
-    softUpdate(document.getElementById('body-revenue-grp'),
-      revGrpRow('AIS','var(--gold)', M.revByGrp.AIS) + revGrpRow('PARTNER','var(--stone)', M.revByGrp.PARTNER));
-
-    const campRevHtml = M.campRevTop.map(c => `<tr>
-      <td title="${esc(c.name)}">${esc(c.name)}</td>
-      <td>${fmtCurrency(c.revenue)}</td>
-      <td>${fmtNum(c.count)}</td>
-    </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล</td></tr>`;
-    softUpdate(document.getElementById('body-camprevenue'), campRevHtml);
-  }
 
   // ---- Branch & stock flow ----
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
