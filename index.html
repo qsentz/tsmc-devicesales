@@ -266,6 +266,16 @@
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
   .rank-slider-row .rank-slider-val{font-size:11px; font-weight:800; min-width:20px; text-align:right;}
 
+  /* Sub-cards that stack in a single (narrow) column — Order Source & Stock Destination */
+  .subcards-stack{grid-template-columns:1fr;}
+
+  /* Sub-cards laid out as an equal-height trio — Duration Performance */
+  .subcards-trio{grid-template-columns:1fr;}
+  @media(min-width:900px){ .subcards-trio{grid-template-columns:repeat(3,1fr);} }
+  .subcards-trio .rank-subcard{display:flex; flex-direction:column; height:100%;}
+  .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:230px;}
+  .subcards-trio .tier-grid{flex:1 1 auto;}
+
   table{width:100%; border-collapse:collapse; font-size:11px;}
   th{text-align:left; color:var(--muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); font-size:9.5px; position:sticky; top:0; background:var(--surface);}
   td{padding:6px 8px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
@@ -780,14 +790,19 @@ function buildSkeleton(){
     <div class="grid-asym">
       <div class="col-narrow">
         <div class="card">
-          <h2>AIS Shop vs Partner <span class="tag" id="tag-prebooktotal"></span></h2>
-          <div class="card-body soft" id="body-aispartner"></div>
-        </div>
-        <div class="card">
-          <h2>Sub Stock Destination</h2>
-          <div class="stock-donut-wrap">
-            <div class="chart-wrap donut"><canvas id="chartStock"></canvas></div>
-            <div class="stock-legend soft" id="body-substock"></div>
+          <h2>Order Source &amp; Stock Destination</h2>
+          <div class="rank-subcards subcards-stack">
+            <div class="rank-subcard">
+              <div class="rank-subcard-head"><h3>AIS Shop vs Partner</h3><span class="tag" id="tag-prebooktotal"></span></div>
+              <div class="card-body soft" id="body-aispartner"></div>
+            </div>
+            <div class="rank-subcard alt">
+              <div class="rank-subcard-head"><h3>Sub Stock Destination</h3></div>
+              <div class="stock-donut-wrap">
+                <div class="chart-wrap donut"><canvas id="chartStock"></canvas></div>
+                <div class="stock-legend soft" id="body-substock"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -800,27 +815,30 @@ function buildSkeleton(){
       </div>
     </div>
 
-    <div class="grid-trio">
-      <div class="card">
-        <h2>Duration Overview <span class="tag" id="tag-durtotal"></span></h2>
-        <div class="tier-grid soft" id="tiles-tier"></div>
-      </div>
-      <div class="card">
-        <h2>Avg / P90 Duration by Order Type</h2>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
-            <tbody id="body-avgp90"></tbody>
-          </table>
+    <div class="card">
+      <h2>Duration Performance</h2>
+      <div class="rank-subcards subcards-trio">
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Duration Overview</h3><span class="tag" id="tag-durtotal"></span></div>
+          <div class="tier-grid soft" id="tiles-tier"></div>
         </div>
-      </div>
-      <div class="card">
-        <h2>Slowest Orders <span class="tag">&gt;= 30m</span></h2>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
-            <tbody id="body-slowest"></tbody>
-          </table>
+        <div class="rank-subcard alt">
+          <div class="rank-subcard-head"><h3>Avg / P90 Duration by Order Type</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
+              <tbody id="body-avgp90"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Slowest Orders</h3><span class="tag">&gt;= 30m</span></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
+              <tbody id="body-slowest"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
