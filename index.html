@@ -1078,7 +1078,7 @@ function renderTrackingTable(rows) {
     });
     
     // Limit to top 300 to prevent browser lag if data is huge
-    const limit = Math.min(sortedRows.length, 2000);
+    const limit = Math.min(sortedRows.length, ${fmtNum(rows.length)});
     const displayRows = sortedRows.slice(0, limit);
     
     const countTag = document.getElementById('tag-tracking-count');
