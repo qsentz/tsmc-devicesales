@@ -347,6 +347,10 @@
       <input id="inputSheetName" placeholder="Order" value="Order" />
     </div>
     <button class="btn primary" id="btnLoad">โหลดข้อมูล</button>
+    <div class="note">
+      Sheet ID คือส่วนหนึ่งของ URL: <code>docs.google.com/spreadsheets/d/&lt;SHEET_ID&gt;/edit</code><br>
+      ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้
+    </div>
   </div>
 </div>
 
@@ -354,7 +358,7 @@
   <div id="banner"></div>
   <div id="dashboard" style="display:none;"></div>
   <div id="placeholder" class="empty" style="padding:80px 0; font-size:14px;">
-    กรอก ID แล้วกดโหลดข้อมูล
+    กรอก Google Sheet ID แล้วกดโหลดข้อมูล (ดับเบิลคลิกที่หัวข้อ "Order Dashboard" ด้านซ้ายบนเพื่อตั้งค่า)
   </div>
 </div>
 
@@ -738,6 +742,27 @@ function computeMetrics(rows){
   const campOrders = campRows.length;
   const svcOrders = svcRows.length;
 
+  // ---- Revenue overview (orders.device.priceIncAmt / priceDiscountAmt) ----
+  // Rows with no price data at all contribute 0 and don't skew the totals;
+  // hasRevenueData flags whether the sheet actually carries these columns
+  // so the UI can show an empty-state instead of a wall of ฿0.
+  const hasRevenueData = completeRows.some(r => r.priceIncAmt > 0 || r.priceDiscountAmt > 0);
+  const gmvTotal = completeRows.reduce((s,r) => s + r.priceIncAmt, 0);
+  const discountTotal = completeRows.reduce((s,r) => s + r.priceDiscountAmt, 0);
+  const netRevenue = gmvTotal - discountTotal;
+  const avgOrderValue = completeCount ? netRevenue / completeCount : 0;
+  const revByGrp = {AIS:0, PARTNER:0};
+  completeRows.forEach(r => { revByGrp[grp(r.orderType || '')] += (r.priceIncAmt - r.priceDiscountAmt); });
+  const campRevAgg = {};
+  completeRows.forEach(r => {
+    if (isBlank(r.campaignName)) return;
+    const net = r.priceIncAmt - r.priceDiscountAmt;
+    const a = campRevAgg[r.campaignName] || (campRevAgg[r.campaignName] = {revenue:0, count:0});
+    a.revenue += net; a.count++;
+  });
+  const campRevTop = Object.entries(campRevAgg)
+    .map(([name,v]) => ({name, revenue:v.revenue, count:v.count, avg: v.count ? v.revenue/v.count : 0}))
+    .sort((a,b) => b.revenue - a.revenue).slice(0, 8);
 
   // ---- Branch / location source ----
   // For each locationSource, also surface the single stock destination it
@@ -913,6 +938,28 @@ function buildSkeleton(){
       </div>
     </div>
 
+    <div class="card">
+      <h2>Revenue Overview <span class="tag" id="tag-revtotal"></span></h2>
+      <div class="rank-subcards subcards-trio" id="revenue-card-body">
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Revenue Summary</h3></div>
+          <div class="tier-grid soft" id="tiles-revenue"></div>
+        </div>
+        <div class="rank-subcard alt">
+          <div class="rank-subcard-head"><h3>Revenue by Order Type</h3></div>
+          <div class="card-body soft" id="body-revenue-grp"></div>
+        </div>
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Top Campaigns by Revenue</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Campaign</th><th>Revenue</th><th>Orders</th></tr></thead>
+              <tbody id="body-camprevenue"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div class="card">
       <h2>Branch &amp; Stock Flow <span class="tag" id="tag-loctotal"></span></h2>
@@ -1114,6 +1161,44 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
   softUpdate(document.getElementById('body-slowest'), slowHtml);
 
+  // ---- Revenue overview ----
+  document.getElementById('tag-revtotal').textContent = M.hasRevenueData ? `Net: ${fmtCurrency(M.netRevenue)}` : '';
+  if (!M.hasRevenueData){
+    softUpdate(document.getElementById('revenue-card-body'),
+      '<div class="empty" style="grid-column:1/-1;">ไม่พบข้อมูลราคา (priceIncAmt / priceDiscountAmt) ใน Sheet นี้</div>');
+  } else {
+    const revTiles = [
+      {n: fmtCurrency(M.gmvTotal), l: 'GMV (ราคาเต็ม)', bg:'var(--gold-bg)', fg:'#D9B679'},
+      {n: fmtCurrency(M.discountTotal), l: 'ส่วนลดรวม', bg:'var(--accent-bg)', fg:'#E8A79C'},
+      {n: fmtCurrency(M.netRevenue), l: 'Net Revenue', bg:'var(--green-bg)', fg:'#A9C79E'},
+      {n: fmtCurrency(M.avgOrderValue), l: 'Avg Order Value', bg:'var(--slate-bg)', fg:'#9DBECE'}
+    ];
+    softUpdate(document.getElementById('tiles-revenue'), revTiles.map(t => `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
+      <div class="n">${t.n}</div>
+      <div class="l">${t.l}</div>
+    </div>`).join(''));
+
+    const revGrpTotal = M.revByGrp.AIS + M.revByGrp.PARTNER;
+    const revGrpRow = (name, color, amount) => {
+      const pct = revGrpTotal ? amount/revGrpTotal*100 : 0;
+      return `<div class="grp-row">
+        <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
+        <div class="grp-nums">
+          <div class="n">${fmtCurrency(amount)}</div>
+          <div class="p">${fmtPct(pct)}</div>
+        </div>
+      </div>`;
+    };
+    softUpdate(document.getElementById('body-revenue-grp'),
+      revGrpRow('AIS','var(--gold)', M.revByGrp.AIS) + revGrpRow('PARTNER','var(--stone)', M.revByGrp.PARTNER));
+
+    const campRevHtml = M.campRevTop.map(c => `<tr>
+      <td title="${esc(c.name)}">${esc(c.name)}</td>
+      <td>${fmtCurrency(c.revenue)}</td>
+      <td>${fmtNum(c.count)}</td>
+    </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล</td></tr>`;
+    softUpdate(document.getElementById('body-camprevenue'), campRevHtml);
+  }
 
   // ---- Branch & stock flow ----
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
