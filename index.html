@@ -28,6 +28,8 @@
     margin:0; min-height:100%; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     font-size:13.5px;
+    background-image:radial-gradient(circle, rgba(52,64,84,.07) 1px, transparent 1px);
+    background-size:22px 22px;
   }
   ::-webkit-scrollbar{width:6px; height:6px;}
   ::-webkit-scrollbar-thumb{background:#D3D8E0; border-radius:6px;}
@@ -87,18 +89,32 @@
   #banner.show{display:block;}
   #banner code{background:#fff; padding:1px 6px; border-radius:4px;}
 
-  #dashboard{display:flex; flex-direction:column; gap:14px;}
-  .row-kpi{display:grid; grid-template-columns:repeat(4,1fr); gap:12px;}
-  .row-mid{display:grid; grid-template-columns:0.85fr 1.55fr 1.1fr; gap:12px;}
-  .row-single{display:grid; grid-template-columns:1fr; gap:12px;}
-  .row-split{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  #dashboard{display:flex; flex-direction:row; align-items:flex-start; gap:14px;}
+  .dash-left{flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:14px;}
+  .dash-right{flex:0 0 316px; display:flex; flex-direction:column; gap:14px;}
+  .row-kpi{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; animation:fadeInUp .5s ease both;}
+  .row-mid{display:grid; grid-template-columns:0.9fr 1.4fr; gap:12px; animation:fadeInUp .5s ease .06s both;}
+  .row-single{display:grid; grid-template-columns:1fr; gap:12px; animation:fadeInUp .5s ease .12s both;}
+  .dash-right{animation:fadeInUp .5s ease .09s both;}
+
+  @keyframes fadeInUp{
+    from{opacity:0; transform:translateY(10px);}
+    to{opacity:1; transform:translateY(0);}
+  }
 
   .card{
+    position:relative; overflow:hidden;
     background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
-    box-shadow:var(--shadow); padding:14px 16px; min-width:0;
+    box-shadow:var(--shadow); padding:16px 16px 14px; min-width:0;
     display:flex; flex-direction:column;
     transition:box-shadow .2s ease, transform .2s ease;
   }
+  .card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:3px;
+    background:linear-gradient(90deg, var(--ais), var(--partner));
+    opacity:.9;
+  }
+  .dash-right .card::before{ background:linear-gradient(90deg, var(--partner), var(--red)); }
   .card:hover{ box-shadow:var(--shadow-hover); transform:translateY(-1px); }
   .card h2{
     font-size:12px; text-transform:uppercase; letter-spacing:.03em; margin:0 0 10px; font-weight:700; color:var(--text);
@@ -110,11 +126,14 @@
   .soft{transition:opacity .28s ease;}
 
   @media(max-width:1150px){
+    #dashboard{flex-direction:column;}
+    .dash-right{flex-basis:auto; width:100%;}
+    .dash-right{display:grid; grid-template-columns:repeat(2,1fr); gap:12px;}
     .row-mid{grid-template-columns:1fr;}
   }
   @media(max-width:900px){
     .row-kpi{grid-template-columns:repeat(2,1fr);}
-    .row-split{grid-template-columns:1fr;}
+    .dash-right{grid-template-columns:1fr;}
   }
   @media(max-width:600px){
     .row-kpi{grid-template-columns:1fr;}
@@ -122,7 +141,10 @@
   }
 
   /* KPI: total order */
-  .kpi-total{text-align:center; margin-bottom:10px;}
+  .kpi-total{display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:10px;}
+  .kpi-ring{position:relative; width:60px; height:60px; flex:0 0 auto;}
+  .kpi-ring canvas{width:60px; height:60px; display:block;}
+  .kpi-total .nums{text-align:left;}
   .kpi-total .big{font-size:32px; font-weight:800; line-height:1;}
   .kpi-total .lbl{font-size:11px; color:var(--muted); margin-top:4px;}
   .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:6px;}
@@ -174,7 +196,7 @@
   .menu-sub b{color:var(--ais); font-weight:700;}
 
   /* Combined ranking card: one outer card with two independent sub-cards. */
-  .rank-card{border-top:3px solid var(--ais);}
+  .rank-card::before{background:linear-gradient(90deg, var(--ais), var(--partner), var(--amber));}
   .rank-subcards{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
   .rank-subcard{border:1px solid var(--border); border-radius:9px; padding:10px 10px 9px; background:#FCFDFE; min-width:0;}
   .rank-subcard.alt{border-top:2px solid var(--partner);}
@@ -207,8 +229,10 @@
 
   .empty{color:var(--muted); font-size:12px; text-align:center; padding:16px 0;}
   .chart-wrap{position:relative; height:230px;}
+  .dash-right .chart-wrap{height:190px;}
   .table-scroll{overflow:auto;}
   .table-scroll.tall{max-height:320px;}
+  .table-scroll.side{max-height:200px;}
 </style>
 </head>
 <body>
@@ -406,6 +430,42 @@ function animateNumber(el, to){
   requestAnimationFrame(step);
 }
 
+/* Small canvas donut ring — shows COMPLETE as a share of all orders,
+   animated from 0 to its target percentage. Pure Canvas, no dependency
+   on Chart.js, so it draws even before/if the chart library ever fails. */
+function drawRing(canvasEl, pct, color){
+  if (!canvasEl || !canvasEl.getContext) return;
+  const ctx = canvasEl.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const size = 60;
+  canvasEl.width = size * dpr; canvasEl.height = size * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cx = size/2, cy = size/2, r = size/2 - 5;
+  const target = Math.max(0, Math.min(100, pct));
+  const from = canvasEl.dataset.pct ? parseFloat(canvasEl.dataset.pct) : 0;
+  canvasEl.dataset.pct = target;
+  const dur = 650, start = performance.now();
+  function frame(t){
+    const p = Math.min(1, (t - start) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const cur = from + (target - from) * eased;
+    ctx.clearRect(0, 0, size, size);
+    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.strokeStyle = '#EEF1F5';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = '#344054';
+    ctx.font = '700 11px -apple-system,Segoe UI,Roboto,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(Math.round(cur) + '%', cx, cy);
+    if (p < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 /* ===================== METRICS ===================== */
 function computeMetrics(rows){
   const stateRows = rows.filter(r => r.state);
@@ -572,95 +632,100 @@ function computeMetrics(rows){
 function buildSkeleton(){
   const dash = document.getElementById('dashboard');
   dash.innerHTML = `
-    <div class="row-kpi">
-      <div class="card">
-        <h2>Total Order Completed <span class="tag" id="tag-grandtotal"></span></h2>
-        <div class="kpi-total"><div class="big" id="val-complete">0</div><div class="lbl">COMPLETE</div></div>
-        <div class="tiles" id="tiles-status"></div>
+    <div class="dash-left">
+      <div class="row-kpi">
+        <div class="card">
+          <h2>Total Order Completed <span class="tag" id="tag-grandtotal"></span></h2>
+          <div class="kpi-total">
+            <div class="kpi-ring"><canvas id="ringComplete" width="60" height="60"></canvas></div>
+            <div class="nums"><div class="big" id="val-complete">0</div><div class="lbl">COMPLETE</div></div>
+          </div>
+          <div class="tiles" id="tiles-status"></div>
+        </div>
+        <div class="card">
+          <h2>AIS Shop vs Partner <span class="tag" id="tag-prebooktotal"></span></h2>
+          <div class="card-body soft" id="body-aispartner"></div>
+        </div>
+        <div class="card">
+          <h2>Sub Stock Destination</h2>
+          <div class="card-body soft" id="body-substock"></div>
+        </div>
       </div>
-      <div class="card">
-        <h2>AIS Shop vs Partner <span class="tag" id="tag-prebooktotal"></span></h2>
-        <div class="card-body soft" id="body-aispartner"></div>
+
+      <div class="row-mid">
+        <div class="card">
+          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
+          <div class="card-body soft" id="body-menu"></div>
+        </div>
+        <div class="card">
+          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
+          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+        </div>
       </div>
-      <div class="card">
-        <h2>Sub Stock Destination</h2>
-        <div class="card-body soft" id="body-substock"></div>
+
+      <div class="row-single">
+        <div class="card rank-card">
+          <h2>Top Selling &amp; Marketing Performance</h2>
+          <div class="rank-subcards">
+            <div class="rank-subcard">
+              <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
+              <div class="rank-section">
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
+                  <div class="rank-list soft" id="body-device-list"></div>
+                </div>
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
+                  <div class="rank-list soft" id="body-accessory-list"></div>
+                </div>
+              </div>
+              <div class="rank-slider-row">
+                <span class="rank-slider-lbl">SHOW</span>
+                <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
+                <span class="rank-slider-val" id="sliderDeviceVal">10</span>
+              </div>
+            </div>
+
+            <div class="rank-subcard alt">
+              <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
+              <div class="rank-section">
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
+                  <div class="rank-list soft" id="body-camp-list"></div>
+                </div>
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
+                  <div class="rank-list soft" id="body-svc-list"></div>
+                </div>
+              </div>
+              <div class="rank-slider-row">
+                <span class="rank-slider-lbl">SHOW</span>
+                <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
+                <span class="rank-slider-val" id="sliderCampaignVal">10</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+
+    <div class="dash-right">
       <div class="card">
         <h2>Duration Overview <span class="tag" id="tag-durtotal"></span></h2>
         <div class="tier-grid soft" id="tiles-tier"></div>
       </div>
-    </div>
-
-    <div class="row-mid">
-      <div class="card">
-        <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
-        <div class="card-body soft" id="body-menu"></div>
-      </div>
-      <div class="card">
-        <h2>Order Volume <span class="tag" id="tag-voltotal"></span></h2>
-        <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-      </div>
       <div class="card">
         <h2>Avg / P90 Duration by Order Type</h2>
-        <div class="table-scroll">
+        <div class="table-scroll side">
           <table>
             <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
             <tbody id="body-avgp90"></tbody>
           </table>
         </div>
       </div>
-    </div>
-
-    <div class="row-single">
-      <div class="card rank-card">
-        <h2>Top Selling &amp; Marketing Performance</h2>
-        <div class="rank-subcards">
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
-            <div class="rank-section">
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
-                <div class="rank-list soft" id="body-device-list"></div>
-              </div>
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
-                <div class="rank-list soft" id="body-accessory-list"></div>
-              </div>
-            </div>
-            <div class="rank-slider-row">
-              <span class="rank-slider-lbl">SHOW</span>
-              <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
-              <span class="rank-slider-val" id="sliderDeviceVal">10</span>
-            </div>
-          </div>
-
-          <div class="rank-subcard alt">
-            <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
-            <div class="rank-section">
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
-                <div class="rank-list soft" id="body-camp-list"></div>
-              </div>
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
-                <div class="rank-list soft" id="body-svc-list"></div>
-              </div>
-            </div>
-            <div class="rank-slider-row">
-              <span class="rank-slider-lbl">SHOW</span>
-              <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
-              <span class="rank-slider-val" id="sliderCampaignVal">10</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="row-split">
       <div class="card">
-        <h2>Slowest Orders</h2>
-        <div class="table-scroll tall">
+        <h2>Slowest Orders <span class="tag">&gt;= 30m</span></h2>
+        <div class="table-scroll side">
           <table>
             <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
             <tbody id="body-slowest"></tbody>
@@ -668,7 +733,7 @@ function buildSkeleton(){
         </div>
       </div>
       <div class="card">
-        <h2>Avg Duration Trend</h2>
+        <h2>Avg Duration Trend (hourly)</h2>
         <div class="chart-wrap"><canvas id="chartDurTrend"></canvas></div>
       </div>
     </div>
@@ -721,6 +786,7 @@ function updateDashboard(rows){
   // ---- Total order completed ----
   document.getElementById('tag-grandtotal').textContent = `Total Order: ${fmtNum(M.grandTotal)}`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
+  drawRing(document.getElementById('ringComplete'), M.grandTotal ? M.completeCount/M.grandTotal*100 : 0, '#2F5EA3');
   const statusColors = {
     WAITING_PAYMENT: ['var(--amber-bg)','#8A6D3B'],
     READY_TO_PAY: ['var(--blue-bg)','#2F5EA3'],
