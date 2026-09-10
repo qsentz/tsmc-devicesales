@@ -278,6 +278,22 @@
   .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:230px;}
   .subcards-trio .tier-grid{flex:1 1 auto;}
 
+  /* Sub-cards laid out as an equal-height pair — Branch & Stock Flow */
+  .subcards-duo{grid-template-columns:1fr;}
+  @media(min-width:900px){ .subcards-duo{grid-template-columns:1fr 1fr;} }
+  .subcards-duo .rank-subcard{display:flex; flex-direction:column; height:100%;}
+  .subcards-duo .rank-list{flex:1 1 auto;}
+  .subcards-duo .table-scroll{flex:1 1 auto; min-height:0; max-height:320px;}
+
+  /* Hover-to-preview product image cue on Top Selling rows */
+  .rank-name.has-img{cursor:help; border-bottom:1px dashed var(--muted);}
+  .img-preview{
+    position:fixed; z-index:9999; pointer-events:none; display:none;
+    background:var(--surface); border:1px solid var(--border); border-radius:6px;
+    padding:7px; box-shadow:4px 4px 0 rgba(0,0,0,.5);
+  }
+  .img-preview img{display:block; width:140px; height:140px; object-fit:contain; border-radius:4px; background:#fff;}
+
   table{width:100%; border-collapse:collapse; font-size:11px;}
   th{text-align:left; color:var(--muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); font-size:9.5px; position:sticky; top:0; background:var(--surface);}
   td{padding:6px 8px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
@@ -346,6 +362,8 @@
   </div>
 </div>
 
+<div class="img-preview" id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
+
 <script>
 /* ===================== CONFIG / STATE ===================== */
 const LS_KEY = 'orderDashboardConfig';
@@ -405,6 +423,15 @@ const COL = {
   subStockDestination: 'orders.subStockDestination',
   menu: 'orders.menu'
 };
+/* Optional columns — dashboard still works fine if these are missing from
+   an older sheet; they just power the newer Revenue / Branch / image-hover
+   features and silently no-op (idx === -1) when absent. */
+const COL_OPTIONAL = {
+  priceIncAmt: 'orders.device.priceIncAmt',
+  priceDiscountAmt: 'orders.device.priceDiscountAmt',
+  locationSource: 'locationSource',
+  imageUrl: 'orders.device.imageUrl'
+};
 const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
 
 /* ===================== FETCH (Google Visualization / gviz) ===================== */
@@ -445,7 +472,14 @@ function buildRows(cols, rawRows){
     throw new Error('ไม่พบคอลัมน์ต่อไปนี้ใน Sheet: ' + missing.map(k => COL[k]).join(', ') +
       ' — ตรวจสอบว่าหัวคอลัมน์ตรงกับที่ Code.gs เขียนไว้');
   }
+  for (const k in COL_OPTIONAL) idx[k] = cols.indexOf(COL_OPTIONAL[k]);
   const str = v => (v === null || v === undefined) ? '' : String(v).trim();
+  const num = v => {
+    if (v === null || v === undefined || v === '') return 0;
+    const n = parseFloat(String(v).replace(/,/g,''));
+    return isNaN(n) ? 0 : n;
+  };
+  const get = (r, key) => idx[key] === -1 ? undefined : r[idx[key]];
   return rawRows.map(r => ({
     ts: parseGvizDate(r[idx.ts]),
     transactionId: str(r[idx.transactionId]),
@@ -457,7 +491,11 @@ function buildRows(cols, rawRows){
     preBookingNo: str(r[idx.preBookingNo]),
     serviceCareTitle: str(r[idx.serviceCareTitle]),
     subStockDestination: str(r[idx.subStockDestination]),
-    menu: str(r[idx.menu])
+    menu: str(r[idx.menu]),
+    priceIncAmt: num(get(r,'priceIncAmt')),
+    priceDiscountAmt: num(get(r,'priceDiscountAmt')),
+    locationSource: str(get(r,'locationSource')),
+    imageUrl: str(get(r,'imageUrl'))
   })).filter(r => r.orderId);
 }
 
@@ -477,6 +515,7 @@ function topN(rows, field, n){
 }
 function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
 function fmtNum(n){ return n.toLocaleString('en-US'); }
+function fmtCurrency(n){ return '฿' + Math.round(n).toLocaleString('en-US'); }
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -703,6 +742,56 @@ function computeMetrics(rows){
   const campOrders = campRows.length;
   const svcOrders = svcRows.length;
 
+  // ---- Revenue overview (orders.device.priceIncAmt / priceDiscountAmt) ----
+  // Rows with no price data at all contribute 0 and don't skew the totals;
+  // hasRevenueData flags whether the sheet actually carries these columns
+  // so the UI can show an empty-state instead of a wall of ฿0.
+  const hasRevenueData = completeRows.some(r => r.priceIncAmt > 0 || r.priceDiscountAmt > 0);
+  const gmvTotal = completeRows.reduce((s,r) => s + r.priceIncAmt, 0);
+  const discountTotal = completeRows.reduce((s,r) => s + r.priceDiscountAmt, 0);
+  const netRevenue = gmvTotal - discountTotal;
+  const avgOrderValue = completeCount ? netRevenue / completeCount : 0;
+  const revByGrp = {AIS:0, PARTNER:0};
+  completeRows.forEach(r => { revByGrp[grp(r.orderType || '')] += (r.priceIncAmt - r.priceDiscountAmt); });
+  const campRevAgg = {};
+  completeRows.forEach(r => {
+    if (isBlank(r.campaignName)) return;
+    const net = r.priceIncAmt - r.priceDiscountAmt;
+    const a = campRevAgg[r.campaignName] || (campRevAgg[r.campaignName] = {revenue:0, count:0});
+    a.revenue += net; a.count++;
+  });
+  const campRevTop = Object.entries(campRevAgg)
+    .map(([name,v]) => ({name, revenue:v.revenue, count:v.count, avg: v.count ? v.revenue/v.count : 0}))
+    .sort((a,b) => b.revenue - a.revenue).slice(0, 8);
+
+  // ---- Branch / location source ----
+  // For each locationSource, also surface the single stock destination it
+  // ships to most often, so "which branch → which stock" is visible at a
+  // glance without a full cross-tab.
+  const locRows = completeRows.filter(r => !isBlank(r.locationSource));
+  const locMap = {};
+  locRows.forEach(r => {
+    const a = locMap[r.locationSource] || (locMap[r.locationSource] = {count:0, stockMap:{}});
+    a.count++;
+    if (!isBlank(r.subStockDestination)) a.stockMap[r.subStockDestination] = (a.stockMap[r.subStockDestination]||0) + 1;
+  });
+  const locTop = Object.entries(locMap).map(([name,v]) => {
+    let topStock = null, topStockCount = 0;
+    Object.entries(v.stockMap).forEach(([s,c]) => { if (c > topStockCount){ topStock = s; topStockCount = c; } });
+    return { name, count: v.count, topStock, topStockPct: v.count ? topStockCount/v.count*100 : 0 };
+  }).sort((a,b) => b.count - a.count).slice(0, 10);
+  const locTotal = locRows.length;
+  const locItems = Object.keys(locMap).length;
+
+  // ---- Product image lookup (for the Top Selling hover preview) ----
+  const buildImgMap = rowsSrc => {
+    const m = {};
+    rowsSrc.forEach(r => { if (!m[r.commercialName] && !isBlank(r.imageUrl)) m[r.commercialName] = r.imageUrl; });
+    return m;
+  };
+  const deviceImgMap = buildImgMap(devRows);
+  const accessoryImgMap = buildImgMap(accRows);
+
   return {
     grandTotal, completeCount, statusTiles,
     otCounts, otTotal, prebookByGrp, prebookTotal, nonPrebookByGrp,
@@ -711,7 +800,10 @@ function computeMetrics(rows){
     mode, buckets, volTotal,
     durTotal, tierCounts, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
-    campTop, svcTop, campItems, svcItems, campOrders, svcOrders
+    campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
+    hasRevenueData, gmvTotal, discountTotal, netRevenue, avgOrderValue, revByGrp, campRevTop,
+    locTop, locTotal, locItems,
+    deviceImgMap, accessoryImgMap
   };
 }
 
@@ -845,20 +937,65 @@ function buildSkeleton(){
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <h2>Revenue Overview <span class="tag" id="tag-revtotal"></span></h2>
+      <div class="rank-subcards subcards-trio" id="revenue-card-body">
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Revenue Summary</h3></div>
+          <div class="tier-grid soft" id="tiles-revenue"></div>
+        </div>
+        <div class="rank-subcard alt">
+          <div class="rank-subcard-head"><h3>Revenue by Order Type</h3></div>
+          <div class="card-body soft" id="body-revenue-grp"></div>
+        </div>
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Top Campaigns by Revenue</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Campaign</th><th>Revenue</th><th>Orders</th></tr></thead>
+              <tbody id="body-camprevenue"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Branch &amp; Stock Flow <span class="tag" id="tag-loctotal"></span></h2>
+      <div class="rank-subcards subcards-duo">
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Top Branches by Completed Orders</h3></div>
+          <div class="rank-list soft" id="body-branch-list"></div>
+        </div>
+        <div class="rank-subcard alt">
+          <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Branch / Source</th><th>Orders</th><th>Top Stock</th></tr></thead>
+              <tbody id="body-branch-stock"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   dashboardBuilt = true;
 }
 
 /* ===================== RENDER / UPDATE ===================== */
-function rankRows(items, count, color){
+function rankRows(items, count, color, imgMap){
   const shown = items.slice(0, count);
   const max = Math.max(1, ...shown.map(i => i.count));
   return shown.map(i => {
     const pct = max ? i.count/max*100 : 0;
-    return `<div class="rank-row">
+    const img = imgMap && imgMap[i.name];
+    const imgAttr = img ? ` data-img="${esc(img)}"` : '';
+    const nameCls = img ? 'rank-name has-img' : 'rank-name';
+    return `<div class="rank-row"${imgAttr}>
       <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
-      <div class="rank-name" title="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="${nameCls}" title="${esc(i.name)}">${esc(i.name)}</div>
       <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
@@ -873,8 +1010,8 @@ function renderDeviceAccessory(){
   if (!slider) return;
   const n = parseInt(slider.value, 10);
   document.getElementById('sliderDeviceVal').textContent = n;
-  document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--gold)');
-  document.getElementById('body-accessory-list').innerHTML = rankRows(lastMetrics.accessoryTop, n, 'var(--stone)');
+  document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--gold)', lastMetrics.deviceImgMap);
+  document.getElementById('body-accessory-list').innerHTML = rankRows(lastMetrics.accessoryTop, n, 'var(--stone)', lastMetrics.accessoryImgMap);
 }
 function renderCampaignService(){
   if (!lastMetrics) return;
@@ -1024,6 +1161,55 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
   softUpdate(document.getElementById('body-slowest'), slowHtml);
 
+  // ---- Revenue overview ----
+  document.getElementById('tag-revtotal').textContent = M.hasRevenueData ? `Net: ${fmtCurrency(M.netRevenue)}` : '';
+  if (!M.hasRevenueData){
+    softUpdate(document.getElementById('revenue-card-body'),
+      '<div class="empty" style="grid-column:1/-1;">ไม่พบข้อมูลราคา (priceIncAmt / priceDiscountAmt) ใน Sheet นี้</div>');
+  } else {
+    const revTiles = [
+      {n: fmtCurrency(M.gmvTotal), l: 'GMV (ราคาเต็ม)', bg:'var(--gold-bg)', fg:'#D9B679'},
+      {n: fmtCurrency(M.discountTotal), l: 'ส่วนลดรวม', bg:'var(--accent-bg)', fg:'#E8A79C'},
+      {n: fmtCurrency(M.netRevenue), l: 'Net Revenue', bg:'var(--green-bg)', fg:'#A9C79E'},
+      {n: fmtCurrency(M.avgOrderValue), l: 'Avg Order Value', bg:'var(--slate-bg)', fg:'#9DBECE'}
+    ];
+    softUpdate(document.getElementById('tiles-revenue'), revTiles.map(t => `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
+      <div class="n">${t.n}</div>
+      <div class="l">${t.l}</div>
+    </div>`).join(''));
+
+    const revGrpTotal = M.revByGrp.AIS + M.revByGrp.PARTNER;
+    const revGrpRow = (name, color, amount) => {
+      const pct = revGrpTotal ? amount/revGrpTotal*100 : 0;
+      return `<div class="grp-row">
+        <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
+        <div class="grp-nums">
+          <div class="n">${fmtCurrency(amount)}</div>
+          <div class="p">${fmtPct(pct)}</div>
+        </div>
+      </div>`;
+    };
+    softUpdate(document.getElementById('body-revenue-grp'),
+      revGrpRow('AIS','var(--gold)', M.revByGrp.AIS) + revGrpRow('PARTNER','var(--stone)', M.revByGrp.PARTNER));
+
+    const campRevHtml = M.campRevTop.map(c => `<tr>
+      <td title="${esc(c.name)}">${esc(c.name)}</td>
+      <td>${fmtCurrency(c.revenue)}</td>
+      <td>${fmtNum(c.count)}</td>
+    </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล</td></tr>`;
+    softUpdate(document.getElementById('body-camprevenue'), campRevHtml);
+  }
+
+  // ---- Branch & stock flow ----
+  document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
+  softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
+  const branchStockHtml = M.locTop.map(b => `<tr>
+    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
+    <td>${fmtNum(b.count)}</td>
+    <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
+  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
+  softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
+
   document.getElementById('dashboard').style.display = 'flex';
   document.getElementById('placeholder').style.display = 'none';
 
@@ -1126,6 +1312,42 @@ function updateStockChart(M){
   }
 }
 
+/* ===================== IMAGE HOVER PREVIEW ===================== */
+/* Delegated (not per-row) so it works for any current or future
+   rank-row that carries a data-img attribute — see rankRows(). */
+function showImgPreview(url){
+  const box = document.getElementById('imgPreview');
+  const img = document.getElementById('imgPreviewImg');
+  if (!box || !img || !url) return;
+  img.src = url;
+  box.style.display = 'block';
+}
+function positionImgPreview(evt){
+  const box = document.getElementById('imgPreview');
+  if (!box || box.style.display !== 'block') return;
+  const pad = 16, boxW = 154, boxH = 154;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + boxW > window.innerWidth) x = evt.clientX - boxW - pad;
+  if (y + boxH > window.innerHeight) y = evt.clientY - boxH - pad;
+  box.style.left = Math.max(4, x) + 'px';
+  box.style.top = Math.max(4, y) + 'px';
+}
+function hideImgPreview(){
+  const box = document.getElementById('imgPreview');
+  if (box) box.style.display = 'none';
+}
+function bindImgPreviewEvents(){
+  document.addEventListener('mouseover', e => {
+    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
+    if (row) showImgPreview(row.dataset.img);
+  });
+  document.addEventListener('mousemove', positionImgPreview);
+  document.addEventListener('mouseout', e => {
+    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
+    if (row && (!e.relatedTarget || !row.contains(e.relatedTarget))) hideImgPreview();
+  });
+}
+
 /* ===================== ERROR / STATUS UI ===================== */
 function setStatus(mode, text){
   const dot = document.getElementById('statusDot');
@@ -1187,6 +1409,7 @@ async function loadData(isAuto){
   const cfg = getConfig();
   document.getElementById('inputSheetId').value = cfg.sheetId;
   document.getElementById('inputSheetName').value = cfg.sheetName;
+  bindImgPreviewEvents();
 
   // The "ตั้งค่า Sheet" button is hidden from the toolbar to keep the UI clean;
   // double-clicking the title still opens it for reconfiguration.
