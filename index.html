@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Order Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<title>[TS-MC] Monitoring and Tracking DeviceSale transactions</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
     --bg:#F3F4F6;
@@ -202,7 +202,11 @@ const COL = {
   transactionId: 'transactionId',
   orderId: 'orders.orderId',
   orderType: 'orders.orderType',
-  state: 'orders.state',
+  /* NOTE: the business status (COMPLETE / WAITING_PAYMENT / READY_TO_PAY / PENDING / DELETE)
+     lives in the "orders.status" column. "orders.state" is a separate, more granular
+     workflow field (DEVICE_SELECTED / CART_PREPARED / PAYMENT_PAID / ...) and must NOT
+     be used here. */
+  state: 'orders.status',
   commercialName: 'orders.device.commercialName',
   campaignName: 'orders.device.campaignName',
   preBookingNo: 'orders.device.preBookingNo',
@@ -635,7 +639,11 @@ function renderDashboard(rows){
 
   dash.style.display = 'grid';
   document.getElementById('placeholder').style.display = 'none';
-  renderCharts(M);
+  try {
+    renderCharts(M);
+  } catch (chartErr) {
+    console.warn('Chart rendering skipped:', chartErr);
+  }
 
   const rangeEl = document.getElementById('rangeLabel');
   if (rows.length){
@@ -647,8 +655,25 @@ function renderDashboard(rows){
   }
 }
 
+function chartFallback(canvasEl, msg){
+  if (!canvasEl) return;
+  const div = document.createElement('div');
+  div.className = 'empty';
+  div.style.paddingTop = '60px';
+  div.textContent = msg;
+  canvasEl.replaceWith(div);
+}
+
 function renderCharts(M){
   Object.values(charts).forEach(c => c && c.destroy());
+  charts = {};
+
+  if (typeof Chart === 'undefined'){
+    chartFallback(document.getElementById('chartVolume'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ — ลองรีเฟรชอีกครั้ง หรือตรวจสอบ ad-blocker/การเชื่อมต่ออินเทอร์เน็ต');
+    chartFallback(document.getElementById('chartDurTrend'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ — ลองรีเฟรชอีกครั้ง หรือตรวจสอบ ad-blocker/การเชื่อมต่ออินเทอร์เน็ต');
+    return;
+  }
+
   const labels = M.buckets.map(b => hourLabel(b.date, M.mode));
 
   const ctx1 = document.getElementById('chartVolume');
