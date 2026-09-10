@@ -33,7 +33,7 @@
     --green:#5C7A54;
     --green-bg:rgba(92,122,84,.20);
 
-    /* Accent — the one cut color, used sparingly & purposefully */
+    /* Accent — targeted accent color */
     --accent:#7A2020;
     --accent-bright:#A23A2E;
     --accent-bg:rgba(122,32,32,.20);
@@ -43,52 +43,54 @@
     --font-sans:'IBM Plex Sans Thai','IBM Plex Sans',-apple-system,sans-serif;
   }
   *{box-sizing:border-box;}
-  html{height:100%;}
+  html, body{height:100%; margin:0; padding:0;}
   body{
-    margin:0; min-height:100%; background:var(--bg); color:var(--text);
+    background:var(--bg); color:var(--text);
     font-family:var(--font-sans);
-    font-size:12.5px;
+    font-size:12px;
     position:relative;
+    display:flex; flex-direction:column;
+    overflow-x:hidden;
   }
-  /* subtle grain — hand-made feel, no external image */
+  /* subtle grain background overlay */
   body::before{
     content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
     opacity:.05; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
-  ::-webkit-scrollbar{width:6px; height:6px;}
-  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:6px;}
+  ::-webkit-scrollbar{width:5px; height:5px;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
   ::-webkit-scrollbar-track{background:transparent;}
 
-  .topbar-wrap{position:sticky; top:0; z-index:20;}
+  .topbar-wrap{position:sticky; top:0; z-index:20; flex:0 0 auto;}
   .topbar{
-    display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
-    padding:14px 24px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:10px 20px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
   }
   .topbar-title{display:flex; align-items:center; gap:10px;}
   .topbar h1{
-    font-family:var(--font-serif); font-size:22px; margin:0; font-weight:800; letter-spacing:-.01em;
+    font-family:var(--font-serif); font-size:19px; margin:0; font-weight:800; letter-spacing:-.01em;
     cursor:default; user-select:none; color:var(--text);
   }
   .live-chip{
-    font-family:var(--font-sans); font-size:9.5px; font-weight:700; color:var(--bg);
-    background:var(--accent); padding:3px 8px 2px; border-radius:3px; transform:rotate(-2deg);
+    font-family:var(--font-sans); font-size:9px; font-weight:700; color:var(--bg);
+    background:var(--accent); padding:2px 7px 1px; border-radius:3px; transform:rotate(-2deg);
     display:inline-block; letter-spacing:.02em;
   }
-  .topbar .sub{font-size:11px; color:var(--muted); margin-top:3px;}
+  .topbar .sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
   .topbar-right{display:flex; align-items:center; gap:10px;}
   .btn{
     font-family:var(--font-sans); border:1.5px solid var(--text); background:var(--surface); color:var(--text);
-    padding:7px 16px; border-radius:999px; font-size:11.5px; cursor:pointer; font-weight:700;
-    box-shadow:3px 3px 0 var(--border); transition:transform .1s ease, box-shadow .1s ease;
+    padding:5px 14px; border-radius:999px; font-size:11px; cursor:pointer; font-weight:700;
+    box-shadow:2px 2px 0 var(--border); transition:transform .1s ease, box-shadow .1s ease;
   }
   .btn:hover{background:var(--surface-alt);}
-  .btn:active{transform:translate(2px,2px); box-shadow:1px 1px 0 var(--border);}
-  .btn.primary{background:var(--accent); color:#F4EADF; border-color:var(--accent); box-shadow:3px 3px 0 rgba(0,0,0,.45);}
+  .btn:active{transform:translate(1px,1px); box-shadow:1px 1px 0 var(--border);}
+  .btn.primary{background:var(--accent); color:#F4EADF; border-color:var(--accent); box-shadow:2px 2px 0 rgba(0,0,0,.45);}
   .btn.primary:hover{background:var(--accent-bright);}
   .btn.hidden-cfg{display:none;}
 
-  .live-wrap{display:flex; align-items:center; gap:7px; font-size:11px; color:var(--text-dim);}
+  .live-wrap{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--text-dim);}
   .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;position:relative;}
   .status-dot.err{background:var(--accent);}
   .status-dot.loading{background:var(--gold);}
@@ -101,219 +103,211 @@
     80%{ transform:scale(1.9); opacity:0; }
     100%{ opacity:0; }
   }
-  #lastUpdated{display:flex; align-items:center; gap:7px;}
+  #lastUpdated{display:flex; align-items:center; gap:6px;}
 
   .refresh-track{height:2px; background:var(--border-soft); overflow:hidden;}
   .refresh-bar{height:100%; width:0%; background:var(--accent);}
 
   .config{
-    display:none; padding:14px 24px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
+    display:none; padding:12px 20px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
     gap:12px; flex-wrap:wrap; align-items:flex-end;
   }
   .config.open{display:flex;}
   .field{display:flex; flex-direction:column; gap:4px;}
-  .field label{font-size:11px; color:var(--muted); font-weight:700;}
+  .field label{font-size:10.5px; color:var(--muted); font-weight:700;}
   .field input{
     font-family:var(--font-sans);
-    border:1.5px solid var(--border); border-radius:4px; padding:8px 10px; font-size:12.5px; min-width:260px;
+    border:1.5px solid var(--border); border-radius:4px; padding:6px 10px; font-size:12px; min-width:240px;
     background:var(--surface); color:var(--text);
   }
-  .config .note{font-size:11px; color:var(--muted); max-width:520px; line-height:1.6;}
-  .config .note code{background:var(--surface-alt); color:var(--text-dim); padding:1px 6px; border-radius:3px;}
+  .config .note{font-size:10.5px; color:var(--muted); max-width:520px; line-height:1.5;}
+  .config .note code{background:var(--surface-alt); color:var(--text-dim); padding:1px 5px; border-radius:3px;}
 
-  .wrap{max-width:1520px; margin:0 auto; padding:18px 24px 44px;}
-  #banner{display:none; padding:10px 14px; border-radius:4px; background:var(--accent-bg); border:1px solid var(--accent); color:#F0C9C1; font-size:12px; line-height:1.5; margin-bottom:12px;}
+  .wrap{
+    flex:1 1 auto; max-width:1600px; width:100%; margin:0 auto; padding:12px 16px 20px;
+    display:flex; flex-direction:column; gap:12px; min-height:0;
+  }
+  #banner{display:none; padding:8px 12px; border-radius:4px; background:var(--accent-bg); border:1px solid var(--accent); color:#F0C9C1; font-size:11.5px; line-height:1.4;}
   #banner.show{display:block;}
-  #banner code{background:var(--surface-alt); padding:1px 6px; border-radius:3px;}
+  #banner code{background:var(--surface-alt); padding:1px 5px; border-radius:3px;}
 
-  #dashboard{display:flex; flex-direction:column; gap:16px;}
+  #dashboard{display:flex; flex-direction:column; gap:12px;}
 
   @keyframes fadeInUp{
-    from{opacity:0; transform:translateY(8px);}
+    from{opacity:0; transform:translateY(6px);}
     to{opacity:1; transform:translateY(0);}
   }
 
-  /* ---------- generic card ---------- */
+  /* ---------- Generic card styling ---------- */
   .card{
     position:relative; min-width:0;
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:14px 15px 13px;
+    padding:10px 12px;
     display:flex; flex-direction:column;
   }
   .card h2{
-    font-family:var(--font-serif); font-size:14.5px; margin:0 0 10px; font-weight:700; color:var(--text);
+    font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
-  .card h2 .tag{font-family:var(--font-sans); font-size:10px; color:var(--muted); font-weight:600; letter-spacing:0;}
+  .card h2 .tag{font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;}
   .card-body{min-height:0;}
   .soft{transition:opacity .28s ease;}
 
   @media(max-width:600px){
-    .wrap{padding:14px 14px 34px;}
-    .topbar{padding:12px 16px;}
+    .wrap{padding:10px 10px 20px;}
+    .topbar{padding:10px 12px;}
   }
 
   /* ---------- HERO: Total Order Completed ---------- */
   .hero{
     position:relative; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);
-    padding:20px 22px 18px; box-shadow:6px 6px 0 var(--accent-bg);
-    display:grid; grid-template-columns:auto 1fr; gap:22px; align-items:center;
-    animation:fadeInUp .5s ease both;
+    padding:12px 16px; box-shadow:4px 4px 0 var(--accent-bg);
+    display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:center;
+    animation:fadeInUp .4s ease both;
   }
   .hero-sticker{
-    position:absolute; top:-11px; left:22px; background:var(--accent); color:#F4EADF;
-    font-size:10px; font-weight:700; padding:3px 10px 2px; border-radius:3px; transform:rotate(-2deg);
+    position:absolute; top:-9px; left:16px; background:var(--accent); color:#F4EADF;
+    font-size:9.5px; font-weight:700; padding:2px 8px 1px; border-radius:3px; transform:rotate(-2deg);
     box-shadow:2px 2px 0 rgba(0,0,0,.4);
   }
-  .hero-left{display:flex; align-items:center; gap:18px;}
-  .hero-ring{position:relative; width:78px; height:78px; flex:0 0 auto;}
-  .hero-ring canvas{width:78px; height:78px; display:block;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:50px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:11px; color:var(--accent-bright); margin-top:4px; font-weight:700; letter-spacing:.03em;}
-  .hero-nums .of-total{font-size:10.5px; color:var(--muted); margin-top:6px;}
-  .hero-nums .prebook-badge{margin-top:4px; color:var(--gold); font-weight:700;}
+  .hero-left{display:flex; align-items:center; gap:14px;}
+  .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
+  .hero-ring canvas{width:64px; height:64px; display:block;}
+  .hero-nums .big{font-family:var(--font-serif); font-size:42px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
+  .hero-nums .lbl{font-size:10px; color:var(--accent-bright); margin-top:2px; font-weight:700; letter-spacing:.03em;}
+  .hero-nums .of-total{font-size:10px; color:var(--muted); margin-top:3px;}
+  .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
   .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
-  .hero-right{border-left:1px solid var(--border); padding-left:20px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 8px; font-weight:700; color:var(--text-dim);}
-  .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(84px,1fr)); gap:7px;}
-  .tile{border-radius:4px; padding:8px 6px; text-align:center; border:1px solid var(--border-soft);}
-  .tile .n{font-size:15px; font-weight:800;}
-  .tile .p{font-size:10px; opacity:.85;}
-  .tile .l{font-size:9px; margin-top:2px; opacity:.85; word-break:break-word;}
+  .hero-right{border-left:1px solid var(--border); padding-left:16px;}
+  .hero-right h3{font-family:var(--font-serif); font-size:11.5px; margin:0 0 6px; font-weight:700; color:var(--text-dim);}
+  .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
+  .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft);}
+  .tile .n{font-size:14px; font-weight:800;}
+  .tile .p{font-size:9.5px; opacity:.85;}
+  .tile .l{font-size:8.5px; margin-top:2px; opacity:.85; word-break:break-word;}
 
   @media(max-width:760px){
     .hero{grid-template-columns:1fr;}
-    .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:14px;}
+    .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:10px;}
   }
 
-  /* ---------- 70 / 30 row: Top Selling & Marketing / Order by Menu ---------- */
-  .grid-70-30{display:grid; grid-template-columns:1fr; gap:16px; align-items:stretch;}
-  @media(min-width:900px){ .grid-70-30{grid-template-columns:70% 1fr;} }
+  /* ---------- Grid layout columns ---------- */
+  .grid-70-30{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  @media(min-width:900px){ .grid-70-30{grid-template-columns:68% 1fr;} }
   .col-70, .col-30{display:flex; flex-direction:column; min-width:0;}
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
-  /* ---------- Asymmetric 35 / 65 grid ---------- */
-  /* align-items:stretch (grid default) makes both columns share the row's
-     full height; .col-narrow then lets its last card grow to fill any
-     leftover space so the two columns end flush instead of leaving a
-     dead gap under the shorter one. */
-  .grid-asym{display:grid; grid-template-columns:1fr; gap:16px; align-items:stretch;}
-  @media(min-width:900px){ .grid-asym{grid-template-columns:35% 1fr;} }
-  .col-narrow, .col-wide{display:flex; flex-direction:column; gap:16px; min-width:0;}
+  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
+  .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow .card:last-child{flex:1 1 auto;}
   .col-narrow .card:last-child .stock-donut-wrap{flex:1 1 auto;}
 
+  .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
+
   /* AIS/Partner */
-  .grp-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border-soft);}
+  .grp-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);}
   .grp-row:last-child{border-bottom:none;}
-  .grp-name{display:flex; align-items:center; gap:8px; font-weight:700;}
-  .dot{width:9px;height:9px;border-radius:50%;}
+  .grp-name{display:flex; align-items:center; gap:6px; font-weight:700; font-size:11px;}
+  .dot{width:8px;height:8px;border-radius:50%;}
   .grp-nums{text-align:right;}
-  .grp-nums .n{font-family:var(--font-serif); font-size:19px; font-weight:800;}
-  .grp-nums .p{font-size:10px; color:var(--muted);}
-  .pre-badge{font-size:9.5px; color:var(--muted); margin-top:2px;}
+  .grp-nums .n{font-family:var(--font-serif); font-size:17px; font-weight:800;}
+  .grp-nums .p{font-size:9.5px; color:var(--muted);}
+  .pre-badge{font-size:9px; color:var(--muted); margin-top:2px;}
   .pre-badge b{color:var(--text-dim); font-weight:700;}
 
   /* Sub stock destination */
-  .bar-row{margin-bottom:10px;}
+  .bar-row{margin-bottom:8px;}
   .bar-row:last-child{margin-bottom:0;}
-  .bar-row .top{display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; gap:8px;}
+  .bar-row .top{display:flex; justify-content:space-between; font-size:10.5px; margin-bottom:3px; gap:6px;}
   .bar-row .top .name{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .bar-row .top .val{color:var(--muted); flex:0 0 auto;}
-  .bar-track{background:var(--border-soft); border-radius:3px; height:6px; overflow:hidden;}
+  .bar-row .top .val{color:var(--muted); flex:0 0 auto; font-weight:700;}
+  .bar-track{background:var(--border-soft); border-radius:3px; height:5px; overflow:hidden;}
   .bar-fill{height:100%; border-radius:3px; transition:width .6s ease;}
 
   /* Duration tiers */
-  .tier-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(90px,1fr)); gap:8px;}
-  .tier-box{border-radius:4px; padding:11px 6px; text-align:center; border:1px solid var(--border-soft);}
-  .tier-box .n{font-family:var(--font-serif); font-size:18px; font-weight:800;}
-  .tier-box .l{font-size:10px; margin-top:3px; font-weight:600;}
-  .tier-box .p{font-size:10px; opacity:.85;}
+  .tier-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(85px,1fr)); gap:6px;}
+  .tier-box{border-radius:4px; padding:8px 4px; text-align:center; border:1px solid var(--border-soft);}
+  .tier-box .n{font-family:var(--font-serif); font-size:16px; font-weight:800;}
+  .tier-box .l{font-size:9.5px; margin-top:2px; font-weight:600;}
+  .tier-box .p{font-size:9px; opacity:.85;}
 
-  /* Order by menu — reuses the compact .bar-row pattern (see Sub Stock
-     Destination legend rows below) instead of a larger dedicated block. */
-  .menu-sub{font-size:9.5px; color:var(--muted); margin-top:4px;}
+  .menu-sub{font-size:9px; color:var(--muted); margin-top:3px;}
   .menu-sub b{color:var(--gold); font-weight:700;}
 
   /* Sub Stock Destination — donut + legend */
-  .stock-donut-wrap{display:flex; align-items:center; gap:16px;}
-  .chart-wrap.donut{position:relative; flex:0 0 auto; width:112px; height:112px;}
-  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:8px;}
-  .legend-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px;}
-  .legend-row .lg-name{display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden;}
-  .legend-row .lg-dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+  .stock-donut-wrap{display:flex; align-items:center; gap:12px;}
+  .chart-wrap.donut{position:relative; flex:0 0 auto; width:100px; height:100px;}
+  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:6px;}
+  .legend-row{display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10.5px;}
+  .legend-row .lg-name{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;}
+  .legend-row .lg-dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto;}
   .legend-row .lg-label{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .legend-row .lg-val{flex:0 0 auto; font-weight:800; color:var(--text);}
-  .legend-row .lg-pct{flex:0 0 auto; font-size:9.5px; color:var(--muted); margin-left:5px;}
+  .legend-row .lg-pct{flex:0 0 auto; font-size:9px; color:var(--muted); margin-left:4px;}
   @media(max-width:420px){ .stock-donut-wrap{flex-direction:column; align-items:flex-start;} }
 
   /* Combined ranking card */
-  .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:12px;}
-  .rank-subcard{border:1px solid var(--border); border-radius:4px; padding:11px 11px 10px; background:var(--surface-alt); min-width:0;}
+  .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:10px;}
+  .rank-subcard{border:1px solid var(--border); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
   .rank-subcard.alt{border-top:2px solid var(--gold);}
-  .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px;}
-  .rank-subcard-head h3{font-family:var(--font-serif); font-size:12.5px; margin:0; font-weight:700; color:var(--text);}
-  .rank-subcard-head .tag{font-size:10px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:2px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
-  .rank-section{display:grid; grid-template-columns:repeat(auto-fit, minmax(150px,1fr)); gap:12px;}
-  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:5px 8px; background:var(--bg-2); border-radius:4px; margin-bottom:6px;}
-  .rank-col-header .lbl{font-size:10px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-col-header .cnt{font-size:12px; font-weight:800; color:var(--text); flex:0 0 auto;}
+  .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
+  .rank-subcard-head h3{font-family:var(--font-serif); font-size:11.5px; margin:0; font-weight:700; color:var(--text);}
+  .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
+  .rank-section{display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px;}
+  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 6px; background:var(--bg-2); border-radius:4px; margin-bottom:5px;}
+  .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
-  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:4px 7px; border-radius:3px; overflow:hidden;}
+  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 6px; border-radius:3px; overflow:hidden;}
   .rank-bar{position:absolute; left:0; top:0; bottom:0; opacity:.20; border-radius:3px; transition:width .5s ease;}
-  .rank-name{position:relative; z-index:1; font-size:11px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-count{position:relative; z-index:1; font-size:11px; font-weight:800; flex:0 0 auto;}
-  .rank-slider-row{display:flex; align-items:center; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--border);}
-  .rank-slider-row .rank-slider-lbl{font-size:10px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
+  .rank-name{position:relative; z-index:1; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-count{position:relative; z-index:1; font-size:10.5px; font-weight:800; flex:0 0 auto;}
+  .rank-slider-row{display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);}
+  .rank-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
-  .rank-slider-row .rank-slider-val{font-size:11px; font-weight:800; min-width:20px; text-align:right;}
+  .rank-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:18px; text-align:right;}
 
-  /* Sub-cards that stack in a single (narrow) column — Order Source & Stock Destination */
+  /* Sub-cards stacked layout */
   .subcards-stack{grid-template-columns:1fr;}
 
-  /* Sub-cards laid out as an equal-height trio — Duration Performance */
+  /* Sub-cards equal trio layout */
   .subcards-trio{grid-template-columns:1fr;}
   @media(min-width:900px){ .subcards-trio{grid-template-columns:repeat(3,1fr);} }
   .subcards-trio .rank-subcard{display:flex; flex-direction:column; height:100%;}
-  .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:230px;}
+  .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:190px;}
   .subcards-trio .tier-grid{flex:1 1 auto;}
 
-  /* Sub-cards laid out as an equal-height pair — Branch & Stock Flow */
+  /* Sub-cards equal duo layout */
   .subcards-duo{grid-template-columns:1fr;}
   @media(min-width:900px){ .subcards-duo{grid-template-columns:1fr 1fr;} }
   .subcards-duo .rank-subcard{display:flex; flex-direction:column; height:100%;}
   .subcards-duo .rank-list{flex:1 1 auto;}
-  .subcards-duo .table-scroll{flex:1 1 auto; min-height:0; max-height:320px;}
+  .subcards-duo .table-scroll{flex:1 1 auto; min-height:0; max-height:220px;}
 
-  /* Hover-to-preview product image cue on Top Selling rows */
+  /* Hover-to-preview product image cue */
   .rank-name.has-img{cursor:help; border-bottom:1px dashed var(--muted);}
   .img-preview{
     position:fixed; z-index:9999; pointer-events:none; display:none;
     background:var(--surface); border:1px solid var(--border); border-radius:6px;
-    padding:7px; box-shadow:4px 4px 0 rgba(0,0,0,.5);
+    padding:6px; box-shadow:4px 4px 0 rgba(0,0,0,.5);
   }
-  .img-preview img{display:block; width:140px; height:140px; object-fit:contain; border-radius:4px; background:#fff;}
+  .img-preview img{display:block; width:130px; height:130px; object-fit:contain; border-radius:4px; background:#fff;}
 
-  table{width:100%; border-collapse:collapse; font-size:11px;}
-  th{text-align:left; color:var(--muted); font-weight:700; padding:5px 8px; border-bottom:1px solid var(--border); font-size:9.5px; position:sticky; top:0; background:var(--surface);}
-  td{padding:6px 8px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
+  table{width:100%; border-collapse:collapse; font-size:10.5px;}
+  th{text-align:left; color:var(--muted); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--border); font-size:9px; position:sticky; top:0; background:var(--surface);}
+  td{padding:5px 6px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
   tr:last-child td{border-bottom:none;}
   tbody tr{transition:background .12s ease;}
   tbody tr:hover{background:var(--surface-alt);}
   .mono{font-family:ui-monospace,Menlo,monospace; color:var(--text);}
   .red-txt{color:var(--accent-bright); font-weight:700;}
 
-  .empty{color:var(--muted); font-size:11.5px; text-align:center; padding:16px 0;}
-  .chart-wrap{position:relative; height:210px;}
+  .empty{color:var(--muted); font-size:11px; text-align:center; padding:12px 0;}
+  .chart-wrap{position:relative; height:180px;}
   .table-scroll{overflow:auto;}
-  .table-scroll.tall{max-height:320px;}
-
-  /* ---------- symmetric trio row (equal card heights) ---------- */
-  .grid-trio{display:grid; grid-template-columns:1fr; gap:16px; align-items:stretch;}
-  @media(min-width:900px){ .grid-trio{grid-template-columns:repeat(3,1fr);} }
-  .grid-trio .card{height:100%;}
-  .grid-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:230px;}
-  .grid-trio .tier-grid{flex:1 1 auto;}
+  .table-scroll.tall{max-height:220px;}
 
 </style>
 </head>
@@ -357,7 +351,7 @@
 <div class="wrap">
   <div id="banner"></div>
   <div id="dashboard" style="display:none;"></div>
-  <div id="placeholder" class="empty" style="padding:80px 0; font-size:14px;">
+  <div id="placeholder" class="empty" style="padding:80px 0; font-size:13.5px;">
     กรอก Google Sheet ID แล้วกดโหลดข้อมูล (ดับเบิลคลิกที่หัวข้อ "Order Dashboard" ด้านซ้ายบนเพื่อตั้งค่า)
   </div>
 </div>
@@ -373,11 +367,9 @@ let dashboardBuilt = false;
 let refreshTimer = null;
 let isLoading = false;
 let lastMetrics = null;
-// A slightly wider, more colorful set kept within the warm dark palette —
-// used for the Sub Stock donut and (rotated) for the Order by Menu bars.
+
 const STOCK_PALETTE = ['#B4863E','#C9703F','#5B7A8C','#5C7A54','#8C8074'];
-// Shared Chart.js tooltip look so hover tooltips match the dark/oxblood
-// theme instead of Chart.js's default light-mode styling.
+
 const TOOLTIP_STYLE = {
   backgroundColor:'#1F1A16',
   titleColor:'#EFE7DA',
@@ -385,14 +377,14 @@ const TOOLTIP_STYLE = {
   borderColor:'#3A2F27',
   borderWidth:1,
   cornerRadius:5,
-  padding:10,
+  padding:8,
   boxWidth:8,
   boxHeight:8,
   boxPadding:4,
   usePointStyle:true,
   displayColors:true,
-  titleFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:12, weight:'700' },
-  bodyFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11.5 }
+  titleFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11.5, weight:'700' },
+  bodyFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11 }
 };
 
 function getConfig(){
@@ -411,10 +403,6 @@ const COL = {
   transactionId: 'transactionId',
   orderId: 'orders.orderId',
   orderType: 'orders.orderType',
-  /* NOTE: the business status (COMPLETE / WAITING_PAYMENT / READY_TO_PAY / PENDING / DELETE)
-     lives in the "orders.status" column. "orders.state" is a separate, more granular
-     workflow field (DEVICE_SELECTED / CART_PREPARED / PAYMENT_PAID / ...) and must NOT
-     be used here. */
   state: 'orders.status',
   commercialName: 'orders.device.commercialName',
   campaignName: 'orders.device.campaignName',
@@ -423,12 +411,8 @@ const COL = {
   subStockDestination: 'orders.subStockDestination',
   menu: 'orders.menu'
 };
-/* Optional columns — dashboard still works fine if these are missing from
-   an older sheet; they just power the newer Revenue / Branch / image-hover
-   features and silently no-op (idx === -1) when absent. */
+
 const COL_OPTIONAL = {
-  priceIncAmt: 'orders.device.priceIncAmt',
-  priceDiscountAmt: 'orders.device.priceDiscountAmt',
   locationSource: 'locationSource',
   imageUrl: 'orders.device.imageUrl'
 };
@@ -474,11 +458,6 @@ function buildRows(cols, rawRows){
   }
   for (const k in COL_OPTIONAL) idx[k] = cols.indexOf(COL_OPTIONAL[k]);
   const str = v => (v === null || v === undefined) ? '' : String(v).trim();
-  const num = v => {
-    if (v === null || v === undefined || v === '') return 0;
-    const n = parseFloat(String(v).replace(/,/g,''));
-    return isNaN(n) ? 0 : n;
-  };
   const get = (r, key) => idx[key] === -1 ? undefined : r[idx[key]];
   return rawRows.map(r => ({
     ts: parseGvizDate(r[idx.ts]),
@@ -492,8 +471,6 @@ function buildRows(cols, rawRows){
     serviceCareTitle: str(r[idx.serviceCareTitle]),
     subStockDestination: str(r[idx.subStockDestination]),
     menu: str(r[idx.menu]),
-    priceIncAmt: num(get(r,'priceIncAmt')),
-    priceDiscountAmt: num(get(r,'priceDiscountAmt')),
     locationSource: str(get(r,'locationSource')),
     imageUrl: str(get(r,'imageUrl'))
   })).filter(r => r.orderId);
@@ -515,7 +492,6 @@ function topN(rows, field, n){
 }
 function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
 function fmtNum(n){ return n.toLocaleString('en-US'); }
-function fmtCurrency(n){ return '฿' + Math.round(n).toLocaleString('en-US'); }
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
@@ -531,8 +507,6 @@ function hourLabel(d, mode){
   return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
 }
 
-/* Smoothly swap the innerHTML of a container with a short cross-fade,
-   so periodic auto-refresh never causes a hard flash/blank state. */
 function softUpdate(el, html){
   if (!el) return;
   if (el.innerHTML !== html) {
@@ -540,8 +514,6 @@ function softUpdate(el, html){
   }
 }
 
-/* Animate a number counting up/down to its new value, for extra polish
-   on the headline KPI. */
 function animateNumber(el, to){
   if (!el) return;
   const from = parseInt((el.textContent || '0').replace(/,/g,''), 10) || 0;
@@ -556,17 +528,14 @@ function animateNumber(el, to){
   requestAnimationFrame(step);
 }
 
-/* Small canvas donut ring — shows COMPLETE as a share of all orders,
-   animated from 0 to its target percentage. Pure Canvas, no dependency
-   on Chart.js, so it draws even before/if the chart library ever fails. */
 function drawRing(canvasEl, pct, color){
   if (!canvasEl || !canvasEl.getContext) return;
   const ctx = canvasEl.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  const size = 78;
+  const size = 64;
   canvasEl.width = size * dpr; canvasEl.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const cx = size/2, cy = size/2, r = size/2 - 7;
+  const cx = size/2, cy = size/2, r = size/2 - 6;
   const target = Math.max(0, Math.min(100, pct));
   const from = canvasEl.dataset.pct ? parseFloat(canvasEl.dataset.pct) : 0;
   canvasEl.dataset.pct = target;
@@ -576,7 +545,7 @@ function drawRing(canvasEl, pct, color){
     const eased = 1 - Math.pow(1 - p, 3);
     const cur = from + (target - from) * eased;
     ctx.clearRect(0, 0, size, size);
-    ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.lineWidth = 6; ctx.lineCap = 'round';
     ctx.strokeStyle = '#3A2F27';
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
     ctx.strokeStyle = color;
@@ -584,7 +553,7 @@ function drawRing(canvasEl, pct, color){
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
     ctx.fillStyle = '#EFE7DA';
-    ctx.font = '700 13px "IBM Plex Sans Thai",-apple-system,sans-serif';
+    ctx.font = '700 11.5px "IBM Plex Sans Thai",-apple-system,sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(Math.round(cur) + '%', cx, cy);
     if (p < 1) requestAnimationFrame(frame);
@@ -606,16 +575,6 @@ function computeMetrics(rows){
   const completeRows = rows.filter(r => r.state === 'COMPLETE');
   const prebookRows = completeRows.filter(r => !isBlank(r.preBookingNo));
 
-  // AIS vs Partner. The headline % for each group is its share of the
-  // grand total (count / otTotal), same as before — that's the number
-  // that has to add up to 100% across AIS + PARTNER. Pre-Booking % is
-  // computed against that SAME grand total (preCount / otTotal), not
-  // against the group's own count, so it uses the same denominator as
-  // the headline % and can be subtracted from it: headline% − preBooking%
-  // = the non-Pre-Booking share of that group. (Using preCount/count for
-  // the Pre-Booking % — a different, smaller denominator — was the bug:
-  // it made the two percentages incomparable, so subtracting them gave a
-  // wrong "non-Pre-Booking" number.)
   const otRows = completeRows.filter(r => r.orderType);
   const otCounts = {AIS:0, PARTNER:0};
   otRows.forEach(r => otCounts[grp(r.orderType)]++);
@@ -640,9 +599,7 @@ function computeMetrics(rows){
   }
   const stockTotal = stockRows.length;
 
-  // Order by menu — main bar/value is the full orderCount, and the
-  // Pre-Booking subset is called out as its own labelled line underneath
-  // (nonPrebookCount kept around in case other views need the FIX'd count).
+  // Order by menu
   const menuCounts = {};
   completeRows.forEach(r => { const m = r.menu || 'Unknown'; menuCounts[m] = (menuCounts[m]||0)+1; });
   const menuPrebook = {};
@@ -653,14 +610,14 @@ function computeMetrics(rows){
       prebookPct: orderCount ? prebookCount/orderCount*100 : 0 };
   }).sort((a,b) => b.orderCount - a.orderCount);
 
-  // Hourly volume bucketing (based on actual data span)
+  // Hourly volume bucketing
   const tsRows = completeRows.filter(r => r.ts);
   let mode = 'hour', buckets = [];
   if (tsRows.length){
     const times = tsRows.map(r => r.ts.getTime());
     const rangeHours = (Math.max(...times) - Math.min(...times)) / 3600000;
     mode = rangeHours <= 24 ? 'hour' : (rangeHours > 24*30 ? 'month' : 'day');
-    const volMap = {}; // key -> {AIS, PARTNER}
+    const volMap = {};
     tsRows.forEach(r => {
       const b = bucketDate(r.ts, mode);
       const key = b.getTime();
@@ -723,8 +680,6 @@ function computeMetrics(rows){
   const validName = n => n && n !== '-' && n !== 'Invalid' && n.length < 100;
   const devRows = completeRows.filter(r => r.menu !== 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
   const accRows = completeRows.filter(r => r.menu === 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
-  // Fetch a generous top-N pool (30) once; the on-screen "SHOW" slider just
-  // slices this pool client-side without recomputing from raw rows.
   const deviceTop = topN(devRows, 'commercialName', 30);
   const accessoryTop = topN(accRows, 'commercialName', 30);
   const deviceItems = new Set(devRows.map(r => r.commercialName)).size;
@@ -742,32 +697,7 @@ function computeMetrics(rows){
   const campOrders = campRows.length;
   const svcOrders = svcRows.length;
 
-  // ---- Revenue overview (orders.device.priceIncAmt / priceDiscountAmt) ----
-  // Rows with no price data at all contribute 0 and don't skew the totals;
-  // hasRevenueData flags whether the sheet actually carries these columns
-  // so the UI can show an empty-state instead of a wall of ฿0.
-  const hasRevenueData = completeRows.some(r => r.priceIncAmt > 0 || r.priceDiscountAmt > 0);
-  const gmvTotal = completeRows.reduce((s,r) => s + r.priceIncAmt, 0);
-  const discountTotal = completeRows.reduce((s,r) => s + r.priceDiscountAmt, 0);
-  const netRevenue = gmvTotal - discountTotal;
-  const avgOrderValue = completeCount ? netRevenue / completeCount : 0;
-  const revByGrp = {AIS:0, PARTNER:0};
-  completeRows.forEach(r => { revByGrp[grp(r.orderType || '')] += (r.priceIncAmt - r.priceDiscountAmt); });
-  const campRevAgg = {};
-  completeRows.forEach(r => {
-    if (isBlank(r.campaignName)) return;
-    const net = r.priceIncAmt - r.priceDiscountAmt;
-    const a = campRevAgg[r.campaignName] || (campRevAgg[r.campaignName] = {revenue:0, count:0});
-    a.revenue += net; a.count++;
-  });
-  const campRevTop = Object.entries(campRevAgg)
-    .map(([name,v]) => ({name, revenue:v.revenue, count:v.count, avg: v.count ? v.revenue/v.count : 0}))
-    .sort((a,b) => b.revenue - a.revenue).slice(0, 8);
-
-  // ---- Branch / location source ----
-  // For each locationSource, also surface the single stock destination it
-  // ships to most often, so "which branch → which stock" is visible at a
-  // glance without a full cross-tab.
+  // Branch / location source
   const locRows = completeRows.filter(r => !isBlank(r.locationSource));
   const locMap = {};
   locRows.forEach(r => {
@@ -783,7 +713,7 @@ function computeMetrics(rows){
   const locTotal = locRows.length;
   const locItems = Object.keys(locMap).length;
 
-  // ---- Product image lookup (for the Top Selling hover preview) ----
+  // Image lookup map
   const buildImgMap = rowsSrc => {
     const m = {};
     rowsSrc.forEach(r => { if (!m[r.commercialName] && !isBlank(r.imageUrl)) m[r.commercialName] = r.imageUrl; });
@@ -801,7 +731,6 @@ function computeMetrics(rows){
     durTotal, tierCounts, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
     campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
-    hasRevenueData, gmvTotal, discountTotal, netRevenue, avgOrderValue, revByGrp, campRevTop,
     locTop, locTotal, locItems,
     deviceImgMap, accessoryImgMap
   };
@@ -814,7 +743,7 @@ function buildSkeleton(){
     <div class="hero">
       <div class="hero-sticker">COMPLETED</div>
       <div class="hero-left">
-        <div class="hero-ring"><canvas id="ringComplete" width="78" height="78"></canvas></div>
+        <div class="hero-ring"><canvas id="ringComplete" width="64" height="64"></canvas></div>
         <div class="hero-nums">
           <div class="big" id="val-complete">0</div>
           <div class="lbl">TOTAL ORDER COMPLETED</div>
@@ -910,71 +839,50 @@ function buildSkeleton(){
       </div>
     </div>
 
-    <div class="card">
-      <h2>Duration Performance</h2>
-      <div class="rank-subcards subcards-trio">
-        <div class="rank-subcard">
-          <div class="rank-subcard-head"><h3>Duration Overview</h3><span class="tag" id="tag-durtotal"></span></div>
-          <div class="tier-grid soft" id="tiles-tier"></div>
-        </div>
-        <div class="rank-subcard alt">
-          <div class="rank-subcard-head"><h3>Avg / P90 Duration by Order Type</h3></div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
-              <tbody id="body-avgp90"></tbody>
-            </table>
+    <div class="grid-duo-equal">
+      <div class="card">
+        <h2>Duration Performance</h2>
+        <div class="rank-subcards subcards-stack">
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Duration Overview</h3><span class="tag" id="tag-durtotal"></span></div>
+            <div class="tier-grid soft" id="tiles-tier"></div>
           </div>
-        </div>
-        <div class="rank-subcard">
-          <div class="rank-subcard-head"><h3>Slowest Orders</h3><span class="tag">&gt;= 30m</span></div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
-              <tbody id="body-slowest"></tbody>
-            </table>
+          <div class="rank-subcard alt">
+            <div class="rank-subcard-head"><h3>Avg / P90 Duration by Order Type</h3></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
+                <tbody id="body-avgp90"></tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Revenue Overview <span class="tag" id="tag-revtotal"></span></h2>
-      <div class="rank-subcards subcards-trio" id="revenue-card-body">
-        <div class="rank-subcard">
-          <div class="rank-subcard-head"><h3>Revenue Summary</h3></div>
-          <div class="tier-grid soft" id="tiles-revenue"></div>
-        </div>
-        <div class="rank-subcard alt">
-          <div class="rank-subcard-head"><h3>Revenue by Order Type</h3></div>
-          <div class="card-body soft" id="body-revenue-grp"></div>
-        </div>
-        <div class="rank-subcard">
-          <div class="rank-subcard-head"><h3>Top Campaigns by Revenue</h3></div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Campaign</th><th>Revenue</th><th>Orders</th></tr></thead>
-              <tbody id="body-camprevenue"></tbody>
-            </table>
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Slowest Orders</h3><span class="tag">&gt;= 30m</span></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
+                <tbody id="body-slowest"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="card">
-      <h2>Branch &amp; Stock Flow <span class="tag" id="tag-loctotal"></span></h2>
-      <div class="rank-subcards subcards-duo">
-        <div class="rank-subcard">
-          <div class="rank-subcard-head"><h3>Top Branches by Completed Orders</h3></div>
-          <div class="rank-list soft" id="body-branch-list"></div>
-        </div>
-        <div class="rank-subcard alt">
-          <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Branch / Source</th><th>Orders</th><th>Top Stock</th></tr></thead>
-              <tbody id="body-branch-stock"></tbody>
-            </table>
+      <div class="card">
+        <h2>Branch &amp; Stock Flow <span class="tag" id="tag-loctotal"></span></h2>
+        <div class="rank-subcards subcards-stack">
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Top Branches by Completed Orders</h3></div>
+            <div class="rank-list soft" id="body-branch-list"></div>
+          </div>
+          <div class="rank-subcard alt">
+            <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Branch / Source</th><th>Orders</th><th>Top Stock</th></tr></thead>
+                <tbody id="body-branch-stock"></tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
@@ -1001,9 +909,6 @@ function rankRows(items, count, color, imgMap){
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
 }
 
-/* Re-render just the Top Selling / Top Campaigns lists from the cached
-   metrics, sliced to however many rows the "SHOW" slider is set to. Called
-   both after a data refresh and whenever a slider is dragged. */
 function renderDeviceAccessory(){
   if (!lastMetrics) return;
   const slider = document.getElementById('sliderDevice');
@@ -1027,7 +932,7 @@ function updateDashboard(rows){
   const M = computeMetrics(rows);
   if (!dashboardBuilt) buildSkeleton();
 
-  // ---- Total order completed ----
+  // Total order completed
   document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
   const prebookPct = M.completeCount ? (M.prebookTotal / M.completeCount * 100).toFixed(1) : '0.0';
   document.getElementById('tag-completeprebook').innerHTML = `Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${prebookPct}%)`;
@@ -1049,12 +954,7 @@ function updateDashboard(rows){
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('tiles-status'), tilesHtml);
 
-  // ---- AIS Shop vs Partner ----
-  // Headline % = count / grand total (sums to 100% across AIS+PARTNER).
-  // Pre-Booking % uses the SAME grand total as its denominator (see
-  // comment in computeMetrics), so headline% − Pre-Booking% = the
-  // non-Pre-Booking % shown on its own line, and the two always add
-  // back up to the headline %.
+  // AIS Shop vs Partner
   document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
   const grpRow = (name, color, count, preCount, nonPrebookCount, total) => {
     const pct = total ? count/total*100 : 0;
@@ -1074,7 +974,7 @@ function updateDashboard(rows){
     grpRow('AIS','var(--gold)', M.otCounts.AIS, M.prebookByGrp.AIS, M.nonPrebookByGrp.AIS, M.otTotal) +
     grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.prebookByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.otTotal));
 
-  // ---- Sub stock destination (donut + legend) ----
+  // Sub stock destination
   const stockHtml = M.stockArr.map((s,i) => {
     const pct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
@@ -1086,7 +986,7 @@ function updateDashboard(rows){
   softUpdate(document.getElementById('body-substock'), stockHtml);
   updateStockChart(M);
 
-  // ---- Duration overview tiers ----
+  // Duration overview tiers
   document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
   const tierDefs = [
     {key:'green', label:'FAST < 10m', fg:'#A9C79E', bg:'var(--green-bg)'},
@@ -1104,12 +1004,7 @@ function updateDashboard(rows){
   }).join('');
   softUpdate(document.getElementById('tiles-tier'), M.durTotal ? tierHtml : '<div class="empty">ไม่มีข้อมูล</div>');
 
-  // ---- Order by menu ----
-  // Compact bar-row style (matches the Sub Stock Destination list) instead
-  // of the larger block used before. The track is always 100% wide (no
-  // overlapping/absolutely-positioned marker) so it can never cover the
-  // value number; Pre-Booking count for each menu is printed as a plain
-  // text line underneath the bar.
+  // Order by menu
   const maxMenu = Math.max(1, ...M.menuArr.map(m => m.orderCount));
   const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
@@ -1125,11 +1020,11 @@ function updateDashboard(rows){
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('body-menu'), menuHtml);
 
-  // ---- Order volume + duration trend charts ----
+  // Order volume chart
   document.getElementById('tag-voltotal').textContent = `Total: ${fmtNum(M.volTotal)}`;
   updateCharts(M);
 
-  // ---- Avg/P90 duration by order type ----
+  // Avg/P90 duration
   const otRowsHtml = M.otDur.map(o => `<tr>
     <td>${esc(o.orderType)}</td>
     <td>${o.avg.toFixed(1)}m</td>
@@ -1138,9 +1033,7 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>`;
   softUpdate(document.getElementById('body-avgp90'), otRowsHtml);
 
-  // ---- Top selling device & accessory / Top campaigns & service care ----
-  // Metrics are cached so the "SHOW" sliders can re-slice + re-render
-  // instantly without recomputing from the raw rows.
+  // Top selling device & accessory
   lastMetrics = M;
   document.getElementById('hdr-device-items').textContent = `Device — ${fmtNum(M.deviceItems)} items`;
   document.getElementById('cnt-device').textContent = fmtNum(M.deviceOrders);
@@ -1153,7 +1046,7 @@ function updateDashboard(rows){
   renderDeviceAccessory();
   renderCampaignService();
 
-  // ---- Slowest orders ----
+  // Slowest orders
   const slowHtml = M.slowest.map(s => `<tr>
     <td class="mono">${esc(s.id)}</td>
     <td>${esc(s.orderType)}</td>
@@ -1161,46 +1054,7 @@ function updateDashboard(rows){
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
   softUpdate(document.getElementById('body-slowest'), slowHtml);
 
-  // ---- Revenue overview ----
-  document.getElementById('tag-revtotal').textContent = M.hasRevenueData ? `Net: ${fmtCurrency(M.netRevenue)}` : '';
-  if (!M.hasRevenueData){
-    softUpdate(document.getElementById('revenue-card-body'),
-      '<div class="empty" style="grid-column:1/-1;">ไม่พบข้อมูลราคา (priceIncAmt / priceDiscountAmt) ใน Sheet นี้</div>');
-  } else {
-    const revTiles = [
-      {n: fmtCurrency(M.gmvTotal), l: 'GMV (ราคาเต็ม)', bg:'var(--gold-bg)', fg:'#D9B679'},
-      {n: fmtCurrency(M.discountTotal), l: 'ส่วนลดรวม', bg:'var(--accent-bg)', fg:'#E8A79C'},
-      {n: fmtCurrency(M.netRevenue), l: 'Net Revenue', bg:'var(--green-bg)', fg:'#A9C79E'},
-      {n: fmtCurrency(M.avgOrderValue), l: 'Avg Order Value', bg:'var(--slate-bg)', fg:'#9DBECE'}
-    ];
-    softUpdate(document.getElementById('tiles-revenue'), revTiles.map(t => `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
-      <div class="n">${t.n}</div>
-      <div class="l">${t.l}</div>
-    </div>`).join(''));
-
-    const revGrpTotal = M.revByGrp.AIS + M.revByGrp.PARTNER;
-    const revGrpRow = (name, color, amount) => {
-      const pct = revGrpTotal ? amount/revGrpTotal*100 : 0;
-      return `<div class="grp-row">
-        <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
-        <div class="grp-nums">
-          <div class="n">${fmtCurrency(amount)}</div>
-          <div class="p">${fmtPct(pct)}</div>
-        </div>
-      </div>`;
-    };
-    softUpdate(document.getElementById('body-revenue-grp'),
-      revGrpRow('AIS','var(--gold)', M.revByGrp.AIS) + revGrpRow('PARTNER','var(--stone)', M.revByGrp.PARTNER));
-
-    const campRevHtml = M.campRevTop.map(c => `<tr>
-      <td title="${esc(c.name)}">${esc(c.name)}</td>
-      <td>${fmtCurrency(c.revenue)}</td>
-      <td>${fmtNum(c.count)}</td>
-    </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล</td></tr>`;
-    softUpdate(document.getElementById('body-camprevenue'), campRevHtml);
-  }
-
-  // ---- Branch & stock flow ----
+  // Branch & stock flow
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
   softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
   const branchStockHtml = M.locTop.map(b => `<tr>
@@ -1234,7 +1088,7 @@ function chartFallback(canvasEl, msg){
 
 function updateCharts(M){
   if (typeof Chart === 'undefined'){
-    chartFallback(document.getElementById('chartVolume'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ — ลองรีเฟรชอีกครั้ง หรือตรวจสอบ ad-blocker/การเชื่อมต่ออินเทอร์เน็ต');
+    chartFallback(document.getElementById('chartVolume'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ');
     return;
   }
 
@@ -1247,17 +1101,17 @@ function updateCharts(M){
       charts.volume = new Chart(ctx1, {
         type: 'bar',
         data: { labels, datasets: [
-          {label:'AIS', data: aisData, backgroundColor:'#B4863E', stack:'s', borderRadius:3, maxBarThickness:48},
-          {label:'PARTNER', data: partnerData, backgroundColor:'#786A5A', stack:'s', borderRadius:3, maxBarThickness:48}
+          {label:'AIS', data: aisData, backgroundColor:'#B4863E', stack:'s', borderRadius:3, maxBarThickness:42},
+          {label:'PARTNER', data: partnerData, backgroundColor:'#786A5A', stack:'s', borderRadius:3, maxBarThickness:42}
         ]},
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
           scales:{
-            x:{stacked:true, grid:{display:false}, ticks:{color:'#8C8074', font:{size:10}}},
-            y:{stacked:true, beginAtZero:true, grid:{color:'#2B241F'}, ticks:{color:'#8C8074', font:{size:10}}}
+            x:{stacked:true, grid:{display:false}, ticks:{color:'#8C8074', font:{size:9.5}}},
+            y:{stacked:true, beginAtZero:true, grid:{color:'#2B241F'}, ticks:{color:'#8C8074', font:{size:9.5}}}
           },
           plugins:{
-            legend:{position:'top', labels:{boxWidth:10, font:{size:11}, color:'#C9BEAF'}},
+            legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#C9BEAF'}},
             tooltip:{
               ...TOOLTIP_STYLE,
               callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
@@ -1313,8 +1167,6 @@ function updateStockChart(M){
 }
 
 /* ===================== IMAGE HOVER PREVIEW ===================== */
-/* Delegated (not per-row) so it works for any current or future
-   rank-row that carries a data-img attribute — see rankRows(). */
 function showImgPreview(url){
   const box = document.getElementById('imgPreview');
   const img = document.getElementById('imgPreviewImg');
@@ -1325,7 +1177,7 @@ function showImgPreview(url){
 function positionImgPreview(evt){
   const box = document.getElementById('imgPreview');
   if (!box || box.style.display !== 'block') return;
-  const pad = 16, boxW = 154, boxH = 154;
+  const pad = 14, boxW = 144, boxH = 144;
   let x = evt.clientX + pad, y = evt.clientY + pad;
   if (x + boxW > window.innerWidth) x = evt.clientX - boxW - pad;
   if (y + boxH > window.innerHeight) y = evt.clientY - boxH - pad;
@@ -1367,7 +1219,7 @@ function resetRefreshBar(){
   if (!bar) return;
   bar.style.transition = 'none';
   bar.style.width = '0%';
-  void bar.offsetWidth; // force reflow so the next transition restarts cleanly
+  void bar.offsetWidth;
   bar.style.transition = `width ${AUTO_REFRESH_MS}ms linear`;
   bar.style.width = '100%';
 }
@@ -1387,7 +1239,6 @@ async function loadData(isAuto){
   }
   if (isLoading) return;
   isLoading = true;
-  // Auto-refresh stays quiet (no "loading" flicker); manual refresh shows the loading state.
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
@@ -1411,8 +1262,6 @@ async function loadData(isAuto){
   document.getElementById('inputSheetName').value = cfg.sheetName;
   bindImgPreviewEvents();
 
-  // The "ตั้งค่า Sheet" button is hidden from the toolbar to keep the UI clean;
-  // double-clicking the title still opens it for reconfiguration.
   document.getElementById('dashTitle').addEventListener('dblclick', () => {
     document.getElementById('configPanel').classList.toggle('open');
   });
@@ -1421,8 +1270,6 @@ async function loadData(isAuto){
   });
   document.getElementById('btnRefresh').addEventListener('click', () => { resetRefreshBar(); loadData(false); });
 
-  // The ranking sliders are created dynamically inside buildSkeleton().
-  // Bind them after the skeleton has been built, otherwise the elements do not exist yet.
   const bindRankSliders = () => {
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
@@ -1439,7 +1286,7 @@ async function loadData(isAuto){
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
-    if (!sheetId) { alert('กรุณากรอก Google Sheet ID'); return; }
+    if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
     saveConfig({sheetId, sheetName});
     document.getElementById('configPanel').classList.remove('open');
     loadData(false);
@@ -1449,8 +1296,6 @@ async function loadData(isAuto){
   if (cfg.sheetId) { loadData(false); startAutoRefresh(); }
   else document.getElementById('configPanel').classList.add('open');
 
-  // Initial dashboard is built asynchronously by loadData(); poll briefly until
-  // the dynamically-created sliders exist, then attach their input handlers.
   const sliderBinderTimer = setInterval(() => {
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
