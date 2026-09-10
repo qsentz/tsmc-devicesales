@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Order Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F4F6;
+    --card:#FFFFFF;
+    --border:#E4E7EC;
+    --text:#344054;
+    --muted:#8A94A3;
+    --ais:#2F5EA3;
+    --partner:#5B4B8A;
+    --green:#10B981; --green-bg:#E3F5EC;
+    --amber:#F59E0B; --amber-bg:#FBF0DC;
+    --red:#EF4444;   --red-bg:#FBE4E4;
+    --blue:#2F5EA3;  --blue-bg:#E7EEF7;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:14px;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 24px; background:var(--card); border-bottom:1px solid var(--border);
+    position:sticky; top:0; z-index:20;
+  }
+  .topbar h1{font-size:18px; margin:0; font-weight:700;}
+  .topbar .sub{font-size:12px; color:var(--muted); margin-top:2px;}
+  .topbar-right{display:flex; align-items:center; gap:10px;}
+  .btn{
+    border:1px solid var(--border); background:#fff; color:var(--text);
+    padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; font-weight:600;
+  }
+  .btn:hover{background:#F9FAFB;}
+  .btn.primary{background:var(--text); color:#fff; border-color:var(--text);}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;}
+  .status-dot.err{background:var(--red);}
+  .status-dot.loading{background:var(--amber);}
+  #lastUpdated{font-size:12px;color:var(--muted);}
+
+  .config{
+    display:none; padding:16px 24px; background:#fff; border-bottom:1px solid var(--border);
+    gap:12px; flex-wrap:wrap; align-items:flex-end;
+  }
+  .config.open{display:flex;}
+  .field{display:flex; flex-direction:column; gap:4px;}
+  .field label{font-size:12px; color:var(--muted); font-weight:600;}
+  .field input{
+    border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:13px; min-width:260px;
+  }
+  .config .note{font-size:12px; color:var(--muted); max-width:520px; line-height:1.5;}
+
+  .wrap{padding:20px 24px 60px;}
+  #banner{display:none; margin-bottom:16px; padding:14px 16px; border-radius:10px; background:var(--red-bg); color:#8a2c2c; font-size:13px; line-height:1.6;}
+  #banner.show{display:block;}
+  #banner code{background:#fff; padding:1px 6px; border-radius:4px;}
+
+  .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:18px 20px; min-width:0;
+  }
+  .card h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:.03em; margin:0 0 14px; font-weight:700; color:var(--text);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .card h2 .tag{font-size:11px; color:var(--muted); text-transform:none; font-weight:600; letter-spacing:0;}
+
+  .c-3{grid-column:span 3;} .c-4{grid-column:span 4;} .c-6{grid-column:span 6;}
+  .c-8{grid-column:span 8;} .c-12{grid-column:span 12;}
+  @media(max-width:1100px){ .c-3,.c-4,.c-6,.c-8{grid-column:span 12;} }
+
+  /* KPI: total order */
+  .kpi-total{text-align:center; margin-bottom:14px;}
+  .kpi-total .big{font-size:40px; font-weight:800; line-height:1;}
+  .kpi-total .lbl{font-size:12px; color:var(--muted); margin-top:6px;}
+  .tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  .tile{border-radius:10px; padding:10px 8px; text-align:center;}
+  .tile .n{font-size:16px; font-weight:800;}
+  .tile .p{font-size:11px; opacity:.85;}
+  .tile .l{font-size:10px; margin-top:2px; opacity:.8; word-break:break-word;}
+
+  /* AIS/Partner */
+  .grp-row{display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);}
+  .grp-row:last-child{border-bottom:none;}
+  .grp-name{display:flex; align-items:center; gap:8px; font-weight:700;}
+  .dot{width:10px;height:10px;border-radius:50%;}
+  .grp-nums{text-align:right;}
+  .grp-nums .n{font-size:18px; font-weight:800;}
+  .grp-nums .p{font-size:11px; color:var(--muted);}
+  .pre-badge{font-size:10px; color:var(--muted); margin-top:2px;}
+
+  /* Sub stock destination + generic bar list */
+  .bar-row{margin-bottom:12px;}
+  .bar-row:last-child{margin-bottom:0;}
+  .bar-row .top{display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;}
+  .bar-row .top .name{font-weight:600;}
+  .bar-row .top .val{color:var(--muted);}
+  .bar-track{background:#EEF1F5; border-radius:6px; height:8px; overflow:hidden;}
+  .bar-fill{height:100%; border-radius:6px;}
+
+  /* Duration tiers */
+  .tier-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px;}
+  .tier-box{border-radius:10px; padding:12px 8px; text-align:center;}
+  .tier-box .n{font-size:20px; font-weight:800;}
+  .tier-box .l{font-size:11px; margin-top:4px; font-weight:600;}
+  .tier-box .p{font-size:11px; opacity:.8;}
+
+  /* menu chart */
+  .menu-row{display:grid; grid-template-columns:150px 1fr 60px; align-items:center; gap:10px; margin-bottom:10px;}
+  .menu-row .name{font-size:12px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .menu-row .val{font-size:12px; text-align:right; font-weight:700;}
+  .menu-track{background:#EEF1F5; border-radius:6px; height:16px; position:relative; overflow:hidden;}
+  .menu-fill{background:var(--ais); height:100%;}
+  .menu-pre{background:#93c5fd; height:100%; position:absolute; top:0;}
+
+  /* two-column lists (top selling / campaigns) */
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  .col h3{font-size:12px; margin:0 0 10px; color:var(--muted); font-weight:700;}
+  .list-row{display:grid; grid-template-columns:1fr 46px; align-items:center; gap:8px; margin-bottom:8px;}
+  .list-row .nm{font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .list-row .track{grid-column:1/2; background:#EEF1F5; border-radius:5px; height:6px; margin-top:3px; overflow:hidden;}
+  .list-row .fill{height:100%; background:var(--ais); border-radius:5px;}
+  .list-row .cnt{font-size:12px; font-weight:700; text-align:right;}
+
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th{text-align:left; color:var(--muted); font-weight:700; padding:6px 8px; border-bottom:1px solid var(--border); font-size:11px; text-transform:uppercase;}
+  td{padding:7px 8px; border-bottom:1px solid #F1F3F6;}
+  tr:last-child td{border-bottom:none;}
+  .mono{font-family:ui-monospace,Menlo,monospace;}
+  .red-txt{color:var(--red); font-weight:700;}
+
+  .empty{color:var(--muted); font-size:12px; text-align:center; padding:20px 0;}
+  .chart-wrap{position:relative; height:230px;}
+  .chart-wrap.small{height:170px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <h1>Order Dashboard</h1>
+    <div class="sub" id="rangeLabel">ยังไม่ได้เชื่อมต่อข้อมูล</div>
+  </div>
+  <div class="topbar-right">
+    <span id="lastUpdated"><span class="status-dot" id="statusDot"></span>ยังไม่โหลดข้อมูล</span>
+    <button class="btn" id="btnConfig">ตั้งค่า Sheet</button>
+    <button class="btn primary" id="btnRefresh">รีเฟรช</button>
+  </div>
+</div>
+
+<div class="config" id="configPanel">
+  <div class="field">
+    <label>Google Sheet ID</label>
+    <input id="inputSheetId" placeholder="1AbCDeFGhijklmnop_xxxxxxxxxxxx" />
+  </div>
+  <div class="field">
+    <label>Sheet / Tab name</label>
+    <input id="inputSheetName" placeholder="Order" value="Order" />
+  </div>
+  <button class="btn primary" id="btnLoad">โหลดข้อมูล</button>
+  <div class="note">
+    Sheet ID คือส่วนหนึ่งของ URL: <code>docs.google.com/spreadsheets/d/&lt;SHEET_ID&gt;/edit</code><br>
+    ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้
+  </div>
+</div>
+
+<div class="wrap">
+  <div id="banner"></div>
+  <div id="dashboard" class="grid" style="display:none;"></div>
+  <div id="placeholder" class="empty" style="padding:80px 0; font-size:14px;">
+    กรอก Google Sheet ID ในปุ่ม "ตั้งค่า Sheet" ด้านบน แล้วกดโหลดข้อมูล
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG / STATE ===================== */
+const LS_KEY = 'orderDashboardConfig';
+let charts = {};
+
+function getConfig(){
+  const params = new URLSearchParams(location.search);
+  const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  return {
+    sheetId: params.get('sheetId') || saved.sheetId || '',
+    sheetName: params.get('sheetName') || saved.sheetName || 'Order'
+  };
+}
+function saveConfig(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
+
+/* ===================== COLUMN MAP ===================== */
+const COL = {
+  ts: 'TIMESTAMP',
+  transactionId: 'transactionId',
+  orderId: 'orders.orderId',
+  orderType: 'orders.orderType',
+  state: 'orders.state',
+  commercialName: 'orders.device.commercialName',
+  campaignName: 'orders.device.campaignName',
+  preBookingNo: 'orders.device.preBookingNo',
+  serviceCareTitle: 'orders.serviceCare.title',
+  subStockDestination: 'orders.subStockDestination',
+  menu: 'orders.menu'
+};
+const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
+
+/* ===================== FETCH (Google Visualization / gviz) ===================== */
+async function fetchSheet(sheetId, sheetName){
+  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
+  if (!m) {
+    throw new Error('อ่านข้อมูลจาก Google Sheet ไม่สำเร็จ (ตรวจสอบว่า Sheet ID / ชื่อ Sheet ถูกต้อง และแชร์เป็นสาธารณะแบบ "ดูได้" แล้ว)');
+  }
+  const json = JSON.parse(m[1]);
+  if (json.status === 'error') {
+    const detail = (json.errors && json.errors[0] && json.errors[0].detailed_message) || 'unknown error';
+    throw new Error('Google Sheets ส่ง error กลับมา: ' + detail);
+  }
+  const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
+  const rows = json.table.rows.map(r => (r.c || []).map(cell => cell ? cell.v : null));
+  return { cols, rows };
+}
+
+function parseGvizDate(v){
+  if (v == null) return null;
+  if (typeof v === 'string' && v.indexOf('Date(') === 0){
+    const p = v.substring(5, v.length - 1).split(',').map(Number);
+    return new Date(p[0], p[1], p[2] || 1, p[3] || 0, p[4] || 0, p[5] || 0);
+  }
+  if (v instanceof Date) return v;
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function buildRows(cols, rawRows){
+  const idx = {};
+  for (const k in COL) idx[k] = cols.indexOf(COL[k]);
+  const missing = Object.keys(COL).filter(k => idx[k] === -1);
+  if (missing.length){
+    throw new Error('ไม่พบคอลัมน์ต่อไปนี้ใน Sheet: ' + missing.map(k => COL[k]).join(', ') +
+      ' — ตรวจสอบว่าหัวคอลัมน์ตรงกับที่ Code.gs เขียนไว้');
+  }
+  const str = v => (v === null || v === undefined) ? '' : String(v).trim();
+  return rawRows.map(r => ({
+    ts: parseGvizDate(r[idx.ts]),
+    transactionId: str(r[idx.transactionId]),
+    orderId: str(r[idx.orderId]),
+    orderType: str(r[idx.orderType]),
+    state: str(r[idx.state]),
+    commercialName: str(r[idx.commercialName]),
+    campaignName: str(r[idx.campaignName]),
+    preBookingNo: str(r[idx.preBookingNo]),
+    serviceCareTitle: str(r[idx.serviceCareTitle]),
+    subStockDestination: str(r[idx.subStockDestination]),
+    menu: str(r[idx.menu])
+  })).filter(r => r.orderId);
+}
+
+/* ===================== HELPERS ===================== */
+const isBlank = v => !v || v === '-';
+const grp = ot => /AIS/i.test(ot) ? 'AIS' : 'PARTNER';
+function decodeObjectIdMs(oid){
+  if (!oid || oid.length < 8) return null;
+  const hex8 = oid.substring(0, 8);
+  if (!/^[0-9a-fA-F]{8}$/.test(hex8)) return null;
+  return parseInt(hex8, 16) * 1000;
+}
+function topN(rows, field, n){
+  const m = {};
+  rows.forEach(r => { const k = r[field]; m[k] = (m[k] || 0) + 1; });
+  return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count).slice(0, n);
+}
+function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
+function fmtNum(n){ return n.toLocaleString('en-US'); }
+function bucketDate(d, mode){
+  if (mode === 'hour') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
+  if (mode === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function hourLabel(d, mode){
+  const pad = n => String(n).padStart(2,'0');
+  if (mode === 'hour') return pad(d.getHours()) + ':00';
+  if (mode === 'month') return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+  return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
+}
+
+/* ===================== METRICS ===================== */
+function computeMetrics(rows){
+  const stateRows = rows.filter(r => r.state);
+  const grandTotal = stateRows.length;
+  const stateCounts = {}; STATES.forEach(s => stateCounts[s] = 0);
+  stateRows.forEach(r => { if (stateCounts[r.state] === undefined) stateCounts[r.state] = 0; stateCounts[r.state]++; });
+  const completeCount = stateCounts.COMPLETE || 0;
+  const statusTiles = STATES.filter(s => s !== 'COMPLETE').map(s => ({
+    state: s, count: stateCounts[s] || 0, pct: grandTotal ? (stateCounts[s]||0)/grandTotal*100 : 0
+  }));
+
+  const completeRows = rows.filter(r => r.state === 'COMPLETE');
+  const prebookRows = completeRows.filter(r => !isBlank(r.preBookingNo));
+
+  // AIS vs Partner
+  const otRows = completeRows.filter(r => r.orderType);
+  const otCounts = {AIS:0, PARTNER:0};
+  otRows.forEach(r => otCounts[grp(r.orderType)]++);
+  const otTotal = otCounts.AIS + otCounts.PARTNER;
+  const prebookByGrp = {AIS:0, PARTNER:0};
+  prebookRows.forEach(r => { if (r.orderType) prebookByGrp[grp(r.orderType)]++; });
+  const prebookTotal = prebookRows.length;
+
+  // Sub stock destination
+  const stockRows = completeRows.filter(r => !isBlank(r.subStockDestination));
+  const stockMap = {};
+  stockRows.forEach(r => stockMap[r.subStockDestination] = (stockMap[r.subStockDestination]||0)+1);
+  let stockArr = Object.entries(stockMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
+  if (stockArr.length > 4){
+    const top4 = stockArr.slice(0,4);
+    const other = stockArr.slice(4).reduce((s,x)=>s+x.count,0);
+    stockArr = [...top4, {name:'OTHER', count: other}];
+  }
+  const stockTotal = stockRows.length;
+
+  // Order by menu
+  const menuCounts = {};
+  completeRows.forEach(r => { const m = r.menu || 'Unknown'; menuCounts[m] = (menuCounts[m]||0)+1; });
+  const menuPrebook = {};
+  prebookRows.forEach(r => { const m = r.menu || 'Unknown'; menuPrebook[m] = (menuPrebook[m]||0)+1; });
+  const menuArr = Object.entries(menuCounts).map(([menu,orderCount]) => {
+    const prebookCount = menuPrebook[menu] || 0;
+    return { menu, orderCount, prebookCount, nonPrebookCount: orderCount - prebookCount,
+      prebookPct: orderCount ? prebookCount/orderCount*100 : 0 };
+  }).sort((a,b) => b.orderCount - a.orderCount);
+
+  // Hourly volume bucketing (based on actual data span)
+  const tsRows = completeRows.filter(r => r.ts);
+  let mode = 'hour', buckets = [];
+  if (tsRows.length){
+    const times = tsRows.map(r => r.ts.getTime());
+    const rangeHours = (Math.max(...times) - Math.min(...times)) / 3600000;
+    mode = rangeHours <= 24 ? 'hour' : (rangeHours > 24*30 ? 'month' : 'day');
+    const volMap = {}; // key -> {AIS, PARTNER}
+    tsRows.forEach(r => {
+      const b = bucketDate(r.ts, mode);
+      const key = b.getTime();
+      volMap[key] = volMap[key] || {date: b, AIS: 0, PARTNER: 0};
+      volMap[key][grp(r.orderType || '')]++;
+    });
+    buckets = Object.values(volMap).sort((a,b) => a.date - b.date);
+  }
+  const volTotal = tsRows.length;
+
+  // Duration overview
+  const durRows = [];
+  completeRows.forEach(r => {
+    if (!r.ts) return;
+    const createdMs = decodeObjectIdMs(r.orderId);
+    if (createdMs == null) return;
+    const durationMs = r.ts.getTime() - createdMs;
+    if (durationMs < 0) return;
+    const durationMin = durationMs / 60000;
+    const tier = durationMs < 600000 ? 'green' : (durationMs < 1800000 ? 'yellow' : 'red');
+    durRows.push({...r, durationMs, durationMin, tier});
+  });
+  const durTotal = durRows.length;
+  const tierCounts = {green:0, yellow:0, red:0};
+  durRows.forEach(r => tierCounts[r.tier]++);
+
+  const byOT = {};
+  durRows.forEach(r => { if (!r.orderType) return; (byOT[r.orderType] = byOT[r.orderType] || []).push(r.durationMin); });
+  const otDur = Object.entries(byOT).map(([orderType, arr]) => {
+    const sorted = [...arr].sort((a,b)=>a-b);
+    const avg = arr.reduce((s,x)=>s+x,0) / arr.length;
+    const p90idx = Math.min(Math.ceil(0.9*sorted.length)-1, sorted.length-1);
+    return { orderType, avg, p90: sorted[p90idx], cnt: arr.length };
+  }).sort((a,b) => b.cnt - a.cnt).slice(0, 8);
+
+  const slowest = durRows.filter(r => r.tier === 'red')
+    .sort((a,b) => b.durationMs - a.durationMs).slice(0, 6)
+    .map(r => ({
+      id: r.transactionId || r.orderId,
+      orderType: r.orderType || '-',
+      durLabel: r.durationMin >= 60
+        ? Math.floor(r.durationMin/60) + 'h ' + Math.floor(r.durationMin%60) + 'm'
+        : Math.floor(r.durationMin) + 'm'
+    }));
+
+  let durBuckets = [];
+  if (durRows.length){
+    const dMap = {};
+    durRows.forEach(r => {
+      const b = bucketDate(r.ts, mode);
+      const key = b.getTime();
+      dMap[key] = dMap[key] || {date: b, sum: 0, n: 0};
+      dMap[key].sum += r.durationMin; dMap[key].n++;
+    });
+    durBuckets = Object.values(dMap).sort((a,b) => a.date - b.date)
+      .map(x => ({date: x.date, avg: x.sum / x.n}));
+  }
+
+  // Top selling device / accessory
+  const validName = n => n && n !== '-' && n !== 'Invalid' && n.length < 100;
+  const devRows = completeRows.filter(r => r.menu !== 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
+  const accRows = completeRows.filter(r => r.menu === 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
+  const deviceTop = topN(devRows, 'commercialName', 10);
+  const accessoryTop = topN(accRows, 'commercialName', 10);
+  const deviceItems = new Set(devRows.map(r => r.commercialName)).size;
+  const accessoryItems = new Set(accRows.map(r => r.commercialName)).size;
+
+  // Top campaigns / service care
+  const campRows = completeRows.filter(r => !isBlank(r.campaignName));
+  const svcRows = completeRows.filter(r => !isBlank(r.serviceCareTitle));
+  const campTop = topN(campRows, 'campaignName', 10);
+  const svcTop = topN(svcRows, 'serviceCareTitle', 10);
+  const campItems = new Set(campRows.map(r => r.campaignName)).size;
+  const svcItems = new Set(svcRows.map(r => r.serviceCareTitle)).size;
+
+  return {
+    grandTotal, completeCount, statusTiles,
+    otCounts, otTotal, prebookByGrp, prebookTotal,
+    stockArr, stockTotal,
+    menuArr,
+    mode, buckets, volTotal,
+    durTotal, tierCounts, otDur, slowest, durBuckets,
+    deviceTop, accessoryTop, deviceItems, accessoryItems,
+    campTop, svcTop, campItems, svcItems
+  };
+}
+
+/* ===================== RENDER ===================== */
+function el(html){ const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+
+function renderDashboard(rows){
+  const M = computeMetrics(rows);
+  const dash = document.getElementById('dashboard');
+  dash.innerHTML = '';
+
+  // ---- Card: Total order completed ----
+  const statusColors = {
+    WAITING_PAYMENT: ['var(--amber-bg)','#8A6D3B'],
+    READY_TO_PAY: ['var(--blue-bg)','#2F5EA3'],
+    PENDING: ['#FDE9D9','#B45309'],
+    DELETE: ['var(--red-bg)','#B42318']
+  };
+  const tilesHtml = M.statusTiles.map(t => {
+    const [bg,fg] = statusColors[t.state] || ['#EEF1F5','#344054'];
+    return `<div class="tile" style="background:${bg};color:${fg};">
+      <div class="n">${fmtNum(t.count)}</div>
+      <div class="p">${fmtPct(t.pct)}</div>
+      <div class="l">${t.state.replace(/_/g,' ')}</div>
+    </div>`;
+  }).join('');
+  dash.appendChild(el(`
+    <div class="card c-3">
+      <h2>Total Order Completed <span class="tag">Total Order: ${fmtNum(M.grandTotal)}</span></h2>
+      <div class="kpi-total">
+        <div class="big">${fmtNum(M.completeCount)}</div>
+        <div class="lbl">COMPLETE</div>
+      </div>
+      <div class="tiles">${tilesHtml || '<div class="empty">ไม่มีข้อมูล</div>'}</div>
+    </div>
+  `));
+
+  // ---- Card: AIS Shop vs Partner ----
+  const grpRow = (name, color, count, total, preCount) => {
+    const pct = total ? count/total*100 : 0;
+    const prePct = count ? preCount/count*100 : 0;
+    return `<div class="grp-row">
+      <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
+      <div class="grp-nums">
+        <div class="n">${fmtNum(count)}</div>
+        <div class="p">${fmtPct(pct)}</div>
+        <div class="pre-badge">Pre-Booking: ${fmtNum(preCount)} (${fmtPct(prePct)})</div>
+      </div>
+    </div>`;
+  };
+  dash.appendChild(el(`
+    <div class="card c-3">
+      <h2>AIS Shop vs Partner <span class="tag">Pre-Booking: ${fmtNum(M.prebookTotal)}</span></h2>
+      ${grpRow('AIS','var(--ais)', M.otCounts.AIS, M.otTotal, M.prebookByGrp.AIS)}
+      ${grpRow('PARTNER','var(--partner)', M.otCounts.PARTNER, M.otTotal, M.prebookByGrp.PARTNER)}
+    </div>
+  `));
+
+  // ---- Card: Sub stock destination ----
+  const stockPalette = ['#2F5EA3','#5B4B8A','#8A6D3B','#4A6B6E','#8A94A3'];
+  const stockHtml = M.stockArr.map((s,i) => {
+    const pct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
+    const c = stockPalette[i % stockPalette.length];
+    return `<div class="bar-row">
+      <div class="top"><span class="name">${s.name}</span><span class="val">${fmtNum(s.count)} (${fmtPct(pct)})</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c}"></div></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+  dash.appendChild(el(`
+    <div class="card c-3">
+      <h2>Sub Stock Destination</h2>
+      ${stockHtml}
+    </div>
+  `));
+
+  // ---- Card: Duration overview tiers ----
+  const tierDefs = [
+    {key:'green', label:'FAST < 10m', fg:'#0B7A5B', bg:'var(--green-bg)'},
+    {key:'yellow', label:'MED 10-30m', fg:'#8A6D3B', bg:'var(--amber-bg)'},
+    {key:'red', label:'SLOW >= 30m', fg:'#B42318', bg:'var(--red-bg)'}
+  ];
+  const tierHtml = tierDefs.map(t => {
+    const c = M.tierCounts[t.key] || 0;
+    const pct = M.durTotal ? c/M.durTotal*100 : 0;
+    return `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
+      <div class="n">${fmtNum(c)}</div>
+      <div class="l">${t.label}</div>
+      <div class="p">${fmtPct(pct)}</div>
+    </div>`;
+  }).join('');
+  dash.appendChild(el(`
+    <div class="card c-3">
+      <h2>Duration Overview <span class="tag">${fmtNum(M.durTotal)} orders</span></h2>
+      <div class="tier-grid">${M.durTotal ? tierHtml : '<div class="empty">ไม่มีข้อมูล</div>'}</div>
+    </div>
+  `));
+
+  // ---- Card: Order by menu ----
+  const maxMenu = Math.max(1, ...M.menuArr.map(m => m.orderCount));
+  const menuHtml = M.menuArr.map(m => {
+    const fillPct = m.orderCount / maxMenu * 100;
+    const nonPrePct = m.orderCount ? m.nonPrebookCount / m.orderCount * 100 : 0;
+    return `<div class="menu-row">
+      <div class="name" title="${m.menu}">${m.menu}</div>
+      <div class="menu-track" style="width:${fillPct}%">
+        <div class="menu-fill" style="width:${nonPrePct}%"></div>
+        <div class="menu-pre" style="left:${nonPrePct}%; width:${100-nonPrePct}%"></div>
+      </div>
+      <div class="val">${fmtNum(m.orderCount)}</div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+  dash.appendChild(el(`
+    <div class="card c-4">
+      <h2>Order by Menu <span class="tag">Pre-Booking (subset)</span></h2>
+      ${menuHtml}
+    </div>
+  `));
+
+  // ---- Card: Order volume hourly ----
+  dash.appendChild(el(`
+    <div class="card c-4">
+      <h2>Order Volume <span class="tag">Total: ${fmtNum(M.volTotal)}</span></h2>
+      <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+    </div>
+  `));
+
+  // ---- Card: Avg/P90 duration by order type ----
+  const otRowsHtml = M.otDur.map(o => `<tr>
+    <td>${o.orderType}</td>
+    <td>${o.avg.toFixed(1)}m</td>
+    <td>${(o.p90||0).toFixed(1)}m</td>
+    <td>${fmtNum(o.cnt)}</td>
+  </tr>`).join('') || `<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>`;
+  dash.appendChild(el(`
+    <div class="card c-4">
+      <h2>Avg / P90 Duration by Order Type</h2>
+      <table>
+        <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
+        <tbody>${otRowsHtml}</tbody>
+      </table>
+    </div>
+  `));
+
+  // ---- Card: Top selling device & accessory ----
+  const listCol = (items, max) => items.map(i => {
+    const pct = max ? i.count/max*100 : 0;
+    return `<div class="list-row">
+      <div class="nm" title="${i.name}">${i.name}</div>
+      <div class="cnt" style="grid-row:1;">${fmtNum(i.count)}</div>
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+  const maxDev = Math.max(1, ...M.deviceTop.map(i=>i.count));
+  const maxAcc = Math.max(1, ...M.accessoryTop.map(i=>i.count));
+  dash.appendChild(el(`
+    <div class="card c-6">
+      <h2>Top Selling Device & Accessory</h2>
+      <div class="twocol">
+        <div class="col"><h3>Device — ${fmtNum(M.deviceItems)} items</h3>${listCol(M.deviceTop, maxDev)}</div>
+        <div class="col"><h3>Accessory — ${fmtNum(M.accessoryItems)} items</h3>${listCol(M.accessoryTop, maxAcc)}</div>
+      </div>
+    </div>
+  `));
+
+  // ---- Card: Top campaigns & service care ----
+  const maxCamp = Math.max(1, ...M.campTop.map(i=>i.count));
+  const maxSvc = Math.max(1, ...M.svcTop.map(i=>i.count));
+  dash.appendChild(el(`
+    <div class="card c-6">
+      <h2>Top Campaigns & Service Care</h2>
+      <div class="twocol">
+        <div class="col"><h3>Campaign — ${fmtNum(M.campItems)} campaigns</h3>${listCol(M.campTop, maxCamp)}</div>
+        <div class="col"><h3>Service Care — ${fmtNum(M.svcItems)} types</h3>${listCol(M.svcTop, maxSvc)}</div>
+      </div>
+    </div>
+  `));
+
+  // ---- Card: Slowest orders ----
+  const slowHtml = M.slowest.map(s => `<tr>
+    <td class="mono">${s.id}</td>
+    <td>${s.orderType}</td>
+    <td class="red-txt">${s.durLabel}</td>
+  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
+  dash.appendChild(el(`
+    <div class="card c-6">
+      <h2>Slowest Orders <span class="tag">>= 30m</span></h2>
+      <table>
+        <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
+        <tbody>${slowHtml}</tbody>
+      </table>
+    </div>
+  `));
+
+  // ---- Card: Avg duration trend hourly ----
+  dash.appendChild(el(`
+    <div class="card c-6">
+      <h2>Avg Duration Trend</h2>
+      <div class="chart-wrap small"><canvas id="chartDurTrend"></canvas></div>
+    </div>
+  `));
+
+  dash.style.display = 'grid';
+  document.getElementById('placeholder').style.display = 'none';
+  renderCharts(M);
+
+  const rangeEl = document.getElementById('rangeLabel');
+  if (rows.length){
+    const tsAll = rows.map(r=>r.ts).filter(Boolean);
+    if (tsAll.length){
+      const min = new Date(Math.min(...tsAll)), max = new Date(Math.max(...tsAll));
+      rangeEl.textContent = `ข้อมูลตั้งแต่ ${min.toLocaleString('th-TH')} ถึง ${max.toLocaleString('th-TH')} • ${fmtNum(rows.length)} rows`;
+    }
+  }
+}
+
+function renderCharts(M){
+  Object.values(charts).forEach(c => c && c.destroy());
+  const labels = M.buckets.map(b => hourLabel(b.date, M.mode));
+
+  const ctx1 = document.getElementById('chartVolume');
+  if (ctx1){
+    charts.volume = new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {label:'AIS', data: M.buckets.map(b=>b.AIS), backgroundColor:'#2F5EA3', stack:'s'},
+          {label:'PARTNER', data: M.buckets.map(b=>b.PARTNER), backgroundColor:'#5B4B8A', stack:'s'}
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        scales:{ x:{stacked:true, grid:{display:false}}, y:{stacked:true, beginAtZero:true} },
+        plugins:{ legend:{position:'top', labels:{boxWidth:10, font:{size:11}}} }
+      }
+    });
+  }
+
+  const ctx2 = document.getElementById('chartDurTrend');
+  if (ctx2){
+    charts.durTrend = new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: M.durBuckets.map(b => hourLabel(b.date, M.mode)),
+        datasets: [{
+          label:'Avg Duration (min)',
+          data: M.durBuckets.map(b => Math.round(b.avg*10)/10),
+          borderColor:'#5B4B8A', backgroundColor:'rgba(91,75,138,.1)',
+          tension:.35, fill:true, pointRadius:3
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        scales:{ x:{grid:{display:false}}, y:{beginAtZero:true, title:{display:true,text:'min'}} },
+        plugins:{ legend:{display:false} }
+      }
+    });
+  }
+}
+
+/* ===================== ERROR / STATUS UI ===================== */
+function setStatus(mode, text){
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : '');
+  document.getElementById('lastUpdated').innerHTML = `<span class="status-dot${mode==='error'?' err':mode==='loading'?' loading':''}" id="statusDot"></span>${text}`;
+}
+function showBanner(msg){
+  const b = document.getElementById('banner');
+  b.innerHTML = msg;
+  b.classList.add('show');
+}
+function hideBanner(){ document.getElementById('banner').classList.remove('show'); }
+
+/* ===================== MAIN LOAD FLOW ===================== */
+async function loadData(){
+  const cfg = getConfig();
+  if (!cfg.sheetId){
+    document.getElementById('configPanel').classList.add('open');
+    setStatus('error', 'ยังไม่ได้ตั้งค่า Sheet ID');
+    return;
+  }
+  hideBanner();
+  setStatus('loading', 'กำลังโหลดข้อมูล...');
+  try {
+    const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
+    const parsed = buildRows(cols, rows);
+    renderDashboard(parsed);
+    setStatus('ok', 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH'));
+  } catch(err){
+    console.error(err);
+    setStatus('error', 'โหลดข้อมูลไม่สำเร็จ');
+    showBanner('<strong>โหลดข้อมูลไม่สำเร็จ:</strong> ' + err.message);
+  }
+}
+
+/* ===================== INIT / EVENTS ===================== */
+(function init(){
+  const cfg = getConfig();
+  document.getElementById('inputSheetId').value = cfg.sheetId;
+  document.getElementById('inputSheetName').value = cfg.sheetName;
+
+  document.getElementById('btnConfig').addEventListener('click', () => {
+    document.getElementById('configPanel').classList.toggle('open');
+  });
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+  document.getElementById('btnLoad').addEventListener('click', () => {
+    const sheetId = document.getElementById('inputSheetId').value.trim();
+    const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
+    if (!sheetId) { alert('กรุณากรอก Google Sheet ID'); return; }
+    saveConfig({sheetId, sheetName});
+    document.getElementById('configPanel').classList.remove('open');
+    loadData();
+  });
+
+  if (cfg.sheetId) loadData();
+  else document.getElementById('configPanel').classList.add('open');
+})();
+</script>
+</body>
+</html>
