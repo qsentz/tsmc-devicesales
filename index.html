@@ -184,6 +184,12 @@
     .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:14px;}
   }
 
+  /* ---------- 70 / 30 row: Top Selling & Marketing / Order by Menu ---------- */
+  .grid-70-30{display:grid; grid-template-columns:1fr; gap:16px; align-items:stretch;}
+  @media(min-width:900px){ .grid-70-30{grid-template-columns:70% 1fr;} }
+  .col-70, .col-30{display:flex; flex-direction:column; min-width:0;}
+  .col-70 .card, .col-30 .card{flex:1 1 auto;}
+
   /* ---------- Asymmetric 35 / 65 grid ---------- */
   /* align-items:stretch (grid default) makes both columns share the row's
      full height; .col-narrow then lets its last card grow to fill any
@@ -210,7 +216,7 @@
   .bar-row{margin-bottom:10px;}
   .bar-row:last-child{margin-bottom:0;}
   .bar-row .top{display:flex; justify-content:space-between; font-size:11px; margin-bottom:4px; gap:8px;}
-  .bar-row .top .name{font-weight:600;}
+  .bar-row .top .name{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .bar-row .top .val{color:var(--muted); flex:0 0 auto;}
   .bar-track{background:var(--border-soft); border-radius:3px; height:6px; overflow:hidden;}
   .bar-fill{height:100%; border-radius:3px; transition:width .6s ease;}
@@ -281,7 +287,6 @@
   .grid-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:230px;}
   .grid-trio .tier-grid{flex:1 1 auto;}
 
-  .row-single{display:flex; flex-direction:column; gap:16px;}
 </style>
 </head>
 <body>
@@ -718,47 +723,56 @@ function buildSkeleton(){
       </div>
     </div>
 
-    <div class="row-single">
-      <div class="card rank-card">
-        <h2>Top Selling &amp; Marketing Performance</h2>
-        <div class="rank-subcards">
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
-            <div class="rank-section">
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
-                <div class="rank-list soft" id="body-device-list"></div>
+    <div class="grid-70-30">
+      <div class="col-70">
+        <div class="card rank-card">
+          <h2>Top Selling &amp; Marketing Performance</h2>
+          <div class="rank-subcards">
+            <div class="rank-subcard">
+              <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
+              <div class="rank-section">
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
+                  <div class="rank-list soft" id="body-device-list"></div>
+                </div>
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
+                  <div class="rank-list soft" id="body-accessory-list"></div>
+                </div>
               </div>
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
-                <div class="rank-list soft" id="body-accessory-list"></div>
+              <div class="rank-slider-row">
+                <span class="rank-slider-lbl">SHOW</span>
+                <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
+                <span class="rank-slider-val" id="sliderDeviceVal">10</span>
               </div>
             </div>
-            <div class="rank-slider-row">
-              <span class="rank-slider-lbl">SHOW</span>
-              <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
-              <span class="rank-slider-val" id="sliderDeviceVal">10</span>
-            </div>
-          </div>
 
-          <div class="rank-subcard alt">
-            <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
-            <div class="rank-section">
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
-                <div class="rank-list soft" id="body-camp-list"></div>
+            <div class="rank-subcard alt">
+              <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
+              <div class="rank-section">
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
+                  <div class="rank-list soft" id="body-camp-list"></div>
+                </div>
+                <div>
+                  <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
+                  <div class="rank-list soft" id="body-svc-list"></div>
+                </div>
               </div>
-              <div>
-                <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
-                <div class="rank-list soft" id="body-svc-list"></div>
+              <div class="rank-slider-row">
+                <span class="rank-slider-lbl">SHOW</span>
+                <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
+                <span class="rank-slider-val" id="sliderCampaignVal">10</span>
               </div>
-            </div>
-            <div class="rank-slider-row">
-              <span class="rank-slider-lbl">SHOW</span>
-              <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
-              <span class="rank-slider-val" id="sliderCampaignVal">10</span>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="col-30">
+        <div class="card">
+          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
+          <div class="card-body soft" id="body-menu"></div>
         </div>
       </div>
     </div>
@@ -779,10 +793,6 @@ function buildSkeleton(){
       </div>
 
       <div class="col-wide">
-        <div class="card">
-          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
-          <div class="card-body soft" id="body-menu"></div>
-        </div>
         <div class="card">
           <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
           <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
