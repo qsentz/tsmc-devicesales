@@ -216,16 +216,22 @@
   .tier-box .l{font-size:10px; margin-top:3px; font-weight:600;}
   .tier-box .p{font-size:10px; opacity:.85;}
 
-  /* Order by menu */
-  .menu-item{margin-bottom:12px;}
-  .menu-item:last-child{margin-bottom:0;}
-  .menu-item .top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-bottom:5px;}
-  .menu-item .name{font-size:11.5px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .menu-item .val{font-size:12px; font-weight:800; flex:0 0 auto;}
-  .menu-track{background:var(--border-soft); border-radius:3px; height:8px; overflow:hidden;}
-  .menu-fill{height:100%; border-radius:3px; background:var(--gold); transition:width .6s ease;}
+  /* Order by menu — reuses the compact .bar-row pattern (see Sub Stock
+     Destination legend rows below) instead of a larger dedicated block. */
   .menu-sub{font-size:9.5px; color:var(--muted); margin-top:4px;}
   .menu-sub b{color:var(--gold); font-weight:700;}
+
+  /* Sub Stock Destination — donut + legend */
+  .stock-donut-wrap{display:flex; align-items:center; gap:16px;}
+  .chart-wrap.donut{position:relative; flex:0 0 auto; width:112px; height:112px;}
+  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:8px;}
+  .legend-row{display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:11px;}
+  .legend-row .lg-name{display:flex; align-items:center; gap:7px; min-width:0; overflow:hidden;}
+  .legend-row .lg-dot{width:8px; height:8px; border-radius:50%; flex:0 0 auto;}
+  .legend-row .lg-label{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .legend-row .lg-val{flex:0 0 auto; font-weight:800; color:var(--text);}
+  .legend-row .lg-pct{flex:0 0 auto; font-size:9.5px; color:var(--muted); margin-left:5px;}
+  @media(max-width:420px){ .stock-donut-wrap{flex-direction:column; align-items:flex-start;} }
 
   /* Combined ranking card */
   .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(320px,1fr)); gap:12px;}
@@ -326,6 +332,9 @@ let dashboardBuilt = false;
 let refreshTimer = null;
 let isLoading = false;
 let lastMetrics = null;
+// A slightly wider, more colorful set kept within the warm dark palette —
+// used for the Sub Stock donut and (rotated) for the Order by Menu bars.
+const STOCK_PALETTE = ['#B4863E','#C9703F','#5B7A8C','#5C7A54','#8C8074'];
 
 function getConfig(){
   const params = new URLSearchParams(location.search);
@@ -685,55 +694,6 @@ function buildSkeleton(){
       </div>
     </div>
 
-    <div class="grid-asym">
-      <div class="col-narrow">
-        <div class="card">
-          <h2>AIS Shop vs Partner <span class="tag" id="tag-prebooktotal"></span></h2>
-          <div class="card-body soft" id="body-aispartner"></div>
-        </div>
-        <div class="card">
-          <h2>Sub Stock Destination</h2>
-          <div class="card-body soft" id="body-substock"></div>
-        </div>
-      </div>
-
-      <div class="col-wide">
-        <div class="card">
-          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
-          <div class="card-body soft" id="body-menu"></div>
-        </div>
-        <div class="card">
-          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
-          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-trio">
-      <div class="card">
-        <h2>Duration Overview <span class="tag" id="tag-durtotal"></span></h2>
-        <div class="tier-grid soft" id="tiles-tier"></div>
-      </div>
-      <div class="card">
-        <h2>Avg / P90 Duration by Order Type</h2>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
-            <tbody id="body-avgp90"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Slowest Orders <span class="tag">&gt;= 30m</span></h2>
-        <div class="table-scroll">
-          <table>
-            <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
-            <tbody id="body-slowest"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <div class="row-single">
       <div class="card rank-card">
         <h2>Top Selling &amp; Marketing Performance</h2>
@@ -775,6 +735,58 @@ function buildSkeleton(){
               <span class="rank-slider-val" id="sliderCampaignVal">10</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-asym">
+      <div class="col-narrow">
+        <div class="card">
+          <h2>AIS Shop vs Partner <span class="tag" id="tag-prebooktotal"></span></h2>
+          <div class="card-body soft" id="body-aispartner"></div>
+        </div>
+        <div class="card">
+          <h2>Sub Stock Destination</h2>
+          <div class="stock-donut-wrap">
+            <div class="chart-wrap donut"><canvas id="chartStock"></canvas></div>
+            <div class="stock-legend soft" id="body-substock"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-wide">
+        <div class="card">
+          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
+          <div class="card-body soft" id="body-menu"></div>
+        </div>
+        <div class="card">
+          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
+          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-trio">
+      <div class="card">
+        <h2>Duration Overview <span class="tag" id="tag-durtotal"></span></h2>
+        <div class="tier-grid soft" id="tiles-tier"></div>
+      </div>
+      <div class="card">
+        <h2>Avg / P90 Duration by Order Type</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
+            <tbody id="body-avgp90"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Slowest Orders <span class="tag">&gt;= 30m</span></h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
+            <tbody id="body-slowest"></tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -868,17 +880,17 @@ function updateDashboard(rows){
     grpRow('AIS','var(--gold)', M.otCounts.AIS, M.prebookByGrp.AIS, M.nonPrebookByGrp.AIS, M.otTotal) +
     grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.prebookByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.otTotal));
 
-  // ---- Sub stock destination ----
-  const stockPalette = ['#B4863E','#786A5A','#5B7A8C','#5C7A54','#8C8074'];
+  // ---- Sub stock destination (donut + legend) ----
   const stockHtml = M.stockArr.map((s,i) => {
     const pct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
-    const c = stockPalette[i % stockPalette.length];
-    return `<div class="bar-row">
-      <div class="top"><span class="name">${esc(s.name)}</span><span class="val">${fmtNum(s.count)} (${fmtPct(pct)})</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c}"></div></div>
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    return `<div class="legend-row">
+      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
+      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(pct)}</span></div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('body-substock'), stockHtml);
+  updateStockChart(M);
 
   // ---- Duration overview tiers ----
   document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
@@ -899,18 +911,21 @@ function updateDashboard(rows){
   softUpdate(document.getElementById('tiles-tier'), M.durTotal ? tierHtml : '<div class="empty">ไม่มีข้อมูล</div>');
 
   // ---- Order by menu ----
-  // The track is always 100% wide (no overlapping/absolutely-positioned
-  // marker) so it can never cover the value number; Pre-Booking count for
-  // each menu is printed as a plain text line underneath the bar.
+  // Compact bar-row style (matches the Sub Stock Destination list) instead
+  // of the larger block used before. The track is always 100% wide (no
+  // overlapping/absolutely-positioned marker) so it can never cover the
+  // value number; Pre-Booking count for each menu is printed as a plain
+  // text line underneath the bar.
   const maxMenu = Math.max(1, ...M.menuArr.map(m => m.orderCount));
-  const menuHtml = M.menuArr.map(m => {
+  const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
     const preLabel = m.prebookCount
       ? `Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`
       : 'ไม่มี Pre-Booking';
-    return `<div class="menu-item">
+    return `<div class="bar-row">
       <div class="top"><span class="name" title="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
-      <div class="menu-track"><div class="menu-fill" style="width:${fillPct}%"></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
       <div class="menu-sub">${preLabel}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
@@ -1007,6 +1022,37 @@ function updateCharts(M){
       charts.volume.data.datasets[1].data = partnerData;
       charts.volume.update();
     }
+  }
+}
+
+function updateStockChart(M){
+  if (typeof Chart === 'undefined'){
+    chartFallback(document.getElementById('chartStock'), 'โหลดไลบรารีกราฟไม่สำเร็จ');
+    return;
+  }
+  const ctx = document.getElementById('chartStock');
+  if (!ctx) return;
+  const labels = M.stockArr.map(s => s.name);
+  const data = M.stockArr.map(s => s.count);
+  const colors = labels.map((_,i) => STOCK_PALETTE[i % STOCK_PALETTE.length]);
+  if (!charts.stock){
+    charts.stock = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#1F1A16', borderWidth: 2 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false, cutout:'66%',
+        animation:{duration:450, easing:'easeOutQuart'},
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: c => `${c.label}: ${fmtNum(c.parsed)}` } }
+        }
+      }
+    });
+  } else {
+    charts.stock.data.labels = labels;
+    charts.stock.data.datasets[0].data = data;
+    charts.stock.data.datasets[0].backgroundColor = colors;
+    charts.stock.update();
   }
 }
 
