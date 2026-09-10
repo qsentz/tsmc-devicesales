@@ -742,27 +742,6 @@ function computeMetrics(rows){
   const campOrders = campRows.length;
   const svcOrders = svcRows.length;
 
-  // ---- Revenue overview (orders.device.priceIncAmt / priceDiscountAmt) ----
-  // Rows with no price data at all contribute 0 and don't skew the totals;
-  // hasRevenueData flags whether the sheet actually carries these columns
-  // so the UI can show an empty-state instead of a wall of ฿0.
-  const hasRevenueData = completeRows.some(r => r.priceIncAmt > 0 || r.priceDiscountAmt > 0);
-  const gmvTotal = completeRows.reduce((s,r) => s + r.priceIncAmt, 0);
-  const discountTotal = completeRows.reduce((s,r) => s + r.priceDiscountAmt, 0);
-  const netRevenue = gmvTotal - discountTotal;
-  const avgOrderValue = completeCount ? netRevenue / completeCount : 0;
-  const revByGrp = {AIS:0, PARTNER:0};
-  completeRows.forEach(r => { revByGrp[grp(r.orderType || '')] += (r.priceIncAmt - r.priceDiscountAmt); });
-  const campRevAgg = {};
-  completeRows.forEach(r => {
-    if (isBlank(r.campaignName)) return;
-    const net = r.priceIncAmt - r.priceDiscountAmt;
-    const a = campRevAgg[r.campaignName] || (campRevAgg[r.campaignName] = {revenue:0, count:0});
-    a.revenue += net; a.count++;
-  });
-  const campRevTop = Object.entries(campRevAgg)
-    .map(([name,v]) => ({name, revenue:v.revenue, count:v.count, avg: v.count ? v.revenue/v.count : 0}))
-    .sort((a,b) => b.revenue - a.revenue).slice(0, 8);
 
   // ---- Branch / location source ----
   // For each locationSource, also surface the single stock destination it
