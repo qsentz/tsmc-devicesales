@@ -657,11 +657,12 @@ async function loadLocationMasterIfNeeded(sheetId, force){
     locationMasterLoadedFor = sheetId;
   }
 }
-// Resolve a locationSource code to its branch name; falls back to the raw code untouched
+// Resolve a locationSource code to "code - branch name"; falls back to the raw code alone
 // when there's no match (unmapped code, or LocationMaster failed/hasn't loaded).
 function locationDisplayName(code){
   if (isBlank(code)) return code;
-  return locationNameMap[code] || code;
+  const name = locationNameMap[code];
+  return name ? `${code} - ${name}` : code;
 }
 
 function parseGvizDate(v){
@@ -1726,7 +1727,7 @@ function updateDashboard(rows){
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
   softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
   const branchStockHtml = M.locTop.map(b => `<tr>
-    <td class="mono" title="${esc('รหัส: ' + b.code)}">${esc(b.name)}</td>
+    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
     <td>${fmtNum(b.count)}</td>
     <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
