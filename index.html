@@ -259,6 +259,13 @@
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow > .card{flex:1 1 auto;}
+  /* Force an exact height on the "Order Source & Stock Destination" card so its bottom
+     edge lines up with the bottom of "Order Omni & Shipping" in the wide column. Stretch
+     alone was leaving a blank strip below this card, so we pin it to a known value instead.
+     Only applied at desktop widths where the two columns sit side by side. */
+  @media(min-width:900px){
+    .col-narrow > .card.fixed-height-540{flex:0 0 540px; height:540px;}
+  }
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
@@ -1328,7 +1335,7 @@ function buildSkeleton(){
 
     <div class="grid-asym">
       <div class="col-narrow">
-        <div class="card">
+        <div class="card fixed-height-540">
           <h2>Order Source &amp; Stock Destination</h2>
           <div class="rank-subcards subcards-stack subcards-fill-eq">
             <div class="rank-subcard">
