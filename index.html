@@ -231,7 +231,8 @@
   .hero-right{border-left:1px solid var(--border); padding-left:22px;}
   .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 7px; font-weight:700; color:var(--text-dim);}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
-  .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft);}
+  .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft); box-shadow:0 2px 5px rgba(0,0,0,.35); transition:transform .12s ease, box-shadow .12s ease;}
+  .tile:hover{transform:translateY(-1px); box-shadow:0 4px 9px rgba(0,0,0,.45);}
   .tile .n{font-size:14px; font-weight:800;}
   .tile .p{font-size:9.5px; opacity:.85;}
   .tile .l{font-size:8.5px; margin-top:2px; opacity:.85; word-break:break-word;}
@@ -250,10 +251,11 @@
   .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   /* align-items:stretch: the narrow "Order Source & Stock Destination" column matches the
      combined height of "Order Volume" + "Order Omni & Shipping" stacked next to it, so the
-     two columns' bottom edges line up. The extra height is absorbed as plain empty space at
-     the very bottom of the narrow *card* itself (`.col-narrow > .card{flex:1 1 auto}` below) —
-     not inside the "Sub Stock Destination" donut/legend, which keeps its own natural size
-     since `.rank-subcards` is a plain grid, not a flex-grow child. */
+     two columns' bottom edges line up. `.col-narrow > .card{flex:1 1 auto}` below lets the
+     card itself grow into that extra height; `.subcards-fill-eq` (further down) then splits
+     that grown height evenly between the "AIS Shop vs Partner" and "Sub Stock Destination"
+     subcards, so the card's bottom edge lands exactly at the Order Omni row's bottom edge
+     with no leftover blank strip, and the two subcards stay equal height with each other. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow > .card{flex:1 1 auto;}
@@ -341,6 +343,14 @@
 
   /* Sub-cards stacked layout */
   .subcards-stack{grid-template-columns:1fr;}
+
+  /* Modifier for the "Order Source & Stock Destination" card only: makes the stacked
+     subcards grow to fill the card's full (possibly stretched) height, split evenly between
+     the two of them, instead of each sizing to its own content and leaving blank space
+     below. Requires the .rank-subcards element itself to be a flex-grow child of its
+     (flex-column) .card, hence flex:1 1 auto + min-height:0 here. */
+  .subcards-fill-eq{flex:1 1 auto; min-height:0; grid-template-rows:1fr 1fr;}
+  .subcards-fill-eq > .rank-subcard{min-height:0;}
 
   /* Sub-cards equal trio layout */
   .subcards-trio{grid-template-columns:1fr;}
@@ -1320,7 +1330,7 @@ function buildSkeleton(){
       <div class="col-narrow">
         <div class="card">
           <h2>Order Source &amp; Stock Destination</h2>
-          <div class="rank-subcards subcards-stack">
+          <div class="rank-subcards subcards-stack subcards-fill-eq">
             <div class="rank-subcard">
               <div class="rank-subcard-head"><h3>AIS Shop vs Partner</h3><span class="tag" id="tag-prebooktotal"></span></div>
               <div class="aispartner-wrap card-body soft" id="body-aispartner"></div>
