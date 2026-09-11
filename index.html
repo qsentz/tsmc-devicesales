@@ -165,6 +165,14 @@
   body.body-fs-lock{overflow:hidden;}
   body.body-fs-lock .topbar-wrap{visibility:hidden;}
 
+  /* Tracking Order fullscreen: previously the table kept its normal (fairly short) max-height
+     even at fullscreen, leaving a lot of empty space below it. In fullscreen the card and its
+     table now stretch to fill the available viewport height, with the table itself scrolling
+     internally instead of the page having dead space under a short table. */
+  #trackingSection.is-fullscreen{overflow:hidden;}
+  #trackingSection.is-fullscreen .card{flex:1 1 auto; min-height:0;}
+  #trackingSection.is-fullscreen .track-table-scroll{flex:1 1 auto; max-height:none;}
+
   @keyframes fadeInUp{
     from{opacity:0; transform:translateY(6px);}
     to{opacity:1; transform:translateY(0);}
@@ -181,7 +189,14 @@
     font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
-  .card h2 .tag{font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;}
+  /* Card-header tags now match the pill/badge look used on sub-card tags (see
+     .rank-subcard-head .tag below) — previously these were plain unstyled text, which made
+     them look inconsistent with tags like "Pre-Booking: 1" elsewhere on the same dashboard. */
+  .card h2 .tag{
+    font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;
+    background:var(--bg-2); padding:1px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;
+    border:1px solid var(--border-soft);
+  }
   .card-body{min-height:0;}
   .soft{transition:opacity .28s ease;}
 
@@ -192,26 +207,29 @@
 
   /* ---------- HERO: Total Order Completed ---------- */
   .hero{
-    position:relative; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);
-    padding:12px 16px; box-shadow:4px 4px 0 var(--accent-bg);
-    display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:center;
+    position:relative; background:linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
+    border:2px solid var(--accent); border-radius:var(--radius);
+    padding:20px 26px; box-shadow:6px 6px 0 var(--accent-bg);
+    display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center;
     animation:fadeInUp .4s ease both;
   }
   .hero-sticker{
-    position:absolute; top:-9px; left:16px; background:var(--accent); color:#F5F3FF;
-    font-size:9.5px; font-weight:700; padding:2px 8px 1px; border-radius:3px; transform:rotate(-2deg);
-    box-shadow:2px 2px 0 rgba(0,0,0,.4);
+    position:absolute; top:-12px; left:20px; background:var(--accent); color:#F5F3FF;
+    font-size:11px; font-weight:800; padding:3px 11px 2px; border-radius:3px; transform:rotate(-2deg);
+    box-shadow:3px 3px 0 rgba(0,0,0,.4); letter-spacing:.05em;
   }
-  .hero-left{display:flex; align-items:center; gap:14px;}
+  .hero-left{display:flex; align-items:center; gap:20px;}
   .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
   .hero-ring canvas{width:64px; height:64px; display:block;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:42px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:10px; color:var(--accent-bright); margin-top:2px; font-weight:700; letter-spacing:.03em;}
-  .hero-nums .of-total{font-size:10px; color:var(--muted); margin-top:3px;}
+  .hero-ring.hero-ring-lg{width:100px; height:100px;}
+  .hero-ring.hero-ring-lg canvas{width:100px; height:100px;}
+  .hero-nums .big{font-family:var(--font-serif); font-size:64px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
+  .hero-nums .lbl{font-size:12.5px; color:var(--accent-bright); margin-top:5px; font-weight:800; letter-spacing:.04em;}
+  .hero-nums .of-total{font-size:11px; color:var(--muted); margin-top:5px;}
   .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
   .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
-  .hero-right{border-left:1px solid var(--border); padding-left:16px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:11.5px; margin:0 0 6px; font-weight:700; color:var(--text-dim);}
+  .hero-right{border-left:1px solid var(--border); padding-left:22px;}
+  .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 7px; font-weight:700; color:var(--text-dim);}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
   .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft);}
   .tile .n{font-size:14px; font-weight:800;}
@@ -839,14 +857,16 @@ function animateNumber(el, to){
   requestAnimationFrame(step);
 }
 
-function drawRing(canvasEl, pct, color){
+function drawRing(canvasEl, pct, color, size){
   if (!canvasEl || !canvasEl.getContext) return;
+  size = size || 64;
   const ctx = canvasEl.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  const size = 64;
   canvasEl.width = size * dpr; canvasEl.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const cx = size/2, cy = size/2, r = size/2 - 6;
+  const lineWidth = size >= 90 ? 9 : 6;
+  const fontSize = size >= 90 ? 16 : 10;
+  const cx = size/2, cy = size/2, r = size/2 - lineWidth;
   const target = Math.max(0, Math.min(100, pct));
   const from = canvasEl.dataset.pct ? parseFloat(canvasEl.dataset.pct) : 0;
   canvasEl.dataset.pct = target;
@@ -856,7 +876,7 @@ function drawRing(canvasEl, pct, color){
     const eased = 1 - Math.pow(1 - p, 3);
     const cur = from + (target - from) * eased;
     ctx.clearRect(0, 0, size, size);
-    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.lineWidth = lineWidth; ctx.lineCap = 'round';
     ctx.strokeStyle = '#2C3F63';
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
     ctx.strokeStyle = color;
@@ -864,7 +884,7 @@ function drawRing(canvasEl, pct, color){
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
     ctx.fillStyle = '#E9EEF9';
-    ctx.font = '700 10px "IBM Plex Sans Thai",-apple-system,sans-serif';
+    ctx.font = `700 ${fontSize}px "IBM Plex Sans Thai",-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(cur.toFixed(1) + '%', cx, cy);
     if (p < 1) requestAnimationFrame(frame);
@@ -1156,7 +1176,7 @@ function buildSkeleton(){
     <div class="hero">
       <div class="hero-sticker">COMPLETED</div>
       <div class="hero-left">
-        <div class="hero-ring"><canvas id="ringComplete" width="64" height="64"></canvas></div>
+        <div class="hero-ring hero-ring-lg"><canvas id="ringComplete" width="100" height="100"></canvas></div>
         <div class="hero-nums">
           <div class="big" id="val-complete">0</div>
           <div class="lbl">TOTAL ORDER COMPLETED</div>
@@ -1730,7 +1750,7 @@ function updateDashboard(rows){
     `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
-  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2');
+  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2', 100);
   const statusColors = {
     WAITING_PAYMENT: ['var(--gold-bg)','#7DE0EE'],
     READY_TO_PAY: ['var(--slate-bg)','#B9C6FA'],
