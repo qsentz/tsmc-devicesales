@@ -277,8 +277,7 @@
      CSS grid collapses to a single stacked column and syncSummaryCardHeights() skips the
      height overrides entirely so cards just size to their own content. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
-  .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;}
-  .col-wide > .card{flex:1 1 0; min-height:0;}
+  .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow > .card{flex:1 1 auto;}
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
@@ -299,22 +298,12 @@
   .split-bar{display:flex; width:100%; height:16px; border-radius:4px; overflow:hidden; background:var(--border-soft); margin-bottom:4px;}
   .split-seg{height:100%; min-width:2px; transition:width .5s ease;}
 
-  /* Order Omni — larger ring chart that uses the available sub-card space */
-  #cardOmni .rank-subcards{flex:1 1 auto; min-height:0;}
-  #cardOmni .rank-subcard{display:flex; flex-direction:column; min-height:0;}
-  .omni-ring-wrap{display:flex; align-items:center; gap:18px; flex:1 1 auto; min-height:0;}
-  .omni-ring-wrap .hero-ring{width:clamp(96px, 13vw, 140px); height:clamp(96px, 13vw, 140px); flex:0 0 auto;}
-  .omni-ring-wrap .hero-ring canvas{width:100% !important; height:100% !important; display:block;}
+  /* Order Omni — small ring chart beside the numbers */
+  .omni-ring-wrap{display:flex; align-items:center; gap:12px;}
+  .omni-ring-wrap .hero-ring{flex:0 0 auto;}
   .omni-ring-wrap .card-body{flex:1 1 auto; min-width:0;}
   .omni-ring-wrap .grp-row{padding:0; border-bottom:none;}
-  @media(max-width:600px){
-    .omni-ring-wrap{gap:12px;}
-    .omni-ring-wrap .hero-ring{width:110px; height:110px;}
-  }
-  @media(max-width:420px){
-    .omni-ring-wrap{flex-direction:row; align-items:center;}
-    .omni-ring-wrap .hero-ring{width:96px; height:96px;}
-  }
+  @media(max-width:420px){ .omni-ring-wrap{flex-direction:column; align-items:flex-start;} }
 
   /* Sub stock destination */
   .bar-row{margin-bottom:8px;}
@@ -335,25 +324,25 @@
   .menu-sub{font-size:9px; color:var(--muted); margin-top:3px;}
   .menu-sub b{color:var(--gold); font-weight:700;}
 
-  /* Sub Stock Destination — large donut + legend filling the sub-card */
-  .stock-donut-wrap{display:flex; align-items:center; gap:16px; flex:1 1 auto; min-height:0;}
-  .chart-wrap.donut{position:relative; flex:0 0 auto; width:min(170px, 42%); aspect-ratio:1 / 1; height:auto;}
-  .chart-wrap.donut canvas{width:100% !important; height:100% !important; display:block;}
-  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:7px; justify-content:center;}
+  /* Sub Stock Destination — donut + legend. .rank-subcard-donut is a flex column whose height
+     comes from its grid cell (see .subcards-fill-eq); .stock-donut-wrap gets flex:1 1 auto so
+     it — and the donut inside it — grows to use all of that height instead of sizing to the
+     donut's old fixed 100x100 box and leaving blank space below. The donut sizes to the
+     available height (height:100%) with aspect-ratio:1/1 keeping it circular, capped by
+     max-width so the legend column always keeps enough room next to it. */
+  .rank-subcard-donut{display:flex; flex-direction:column;}
+  .stock-donut-wrap{display:flex; align-items:center; gap:14px; flex:1 1 auto; min-height:0;}
+  .chart-wrap.donut{position:relative; flex:0 0 auto; width:auto; height:100%; max-height:220px; max-width:50%; aspect-ratio:1/1;}
+  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:6px; justify-content:center;}
   .legend-row{display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10.5px;}
   .legend-row .lg-name{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;}
   .legend-row .lg-dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto;}
   .legend-row .lg-label{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .legend-row .lg-val{flex:0 0 auto; font-weight:800; color:var(--text);}
   .legend-row .lg-pct{flex:0 0 auto; font-size:9px; color:var(--muted); margin-left:4px;}
-  @media(max-width:600px){
-    .stock-donut-wrap{gap:10px;}
-    .chart-wrap.donut{width:min(150px, 40%);}
-  }
   @media(max-width:420px){
-    .stock-donut-wrap{flex-direction:row; align-items:center;}
-    .chart-wrap.donut{width:min(125px, 38%);}
-    .stock-legend{gap:5px;}
+    .stock-donut-wrap{flex-direction:column; align-items:stretch;}
+    .chart-wrap.donut{width:100%; height:auto; max-width:180px; max-height:none; margin:0 auto; aspect-ratio:1/1;}
   }
 
   /* Combined ranking card */
@@ -368,14 +357,14 @@
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
-  /* In-cell data bar:
-     the magnitude bar now lives inside the same data cell as the item name,
-     instead of occupying a separate fixed-width "graph column". */
-  .rank-row{position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; padding:3px 6px; border-radius:3px; overflow:hidden;}
-  .rank-name{position:relative; z-index:2; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-  .rank-bar-track{position:absolute; z-index:1; left:6px; right:42px; top:50%; transform:translateY(-50%); width:auto; height:10px; border-radius:4px; background:var(--border-soft); overflow:hidden; opacity:.72;}
-  .rank-bar-fill{position:absolute; left:0; top:0; bottom:0; border-radius:4px; transition:width .5s ease;}
-  .rank-count{position:relative; z-index:3; font-size:10.5px; font-weight:800; min-width:34px; text-align:right; padding-left:4px; background:var(--surface-alt);}
+  .rank-row{position:relative; display:flex; align-items:center; gap:8px; padding:3px 6px; border-radius:3px; overflow:hidden;}
+  /* In-row "data bar": a translucent fill sits behind the row's own name/count, scaled to
+     this item's count vs. the largest count in the list — so relative magnitude reads at a
+     glance as a shaded backdrop directly behind the text itself, instead of a separate bar
+     column pushed off to the side competing for horizontal space. */
+  .rank-bar-fill{position:absolute; left:0; top:0; bottom:0; border-radius:3px; opacity:.28; transition:width .5s ease; z-index:0;}
+  .rank-name{position:relative; z-index:1; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; min-width:0;}
+  .rank-count{position:relative; z-index:1; font-size:10.5px; font-weight:800; flex:0 0 auto; min-width:34px; text-align:right;}
   .rank-slider-row{display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);}
   .rank-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
@@ -433,9 +422,7 @@
   .track-toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; flex-wrap:wrap;}
   .track-filter-input{
     font-family:var(--font-sans); border:1.5px solid var(--border); border-radius:4px; padding:5px 10px;
-    font-size:11px; line-height:18px; background:var(--surface-alt); color:var(--text);
-    min-width:220px; flex:1 1 220px; height:30px; min-height:30px; max-height:30px;
-    box-sizing:border-box; resize:none; align-self:center;
+    font-size:11px; background:var(--surface-alt); color:var(--text); min-width:220px; flex:1 1 220px;
   }
   .track-filter-input::placeholder{color:var(--muted);}
   .track-slider-row{display:flex; align-items:center; gap:6px; flex:0 0 auto;}
@@ -460,10 +447,7 @@
   .track-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:6px 16px;}
   .track-detail-grid .dl{font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
   .track-detail-grid .dv{font-size:11px; color:var(--text-dim); margin-top:1px; word-break:break-word;}
-  @media(max-width:640px){
-    .track-toolbar{flex-direction:column; align-items:stretch; gap:8px;}
-    .track-filter-input{width:100%; min-width:0; flex:0 0 30px; height:30px; min-height:30px; max-height:30px;}
-  }
+  @media(max-width:640px){ .track-toolbar{flex-direction:column; align-items:stretch;} .track-filter-input{min-width:0;} }
 
   /* ---------- Tracking Order: pinned info tooltip ---------- */
   .track-tooltip{
@@ -1420,7 +1404,7 @@ function buildSkeleton(){
             <div class="rank-subcard">
               <div class="rank-subcard-head"><h3>Order Omni</h3></div>
               <div class="omni-ring-wrap">
-                <div class="hero-ring"><canvas id="ringOmni" width="128" height="128"></canvas></div>
+                <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
                 <div class="card-body soft" id="body-omni"></div>
               </div>
             </div>
@@ -1859,8 +1843,8 @@ function rankRows(items, count, color, imgMap){
     const imgAttr = img ? ` data-img="${esc(img)}"` : '';
     const nameCls = img ? 'rank-name has-img' : 'rank-name';
     return `<div class="rank-row"${imgAttr}>
+      <div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div>
       <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
-      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div></div>
       <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
@@ -1950,7 +1934,7 @@ function updateDashboard(rows){
   // Order Omni & Shipping — Omni share as a ring chart (reuses the same drawRing() used for
   // the hero "Completed" ring), Shipping Breakdown as horizontal bars instead of a bare list.
   document.getElementById('tag-omnitotal').textContent = `${fmtNum(M.omniTotal)} orders`;
-  drawRing(document.getElementById('ringOmni'), M.omniPctOfComplete, '#38BDF2', 128);
+  drawRing(document.getElementById('ringOmni'), M.omniPctOfComplete, '#38BDF2');
   const omniHtml = `<div class="grp-row" style="border-bottom:none;padding-bottom:0;">
     <div class="grp-name"><span class="dot" style="background:#38BDF2"></span>Order Omni</div>
     <div class="grp-nums">
