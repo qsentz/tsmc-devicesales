@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Order Dashboard</title>
+<title>[TS-MC] Monitoring and Tracking DeviceSale transactions</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -403,40 +403,35 @@
   <div class="topbar">
     <div class="topbar-title-wrap">
       <div class="topbar-title">
-        <h1 id="dashTitle" title="ดับเบิลคลิกเพื่อตั้งค่า Google Sheet">Order Dashboard</h1>
+        <h1 id="dashTitle" title="ดับเบิลคลิกเพื่อตั้งค่า Google Sheet">[TS-MC] Monitoring and Tracking DeviceSale transactions</h1>
         <span class="live-chip">LIVE</span>
       </div>
-      <div class="sub" id="rangeLabel">ยังไม่ได้เชื่อมต่อข้อมูล</div>
+      <div class="sub" id="rangeLabel">DISCONNECT</div>
     </div>
     <div class="topbar-right">
       <div class="live-wrap">
-        <span id="lastUpdated"><span class="status-dot" id="statusDot"></span><span id="statusText">ยังไม่โหลดข้อมูล</span></span>
+        <span id="lastUpdated"><span class="status-dot" id="statusDot"></span><span id="statusText">Data not yet loaded.</span></span>
       </div>
-      <button class="btn hidden-cfg" id="btnConfig">ตั้งค่า Sheet</button>
-      <button class="btn primary" id="btnRefresh">รีเฟรช</button>
+      <button class="btn hidden-cfg" id="btnConfig">SETTING</button>
+      <button class="btn primary" id="btnRefresh">REFRESH</button>
     </div>
   </div>
   <div class="refresh-track"><div class="refresh-bar" id="refreshBar"></div></div>
   <div class="config" id="configPanel">
     <div class="field">
-      <label>Google Sheet ID</label>
+      <label>DATA ID</label>
       <input id="inputSheetId" placeholder="1AbCDeFGhijklmnop_xxxxxxxxxxxx" />
     </div>
     <div class="field">
-      <label>Sheet / Tab name</label>
+      <label>COLLECTION</label>
       <input id="inputSheetName" placeholder="Order" value="Order" />
     </div>
-    <button class="btn primary" id="btnLoad">โหลดข้อมูล</button>
+    <button class="btn primary" id="btnLoad">LOAD DATA</button>
     <div class="field">
-      <label>Secret Key (ถอดรหัสชื่อ/เบอร์โทรลูกค้า)</label>
-      <input id="inputSecretKey" type="password" placeholder="ใส่ Secret Key เดียวกับใน Code.gs" autocomplete="off" />
+      <label>SECRET KEY</label>
+      <input id="inputSecretKey" type="password" placeholder="PLEASE FILL SECRET KEY" autocomplete="off" />
     </div>
-    <button class="btn" id="btnApplyKey">ใช้ Secret Key</button>
-    <div class="note">
-      Sheet ID คือส่วนหนึ่งของ URL: <code>docs.google.com/spreadsheets/d/&lt;SHEET_ID&gt;/edit</code><br>
-      ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้<br>
-      Secret Key ใช้ถอดรหัสชื่อ-นามสกุล/เบอร์โทรลูกค้าใน "Tracking Order" เท่านั้น ต้องตรงกับคีย์ที่ตั้งไว้ใน <code>setupEncryptionKey()</code> ของ Code.gs — คีย์นี้เก็บไว้ในเบราว์เซอร์นี้เท่านั้น ไม่ถูกส่งออกไปที่ไหน
-    </div>
+    <button class="btn" id="btnApplyKey">SUBMIT</button>
   </div>
 </div>
 
@@ -444,7 +439,7 @@
   <div id="banner"></div>
   <div id="dashboard" style="display:none;"></div>
   <div id="placeholder" class="empty" style="padding:80px 0; font-size:13.5px;">
-    กรอก Google Sheet ID แล้วกดโหลดข้อมูล (ดับเบิลคลิกที่หัวข้อ "Order Dashboard" ด้านซ้ายบนเพื่อตั้งค่า)
+    FILL THE DATA ID FOR Load Data.
   </div>
 </div>
 
@@ -606,17 +601,17 @@ function getSecretKey(){
 
 /* ===================== FETCH (Google Visualization / gviz) ===================== */
 async function fetchSheet(sheetId, sheetName){
-  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&_=${Date.now()}`;
+  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&headers=1&_=${Date.now()}`;
   const res = await fetch(url);
   const text = await res.text();
   const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
   if (!m) {
-    throw new Error('อ่านข้อมูลจาก Google Sheet ไม่สำเร็จ (ตรวจสอบว่า Sheet ID / ชื่อ Sheet ถูกต้อง และแชร์เป็นสาธารณะแบบ "ดูได้" แล้ว)');
+    throw new Error('อ่านข้อมูลจาก COLLECTION ไม่สำเร็จ (ตรวจสอบว่า DATA ID / ชื่อ COLLECTION)');
   }
   const json = JSON.parse(m[1]);
   if (json.status === 'error') {
     const detail = (json.errors && json.errors[0] && json.errors[0].detailed_message) || 'unknown error';
-    throw new Error('Google Sheets ส่ง error กลับมา: ' + detail);
+    throw new Error('COLLECTION ส่ง ERROR กลับมา: ' + detail);
   }
   const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
   const rows = json.table.rows.map(r => (r.c || []).map(cell => cell ? cell.v : null));
@@ -639,7 +634,7 @@ async function loadLocationMasterIfNeeded(sheetId, force){
     const codeIdx = cols.indexOf('locationCode');
     const nameIdx = cols.indexOf('locationName');
     if (codeIdx === -1 || nameIdx === -1){
-      throw new Error(`ไม่พบคอลัมน์ locationCode/locationName ใน sheet "${LOCATION_MASTER_SHEET_NAME}"`);
+      throw new Error(`ไม่พบคอลัมน์ locationCode/locationName ใน "${LOCATION_MASTER_SHEET_NAME}"`);
     }
     const map = {};
     rows.forEach(r => {
@@ -681,8 +676,8 @@ function buildRows(cols, rawRows){
   for (const k in COL) idx[k] = cols.indexOf(COL[k]);
   const missing = Object.keys(COL).filter(k => idx[k] === -1);
   if (missing.length){
-    throw new Error('ไม่พบคอลัมน์ต่อไปนี้ใน Sheet: ' + missing.map(k => COL[k]).join(', ') +
-      ' — ตรวจสอบว่าหัวคอลัมน์ตรงกับที่ Code.gs เขียนไว้');
+    throw new Error('ไม่พบคอลัมน์ต่อไปนี้ใน COLLECTION: ' + missing.map(k => COL[k]).join(', ') +
+      ' — ตรวจสอบว่าหัวคอลัมน์ตรงกับที่ BACKEND เขียนไว้');
   }
   for (const k in COL_OPTIONAL) idx[k] = cols.indexOf(COL_OPTIONAL[k]);
   const str = v => (v === null || v === undefined) ? '' : String(v).trim();
