@@ -243,19 +243,20 @@
 
   /* ---------- Grid layout columns ---------- */
   .grid-70-30{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-70-30{grid-template-columns:68% 1fr;} }
+  @media(min-width:900px){ .grid-70-30{grid-template-columns:80% 1fr;} }
   .col-70, .col-30{display:flex; flex-direction:column; min-width:0;}
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
-  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:start;}
-  /* align-items:start (not stretch): "Order Source & Stock Destination" keeps its own
-     natural height instead of being force-stretched to match the combined height of
-     "Order Volume" + "Order Omni & Shipping" stacked below it — that stretching used to
-     inflate the donut card with mismatched empty space. The two right-hand cards just
-     stack tightly with their own natural heights (the Volume chart's height comes from
-     .chart-wrap's fixed height, so it stays compact and Omni sits right under it). */
+  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  /* align-items:stretch: the narrow "Order Source & Stock Destination" column matches the
+     combined height of "Order Volume" + "Order Omni & Shipping" stacked next to it, so the
+     two columns' bottom edges line up. The extra height is absorbed as plain empty space at
+     the very bottom of the narrow *card* itself (`.col-narrow > .card{flex:1 1 auto}` below) —
+     not inside the "Sub Stock Destination" donut/legend, which keeps its own natural size
+     since `.rank-subcards` is a plain grid, not a flex-grow child. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
+  .col-narrow > .card{flex:1 1 auto;}
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
