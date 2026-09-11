@@ -780,9 +780,9 @@ function drawRing(canvasEl, pct, color){
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
     ctx.fillStyle = '#EFE7DA';
-    ctx.font = '700 11.5px "IBM Plex Sans Thai",-apple-system,sans-serif';
+    ctx.font = '700 10px "IBM Plex Sans Thai",-apple-system,sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(Math.round(cur) + '%', cx, cy);
+    ctx.fillText(cur.toFixed(1) + '%', cx, cy);
     if (p < 1) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -1248,6 +1248,12 @@ function durationLabel(ms){
   if (d > 0) parts.push(d + 'd');
   if (h > 0) parts.push(h + 'h');
   parts.push(m + 'm');
+  // Under 1 minute total, "0m" alone hides the real elapsed time (could be 0s or 59s) — show
+  // seconds too in that case (e.g. "0m 2s") instead of a flat, uninformative "0m".
+  if (d === 0 && h === 0 && m === 0){
+    const s = Math.floor((ms % 60000) / 1000);
+    parts.push(s + 's');
+  }
   return parts.join(' ');
 }
 function durationBadgeHtml(durationMs, createdMs){
@@ -1259,7 +1265,8 @@ function durationBadgeHtml(durationMs, createdMs){
   const startLabel = createdMs != null ? new Date(createdMs).toLocaleString('th-TH') : '-';
   const totalSec = Math.floor(durationMs / 1000);
   const fullLabel = `${Math.floor(totalSec/3600)}h ${Math.floor((totalSec%3600)/60)}m ${totalSec%60}s`;
-  return `<span class="badge" style="background:${bg};color:${fg}" data-tip="${esc('เริ่มสร้าง: ' + startLabel + ' • ระยะเวลา: ' + fullLabel)}">${esc(durationLabel(durationMs))}</span>`;
+  const tip = ['เริ่มสร้าง: ' + startLabel, 'ระยะเวลา: ' + fullLabel].join('\n');
+  return `<span class="badge" style="background:${bg};color:${fg}" data-tip="${esc(tip)}">${esc(durationLabel(durationMs))}</span>`;
 }
 
 function commercialNameCellHtml(r){
