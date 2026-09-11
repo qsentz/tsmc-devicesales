@@ -928,16 +928,16 @@ function computeMetrics(rows){
   const accessoryImgMap = buildImgMap(accRows);
 
   // ---- Tracking Order (row-level table, every status — not just COMPLETE) ----
-  // Sorted latest-first by TIMESTAMP, same as the source Vega table. Capped
-  // at TRACK_CAP so a sheet with tens of thousands of rows doesn't sort/scan
-  // an unbounded array on every 10s auto-refresh; the "SHOW" slider then
-  // slices further, purely client-side, from this already-capped set.
-  const TRACK_CAP = 500;
+  // Sorted latest-first by TIMESTAMP, same as the source Vega table. No longer capped
+  // (previously capped at 500 latest rows) — a cap here meant the search box could never
+  // find a transaction older than the cap, since it filtered inside an already-truncated
+  // array. The "SHOW" slider below still limits how many rows are actually rendered/decrypted
+  // at once (client-side, after search), so the visible table stays small by default even
+  // though the full history is now searchable.
   const trackGrandTotal = rows.filter(r => r.orderId).length;
   const trackAll = rows.filter(r => r.orderId)
     .slice()
     .sort((a,b) => (b.ts ? b.ts.getTime() : 0) - (a.ts ? a.ts.getTime() : 0))
-    .slice(0, TRACK_CAP)
     .map(r => {
       const createdMs = decodeObjectIdMs(r.orderId);
       const durationMs = (r.ts && createdMs != null) ? (r.ts.getTime() - createdMs) : null;
@@ -1397,12 +1397,14 @@ async function renderTrackingOrders(){
   const slider = document.getElementById('sliderTrack');
   const filterInput = document.getElementById('trackFilter');
   if (!slider) return;
+  // The slider's ceiling now tracks the real row count instead of a fixed 500, so "SHOW" can
+  // go all the way up to every order in the sheet. Only touch `max` when it actually needs to
+  // change, so this doesn't fight the user mid-drag on every 10s auto-refresh.
+  const sliderMax = Math.max(25, lastMetrics.trackTotal);
+  if (parseInt(slider.max, 10) !== sliderMax) slider.max = String(sliderMax);
   const n = parseInt(slider.value, 10);
   document.getElementById('sliderTrackVal').textContent = n;
-  document.getElementById('tag-tracktotal').textContent =
-    lastMetrics.trackGrandTotal > lastMetrics.trackTotal
-      ? `แสดงล่าสุด ${fmtNum(lastMetrics.trackTotal)} จากทั้งหมด ${fmtNum(lastMetrics.trackGrandTotal)}`
-      : `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
+  document.getElementById('tag-tracktotal').textContent = `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
 
   const q = ((filterInput && filterInput.value) || '').trim().toLowerCase();
   let list = lastMetrics.trackAll;
