@@ -340,6 +340,35 @@
   .track-detail-grid .dv{font-size:11px; color:var(--text-dim); margin-top:1px; word-break:break-word;}
   @media(max-width:640px){ .track-toolbar{flex-direction:column; align-items:stretch;} .track-filter-input{min-width:0;} }
 
+  /* ---------- Tracking Order: pinned info tooltip ---------- */
+  .track-tooltip{
+    position:fixed; z-index:1000; display:none; width:280px; max-width:calc(100vw - 20px);
+    background:var(--surface); border:1.5px solid var(--gold); border-radius:6px;
+    box-shadow:4px 4px 0 rgba(0,0,0,.45); padding:10px 12px 12px; font-size:11px;
+  }
+  .track-tooltip.show{display:block; animation:fadeInUp .16s ease both;}
+  .track-tooltip .tt-close{
+    position:absolute; top:4px; right:5px; width:18px; height:18px; border-radius:50%;
+    border:none; background:transparent; color:var(--muted); font-size:14px; line-height:1; cursor:pointer;
+  }
+  .track-tooltip .tt-close:hover{color:var(--text); background:var(--surface-alt);}
+  .track-tooltip .tt-img{
+    display:block; width:100%; max-height:120px; object-fit:contain; border-radius:4px;
+    margin-bottom:8px; background:#fff; border:1px solid var(--border-soft);
+  }
+  .track-tooltip .tt-title{
+    font-family:var(--font-serif); font-weight:700; font-size:12px; color:var(--text);
+    margin:0 0 6px; padding-right:16px; word-break:break-word;
+  }
+  .track-tooltip .tt-pii{
+    display:flex; flex-direction:column; gap:2px; padding:6px 8px; margin-bottom:8px;
+    background:var(--surface-alt); border-radius:4px; border:1px dashed var(--gold);
+  }
+  .track-tooltip .tt-pii .dl{font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
+  .track-tooltip .tt-pii .dv{font-size:11.5px; color:var(--text); font-weight:600; word-break:break-word;}
+  .track-tooltip .tt-lock{font-size:10px; color:var(--muted); line-height:1.5; margin-bottom:8px;}
+  .track-tooltip .track-detail-grid{grid-template-columns:1fr; gap:5px;}
+
 </style>
 </head>
 <body>
@@ -372,9 +401,15 @@
       <input id="inputSheetName" placeholder="Order" value="Order" />
     </div>
     <button class="btn primary" id="btnLoad">โหลดข้อมูล</button>
+    <div class="field">
+      <label>Secret Key (ถอดรหัสชื่อ/เบอร์โทรลูกค้า)</label>
+      <input id="inputSecretKey" type="password" placeholder="ใส่ Secret Key เดียวกับใน Code.gs" autocomplete="off" />
+    </div>
+    <button class="btn" id="btnApplyKey">ใช้ Secret Key</button>
     <div class="note">
       Sheet ID คือส่วนหนึ่งของ URL: <code>docs.google.com/spreadsheets/d/&lt;SHEET_ID&gt;/edit</code><br>
-      ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้
+      ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้<br>
+      Secret Key ใช้ถอดรหัสชื่อ-นามสกุล/เบอร์โทรลูกค้าใน "Tracking Order" เท่านั้น ต้องตรงกับคีย์ที่ตั้งไว้ใน <code>setupEncryptionKey()</code> ของ Code.gs — คีย์นี้เก็บไว้ในเบราว์เซอร์นี้เท่านั้น ไม่ถูกส่งออกไปที่ไหน
     </div>
   </div>
 </div>
@@ -388,6 +423,7 @@
 </div>
 
 <div class="img-preview" id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
+<div class="track-tooltip" id="trackTooltip"></div>
 
 <script>
 /* ===================== CONFIG / STATE ===================== */
@@ -423,7 +459,10 @@ function getConfig(){
   const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
   return {
     sheetId: params.get('sheetId') || saved.sheetId || '',
-    sheetName: params.get('sheetName') || saved.sheetName || 'Order'
+    sheetName: params.get('sheetName') || saved.sheetName || 'Order',
+    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up
+    // in browser history / shared links / server logs — only ever from localStorage.
+    secretKey: saved.secretKey || ''
   };
 }
 function saveConfig(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
@@ -452,6 +491,7 @@ const COL_OPTIONAL = {
   userId: 'userId',
   custFirstName: 'customer.firstName',
   custLastName: 'customer.lastName',
+  custMobileNo: 'customer.cusMobileNo',
   orderState: 'orders.state', // NOTE: distinct from orders.status ("state" above) — this is the
                                // granular workflow step (DEVICE_SELECTED / PAYMENT_PAID / ...)
   brand: 'orders.device.brand',
@@ -466,6 +506,76 @@ const COL_OPTIONAL = {
   resShippingSLA: 'orders.reserve.shippingSLA'
 };
 const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
+
+/* ===================== DECRYPTION (mirrors Code.gs encryptText_ / decryptText_) =====================
+   customer.firstName / customer.lastName / customer.cusMobileNo are stored in the Sheet as
+   base64( 8-byte random IV ++ XOR(plaintext, keystream) ), where the keystream is built from
+   repeated HMAC-SHA256(secretKey, ivHex + '|' + counter) blocks. Decrypting here needs the same
+   Secret Key that Code.gs's setupEncryptionKey() saved to Script Properties — entered once in
+   the config panel above and kept only in this browser's localStorage; it is never sent anywhere. */
+let hmacKeyCache = null;        // { secretKey, cryptoKeyPromise } — one-slot cache
+const decryptCache = new Map(); // `${secretKey}::${cipherB64}` -> Promise<string>
+
+function base64ToBytes(b64){
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToHex(bytes){
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0');
+  return s;
+}
+function getHmacKey_(secretKey){
+  if (hmacKeyCache && hmacKeyCache.secretKey === secretKey) return hmacKeyCache.cryptoKeyPromise;
+  const p = crypto.subtle.importKey('raw', new TextEncoder().encode(secretKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  hmacKeyCache = { secretKey, cryptoKeyPromise: p };
+  return p;
+}
+async function hmacSha256Bytes_(secretKey, message){
+  const key = await getHmacKey_(secretKey);
+  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
+  return new Uint8Array(sig);
+}
+async function generateKeystream_(secretKey, ivHex, length){
+  const keystream = new Uint8Array(length);
+  let filled = 0, counter = 0;
+  while (filled < length){
+    const block = await hmacSha256Bytes_(secretKey, ivHex + '|' + counter);
+    for (let i = 0; i < block.length && filled < length; i++, filled++) keystream[filled] = block[i];
+    counter++;
+  }
+  return keystream;
+}
+async function decryptText_(cipherB64, secretKey){
+  if (!cipherB64) return '';
+  const combined = base64ToBytes(cipherB64);
+  if (combined.length <= 8) return '';
+  const ivBytes = combined.slice(0, 8);
+  const cipherBytes = combined.slice(8);
+  const ivHex = bytesToHex(ivBytes);
+  const keystream = await generateKeystream_(secretKey, ivHex, cipherBytes.length);
+  const plainBytes = new Uint8Array(cipherBytes.length);
+  for (let i = 0; i < cipherBytes.length; i++) plainBytes[i] = cipherBytes[i] ^ keystream[i];
+  return new TextDecoder('utf-8').decode(plainBytes);
+}
+// Cached wrapper — the same ciphertext + key always decrypts to the same plaintext, so repeated
+// renders (10s auto-refresh, slider/filter changes) don't redo the HMAC work for rows already
+// decrypted this session. Returns the sentinel '__DECRYPT_FAILED__' instead of throwing.
+function decryptCached(cipherB64, secretKey){
+  if (!cipherB64 || !secretKey) return Promise.resolve('');
+  const cacheKey = secretKey + '::' + cipherB64;
+  if (!decryptCache.has(cacheKey)){
+    decryptCache.set(cacheKey, decryptText_(cipherB64, secretKey).catch(() => '__DECRYPT_FAILED__'));
+  }
+  return decryptCache.get(cacheKey);
+}
+function clearDecryptCache(){ decryptCache.clear(); hmacKeyCache = null; }
+function getSecretKey(){
+  const el = document.getElementById('inputSecretKey');
+  return el ? el.value.trim() : '';
+}
 
 /* ===================== FETCH (Google Visualization / gviz) ===================== */
 async function fetchSheet(sheetId, sheetName){
@@ -530,6 +640,7 @@ function buildRows(cols, rawRows){
     userId: str(get(r,'userId')),
     custFirstName: str(get(r,'custFirstName')),
     custLastName: str(get(r,'custLastName')),
+    custMobileNo: str(get(r,'custMobileNo')),
     orderState: str(get(r,'orderState')),
     brand: str(get(r,'brand')),
     model: str(get(r,'model')),
@@ -1014,11 +1125,13 @@ function buildSkeleton(){
 }
 
 /* ===================== TRACKING ORDER (row-level table) ===================== */
-let expandedTrackKey = null;
 const trackRowKey = r => (r.transactionId || '') + '|' + (r.orderId || '');
+let openTrackKey = null;      // key of the row whose pinned "info" tooltip is open, if any
+let trackRenderToken = 0;     // guards a stale async render from overwriting a newer one
 
-// firstName is shown in full; lastName keeps only its first character and
-// masks the rest with 'x' — same masking rule as the source Vega table.
+// firstName is shown in full; lastName keeps only its first character and masks the rest
+// with 'x' — same masking rule as the source Vega table. Both are decrypted client-side
+// first (see DECRYPTION section above); the Sheet itself only ever stores ciphertext.
 function customerNameMasked(first, last){
   const f = (first || '').trim();
   let l = (last || '').trim();
@@ -1097,12 +1210,37 @@ function orderOmniCellHtml(r){
   return `<span class="cust-name-cell" title="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
 }
 
-// Expanded detail row shown under a "i" click. Deliberately leaves out raw
-// (unmasked) customer name and mobile number — unlike the source Vega popup
-// — since this dashboard is fetched client-side from a Sheet that has to be
-// shared as "anyone with the link can view" for the gviz endpoint to work,
-// so anyone holding that link could otherwise unmask a customer's full name.
-function trackDetailHtml(r){
+// Content for the pinned "info" tooltip on a Tracking Order row: full decrypted customer
+// name + mobile number (unlike the masked table cell), the product image when available,
+// and the rest of the order detail fields. Decryption runs client-side with the Secret Key
+// from the config panel — the Sheet only ever stores ciphertext for these fields, so anyone
+// viewing the Sheet (or this page without the key) never sees more than ciphertext/mask.
+async function buildTrackTooltipHtml(r){
+  const secretKey = getSecretKey();
+  let piiHtml;
+  if (!secretKey){
+    piiHtml = `<div class="tt-lock">🔒 กรอก Secret Key ในแผงตั้งค่า (ดับเบิลคลิกหัวข้อ "Order Dashboard") เพื่อดูชื่อ-เบอร์โทรเต็ม</div>`;
+  } else {
+    const [first, last, mobile] = await Promise.all([
+      decryptCached(r.custFirstName, secretKey),
+      decryptCached(r.custLastName, secretKey),
+      decryptCached(r.custMobileNo, secretKey)
+    ]);
+    if ([first, last, mobile].includes('__DECRYPT_FAILED__')){
+      piiHtml = `<div class="tt-lock">⚠️ ถอดรหัสไม่สำเร็จ — ตรวจสอบว่า Secret Key ตรงกับที่ตั้งไว้ใน Code.gs</div>`;
+    } else {
+      const fullName = (first + ' ' + last).trim() || '-';
+      piiHtml = `<div class="tt-pii">
+        <div class="dl">Customer Name</div><div class="dv">${esc(fullName)}</div>
+        <div class="dl" style="margin-top:4px;">Mobile No.</div><div class="dv">${esc(mobile || '-')}</div>
+      </div>`;
+    }
+  }
+
+  const imgHtml = !isBlank(r.imageUrl)
+    ? `<img class="tt-img" src="${esc(r.imageUrl)}" alt="${esc(r.commercialName || '')}" onerror="this.remove()">`
+    : '';
+
   const fields = [
     ['Menu', r.menu],
     ['Order Source', r.locationSource],
@@ -1113,11 +1251,55 @@ function trackDetailHtml(r){
     ['Reserve Type', r.resType],
     ['Shipping', [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ')]
   ];
-  const cells = fields.map(([l,v]) => `<div><div class="dl">${esc(l)}</div><div class="dv">${isBlank(v) ? '-' : esc(v)}</div></div>`).join('');
-  return `<tr class="track-detail-row"><td colspan="13"><div class="track-detail-grid">${cells}</div></td></tr>`;
+  const detailHtml = fields.map(([l,v]) => `<div><div class="dl">${esc(l)}</div><div class="dv">${isBlank(v) ? '-' : esc(v)}</div></div>`).join('');
+
+  return `<button type="button" class="tt-close" title="ปิด">&times;</button>
+    ${imgHtml}
+    <div class="tt-title">${esc(r.commercialName || r.transactionId || '-')}</div>
+    ${piiHtml}
+    <div class="track-detail-grid">${detailHtml}</div>`;
 }
 
-function renderTrackingOrders(){
+function closeTrackTooltip(){
+  openTrackKey = null;
+  const box = document.getElementById('trackTooltip');
+  if (box){ box.classList.remove('show'); box.innerHTML = ''; }
+  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
+}
+
+function positionTrackTooltip(box, anchorRect){
+  const pad = 8;
+  const w = box.offsetWidth || 280, h = box.offsetHeight || 160;
+  let x = anchorRect.right + pad;
+  let y = anchorRect.top;
+  if (x + w > window.innerWidth - 8) x = anchorRect.left - w - pad;
+  if (x < 8) x = Math.min(Math.max(8, anchorRect.left), Math.max(8, window.innerWidth - w - 8));
+  if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
+  box.style.left = Math.round(Math.max(8, x)) + 'px';
+  box.style.top = Math.round(Math.max(8, y)) + 'px';
+}
+
+// Opens (or, if already open on the same row, closes) the pinned info tooltip. Pinned means
+// it stays put until the close button, Escape, an outside click, or a scroll dismisses it —
+// unlike the hover-only image preview above.
+async function openTrackTooltip(key, btnEl){
+  if (openTrackKey === key){ closeTrackTooltip(); return; }
+  const row = (lastMetrics && lastMetrics.trackAll || []).find(r => trackRowKey(r) === key);
+  const box = document.getElementById('trackTooltip');
+  if (!row || !box) return;
+  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
+  if (btnEl) btnEl.classList.add('open');
+  openTrackKey = key;
+  box.innerHTML = '<div class="tt-lock">กำลังโหลด...</div>';
+  box.classList.add('show');
+  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
+  const html = await buildTrackTooltipHtml(row);
+  if (openTrackKey !== key) return; // closed, or another row opened, while this was decrypting
+  box.innerHTML = html;
+  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
+}
+
+async function renderTrackingOrders(){
   if (!lastMetrics) return;
   const slider = document.getElementById('sliderTrack');
   const filterInput = document.getElementById('trackFilter');
@@ -1143,19 +1325,41 @@ function renderTrackingOrders(){
   }
   list = list.slice(0, n);
 
+  // Close the pinned tooltip if its row fell out of the current filtered/sliced view.
+  if (openTrackKey && !list.some(r => trackRowKey(r) === openTrackKey)) closeTrackTooltip();
+
+  // Decrypt just enough to build the masked "Customer Name" cell for every visible row
+  // (full name/mobile are only ever decrypted for the one row shown in the pinned tooltip).
+  const myToken = ++trackRenderToken;
+  const secretKey = getSecretKey();
+  const maskedByKey = {};
+  if (secretKey){
+    await Promise.all(list.map(async r => {
+      const [first, last] = await Promise.all([
+        decryptCached(r.custFirstName, secretKey),
+        decryptCached(r.custLastName, secretKey)
+      ]);
+      maskedByKey[trackRowKey(r)] = (first === '__DECRYPT_FAILED__' || last === '__DECRYPT_FAILED__')
+        ? '⚠️ ถอดรหัสไม่สำเร็จ'
+        : customerNameMasked(first, last);
+    }));
+  }
+  if (myToken !== trackRenderToken) return; // a newer render call superseded this one
+
   const rowsHtml = list.map((r,i) => {
     const key = trackRowKey(r);
-    const isOpen = expandedTrackKey === key;
+    const isOpen = openTrackKey === key;
     const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
-    const custName = customerNameMasked(r.custFirstName, r.custLastName);
-    const mainRow = `<tr>
+    const custName = secretKey ? (maskedByKey[key] || '-') : '🔒';
+    const custTitle = secretKey ? '' : ' title="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
+    return `<tr>
       <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
       <td class="col-no">${i+1}</td>
       <td>${esc(tsLabel)}</td>
       <td class="mono">${esc(r.transactionId || '-')}</td>
       <td>${isBlank(r.preBookingNo) ? '<span class="empty" style="padding:0;">-</span>' : esc(r.preBookingNo)}</td>
       <td class="mono">${esc(r.userId || '-')}</td>
-      <td>${esc(custName)}</td>
+      <td${custTitle}>${esc(custName)}</td>
       <td>${esc(r.orderType || '-')}</td>
       <td>${statusBadgeHtml(r.state)}</td>
       <td>${orderStateBadgeHtml(r.orderState)}</td>
@@ -1163,7 +1367,6 @@ function renderTrackingOrders(){
       <td>${commercialNameCellHtml(r)}</td>
       <td>${orderOmniCellHtml(r)}</td>
     </tr>`;
-    return isOpen ? mainRow + trackDetailHtml(r) : mainRow;
   }).join('') || `<tr><td colspan="13" class="empty">ไม่พบข้อมูล</td></tr>`;
 
   document.getElementById('body-track').innerHTML = rowsHtml;
@@ -1538,7 +1741,21 @@ async function loadData(isAuto){
   const cfg = getConfig();
   document.getElementById('inputSheetId').value = cfg.sheetId;
   document.getElementById('inputSheetName').value = cfg.sheetName;
+  document.getElementById('inputSecretKey').value = cfg.secretKey;
   bindImgPreviewEvents();
+
+  const applySecretKey = () => {
+    const secretKey = document.getElementById('inputSecretKey').value.trim();
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    saveConfig({ ...saved, secretKey });
+    clearDecryptCache();
+    closeTrackTooltip();
+    renderTrackingOrders();
+  };
+  document.getElementById('btnApplyKey').addEventListener('click', applySecretKey);
+  document.getElementById('inputSecretKey').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applySecretKey();
+  });
 
   document.getElementById('dashTitle').addEventListener('dblclick', () => {
     document.getElementById('configPanel').classList.toggle('open');
@@ -1571,21 +1788,26 @@ async function loadData(isAuto){
     }
   };
 
-  // "i" buttons in the Tracking Order table are recreated on every render,
-  // so this is delegated on document instead of bound per-button.
+  // "i" buttons in the Tracking Order table are recreated on every render, so this is
+  // delegated on document instead of bound per-button. Clicking one opens/closes a pinned
+  // tooltip (see openTrackTooltip) rather than expanding an inline row.
   document.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest && e.target.closest('.tt-close');
+    if (closeBtn){ closeTrackTooltip(); return; }
     const btn = e.target.closest && e.target.closest('[data-track-toggle]');
-    if (!btn) return;
-    const key = btn.getAttribute('data-track-toggle');
-    expandedTrackKey = (expandedTrackKey === key) ? null : key;
-    renderTrackingOrders();
+    if (btn){ openTrackTooltip(btn.getAttribute('data-track-toggle'), btn); return; }
+    if (openTrackKey && !(e.target.closest && e.target.closest('#trackTooltip'))) closeTrackTooltip();
   });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrackTooltip(); });
+  window.addEventListener('scroll', () => { if (openTrackKey) closeTrackTooltip(); }, true);
+  window.addEventListener('resize', () => { if (openTrackKey) closeTrackTooltip(); });
 
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
+    const secretKey = document.getElementById('inputSecretKey').value.trim();
     if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
-    saveConfig({sheetId, sheetName});
+    saveConfig({sheetId, sheetName, secretKey});
     document.getElementById('configPanel').classList.remove('open');
     loadData(false);
     startAutoRefresh();
