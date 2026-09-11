@@ -368,18 +368,83 @@
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
-  /* In-cell data bar:
-     the magnitude bar now lives inside the same data cell as the item name,
-     instead of occupying a separate fixed-width "graph column". */
-  .rank-row{position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; padding:3px 6px; border-radius:3px; overflow:hidden;}
-  .rank-name{position:relative; z-index:2; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-  .rank-bar-track{position:absolute; z-index:1; left:6px; right:42px; top:50%; transform:translateY(-50%); width:auto; height:10px; border-radius:4px; background:var(--border-soft); overflow:hidden; opacity:.72;}
-  .rank-bar-fill{position:absolute; left:0; top:0; bottom:0; border-radius:4px; transition:width .5s ease;}
-  .rank-count{position:relative; z-index:3; font-size:10.5px; font-weight:800; min-width:34px; text-align:right; padding-left:4px; background:var(--surface-alt);}
+  /* In-cell data bar
+     The label and its data bar are now ONE visual data cell. The bar sits
+     beneath the label, so it never crosses/competes with the text or count.
+     This shared component is used by every rankRows()-based card. */
+  .rank-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:center;
+    column-gap:9px;
+    min-height:25px;
+    padding:2px 6px 3px;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .rank-main{
+    position:relative;
+    min-width:0;
+    height:21px;
+    display:flex;
+    align-items:center;
+  }
+  .rank-name{
+    position:relative;
+    z-index:2;
+    display:block;
+    width:100%;
+    min-width:0;
+    padding:0 2px 5px;
+    font-size:10.5px;
+    line-height:15px;
+    font-weight:600;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .rank-bar-track{
+    position:absolute;
+    z-index:1;
+    left:0;
+    right:0;
+    bottom:1px;
+    width:auto;
+    height:4px;
+    border-radius:3px;
+    background:var(--border-soft);
+    overflow:hidden;
+  }
+  .rank-bar-fill{
+    position:absolute;
+    left:0;
+    top:0;
+    bottom:0;
+    min-width:0;
+    border-radius:3px;
+    opacity:.9;
+    transition:width .5s ease;
+  }
+  .rank-count{
+    font-size:10.5px;
+    line-height:18px;
+    font-weight:800;
+    min-width:36px;
+    text-align:right;
+    white-space:nowrap;
+  }
+  .rank-row:hover{background:rgba(255,255,255,.025);}
   .rank-slider-row{display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);}
   .rank-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
   .rank-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:18px; text-align:right;}
+  @media(max-width:700px){
+    .rank-row{column-gap:7px; min-height:24px; padding-left:5px; padding-right:5px;}
+    .rank-main{height:20px;}
+    .rank-name{font-size:10px; line-height:14px; padding-bottom:5px;}
+    .rank-count{font-size:10px; min-width:32px;}
+    .rank-bar-track{height:3px;}
+  }
 
   /* Sub-cards stacked layout */
   .subcards-stack{grid-template-columns:1fr;}
@@ -1852,15 +1917,21 @@ async function renderTrackingOrders(){
 /* ===================== RENDER / UPDATE ===================== */
 function rankRows(items, count, color, imgMap){
   const shown = items.slice(0, count);
-  const max = Math.max(1, ...shown.map(i => i.count));
+  /* Keep the scale stable across slider changes: compare every visible row
+     against the same maximum from the complete ranked dataset. */
+  const max = Math.max(1, ...items.map(i => i.count));
   return shown.map(i => {
-    const pct = max ? i.count/max*100 : 0;
+    const pct = i.count > 0 ? Math.max(2, i.count/max*100) : 0;
     const img = imgMap && imgMap[i.name];
     const imgAttr = img ? ` data-img="${esc(img)}"` : '';
     const nameCls = img ? 'rank-name has-img' : 'rank-name';
     return `<div class="rank-row"${imgAttr}>
-      <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
-      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      <div class="rank-main">
+        <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
+        <div class="rank-bar-track" aria-hidden="true">
+          <div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>
       <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
