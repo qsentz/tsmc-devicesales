@@ -1636,7 +1636,7 @@ function updateDashboard(rows){
   // Total order completed
   document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
   document.getElementById('tag-completeprebook').innerHTML =
-    `<div style="color:var(--muted); font-weight:600;">ไม่รวม Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
+    `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
   drawRing(document.getElementById('ringComplete'), M.completePct, '#A23A2E');
@@ -1664,7 +1664,7 @@ function updateDashboard(rows){
       <div class="grp-nums">
         <div class="n">${fmtNum(count)}</div>
         <div class="p">${fmtPct(pct)}</div>
-        <div class="pre-badge">ไม่รวม Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
+        <div class="pre-badge">Non Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
         <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
       </div>
     </div>`;
@@ -1728,7 +1728,7 @@ function updateDashboard(rows){
   const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    const preLabel = `ไม่รวม Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
+    const preLabel = `Non Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
     return `<div class="bar-row">
       <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
