@@ -390,7 +390,8 @@
     position:fixed; z-index:1200; display:none; max-width:240px;
     background:var(--surface); border:1px solid var(--gold); border-radius:5px;
     box-shadow:3px 3px 0 rgba(0,0,0,.4); padding:6px 9px; font-size:10.5px;
-    color:var(--text-dim); line-height:1.5; pointer-events:none; word-break:break-word;
+    color:var(--text-dim); line-height:1.6; pointer-events:none; word-break:break-word;
+    white-space:pre-line;
   }
   .hover-tip.show{display:block; animation:fadeInUp .12s ease both;}
 
@@ -696,6 +697,27 @@ function topN(rows, field, n){
   return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count).slice(0, n);
 }
 function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
+
+// Rounds a set of counts that share a common `total` into percentages (1 decimal place) using
+// the largest-remainder method, instead of rounding each one independently. Independent
+// rounding is why, e.g., three tiles showing 33.3% / 33.3% / 33.3% visually add up to 99.9%
+// instead of 100% — this instead rounds every value down first, then hands the leftover
+// tenths-of-a-percent to whichever entries had the largest fractional remainder, so the
+// displayed values always add up to exactly round(sum(counts)/total*1000)/10 (100.0% when
+// `counts` fully covers `total`; less than that if `counts` is a partial breakdown of `total`,
+// which is correct rather than padded). Returns an array of numbers (not strings) in the same
+// order as `counts`, ready to pass into fmtPct().
+function distributePct(counts, total){
+  if (!total) return counts.map(() => 0);
+  const raw = counts.map(c => (c / total) * 1000); // tenths-of-a-percent, so rounding to whole units still gives 1-decimal precision
+  const floors = raw.map(Math.floor);
+  const used = floors.reduce((a,b) => a+b, 0);
+  const target = Math.round(raw.reduce((a,b) => a+b, 0));
+  const remainder = Math.max(0, Math.min(counts.length, target - used));
+  const order = raw.map((v,i) => ({i, frac: v - floors[i]})).sort((a,b) => b.frac - a.frac);
+  for (let k = 0; k < remainder; k++) floors[order[k].i]++;
+  return floors.map(v => v / 10);
+}
 function fmtNum(n){ return n.toLocaleString('en-US'); }
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -773,8 +795,15 @@ function computeMetrics(rows){
   const stateCounts = {}; STATES.forEach(s => stateCounts[s] = 0);
   stateRows.forEach(r => { if (stateCounts[r.state] === undefined) stateCounts[r.state] = 0; stateCounts[r.state]++; });
   const completeCount = stateCounts.COMPLETE || 0;
-  const statusTiles = STATES.filter(s => s !== 'COMPLETE').map(s => ({
-    state: s, count: stateCounts[s] || 0, pct: grandTotal ? (stateCounts[s]||0)/grandTotal*100 : 0
+  // COMPLETE + the "other statuses" tiles are all fractions of the same grandTotal and are
+  // shown together (ring + tiles) as one breakdown, so they're distributed as one group —
+  // otherwise COMPLETE's ring % and the four tiles' %'s could independently round to a sum
+  // just off of 100%.
+  const otherStates = STATES.filter(s => s !== 'COMPLETE');
+  const statusPctAll = distributePct([completeCount, ...otherStates.map(s => stateCounts[s]||0)], grandTotal);
+  const completePct = statusPctAll[0];
+  const statusTiles = otherStates.map((s, idx) => ({
+    state: s, count: stateCounts[s] || 0, pct: statusPctAll[idx+1]
   }));
 
   const completeRows = rows.filter(r => r.state === 'COMPLETE');
@@ -791,6 +820,21 @@ function computeMetrics(rows){
     AIS: otCounts.AIS - prebookByGrp.AIS,
     PARTNER: otCounts.PARTNER - prebookByGrp.PARTNER
   };
+  // AIS vs PARTNER share is one group out of otTotal (sums to 100%). Within each group, its
+  // Pre-Booking / non-Pre-Booking split is distributed against that SAME otTotal denominator
+  // (not against the group's own count) so "non-Pre % + Pre % " always reconstructs exactly
+  // that group's own % — no independent-rounding drift between the two numbers.
+  const [otPctAIS, otPctPartner] = distributePct([otCounts.AIS, otCounts.PARTNER], otTotal);
+  const otPct = {AIS: otPctAIS, PARTNER: otPctPartner};
+  const [prePctAIS, nonPrePctAIS] = distributePct([prebookByGrp.AIS, nonPrebookByGrp.AIS], otTotal);
+  const [prePctPartner, nonPrePctPartner] = distributePct([prebookByGrp.PARTNER, nonPrebookByGrp.PARTNER], otTotal);
+  const prebookPctByGrp = {AIS: prePctAIS, PARTNER: prePctPartner};
+  const nonPrebookPctByGrp = {AIS: nonPrePctAIS, PARTNER: nonPrePctPartner};
+
+  // Overall Complete vs Pre-Booking (hero card) — same net-out-Pre-Booking treatment: how many
+  // of the completed orders have no Pre-Booking number vs how many do, each with its own %.
+  const nonPrebookTotal = completeCount - prebookTotal;
+  const [prebookPctOfComplete, nonPrebookPctOfComplete] = distributePct([prebookTotal, nonPrebookTotal], completeCount);
 
   // Sub stock destination
   const stockRows = completeRows.filter(r => !isBlank(r.subStockDestination));
@@ -803,6 +847,8 @@ function computeMetrics(rows){
     stockArr = [...top4, {name:'OTHER', count: other}];
   }
   const stockTotal = stockRows.length;
+  const stockPctArr = distributePct(stockArr.map(s => s.count), stockTotal);
+  stockArr = stockArr.map((s,i) => ({...s, pct: stockPctArr[i]}));
 
   // Order by menu
   const menuCounts = {};
@@ -811,8 +857,9 @@ function computeMetrics(rows){
   prebookRows.forEach(r => { const m = r.menu || 'Unknown'; menuPrebook[m] = (menuPrebook[m]||0)+1; });
   const menuArr = Object.entries(menuCounts).map(([menu,orderCount]) => {
     const prebookCount = menuPrebook[menu] || 0;
-    return { menu, orderCount, prebookCount, nonPrebookCount: orderCount - prebookCount,
-      prebookPct: orderCount ? prebookCount/orderCount*100 : 0 };
+    const nonPrebookCount = orderCount - prebookCount;
+    const [prebookPct, nonPrebookPct] = distributePct([prebookCount, nonPrebookCount], orderCount);
+    return { menu, orderCount, prebookCount, nonPrebookCount, prebookPct, nonPrebookPct };
   }).sort((a,b) => b.orderCount - a.orderCount);
 
   // Hourly volume bucketing
@@ -848,7 +895,8 @@ function computeMetrics(rows){
   const durTotal = durRows.length;
   const tierCounts = {green:0, yellow:0, red:0};
   durRows.forEach(r => tierCounts[r.tier]++);
-
+  const [greenPct, yellowPct, redPct] = distributePct([tierCounts.green, tierCounts.yellow, tierCounts.red], durTotal);
+  const tierPct = {green: greenPct, yellow: yellowPct, red: redPct};
   const byOT = {};
   durRows.forEach(r => { if (!r.orderType) return; (byOT[r.orderType] = byOT[r.orderType] || []).push(r.durationMin); });
   const otDur = Object.entries(byOT).map(([orderType, arr]) => {
@@ -946,12 +994,13 @@ function computeMetrics(rows){
   const trackTotal = trackAll.length;
 
   return {
-    grandTotal, completeCount, statusTiles,
-    otCounts, otTotal, prebookByGrp, prebookTotal, nonPrebookByGrp,
+    grandTotal, completeCount, completePct, statusTiles,
+    otCounts, otTotal, otPct, prebookByGrp, prebookTotal, nonPrebookByGrp,
+    prebookPctByGrp, nonPrebookPctByGrp, nonPrebookTotal, prebookPctOfComplete, nonPrebookPctOfComplete,
     stockArr, stockTotal,
     menuArr,
     mode, buckets, volTotal,
-    durTotal, tierCounts, otDur, slowest, durBuckets,
+    durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
     campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
     locTop, locTotal, locItems,
@@ -1221,7 +1270,7 @@ function commercialNameCellHtml(r){
     !isBlank(r.matCode) ? 'Mat Code: ' + r.matCode : null,
     r.priceIncAmt ? 'Price: ' + fmtNum(r.priceIncAmt) : null,
     r.priceDiscountAmt ? 'Discount: ' + fmtNum(r.priceDiscountAmt) : null
-  ].filter(Boolean).join(' • ');
+  ].filter(Boolean).join('\n');
   return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.commercialName)}</span>`;
 }
 
@@ -1232,7 +1281,7 @@ function orderOmniCellHtml(r){
     !isBlank(r.resLocationName) ? 'Location: ' + r.resLocationName : null,
     !isBlank(r.resType) ? 'Type: ' + r.resType : null,
     shipping ? 'Shipping: ' + shipping : null
-  ].filter(Boolean).join(' • ');
+  ].filter(Boolean).join('\n');
   return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
 }
 
@@ -1509,10 +1558,11 @@ function updateDashboard(rows){
 
   // Total order completed
   document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
-  const prebookPct = M.completeCount ? (M.prebookTotal / M.completeCount * 100).toFixed(1) : '0.0';
-  document.getElementById('tag-completeprebook').innerHTML = `Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${prebookPct}%)`;
+  document.getElementById('tag-completeprebook').innerHTML =
+    `<div style="color:var(--muted); font-weight:600;">ไม่รวม Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
+    `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
-  drawRing(document.getElementById('ringComplete'), M.grandTotal ? M.completeCount/M.grandTotal*100 : 0, '#A23A2E');
+  drawRing(document.getElementById('ringComplete'), M.completePct, '#A23A2E');
   const statusColors = {
     WAITING_PAYMENT: ['var(--gold-bg)','#D9B679'],
     READY_TO_PAY: ['var(--slate-bg)','#9DBECE'],
@@ -1531,10 +1581,7 @@ function updateDashboard(rows){
 
   // AIS Shop vs Partner
   document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
-  const grpRow = (name, color, count, preCount, nonPrebookCount, total) => {
-    const pct = total ? count/total*100 : 0;
-    const prePct = total ? preCount/total*100 : 0;
-    const nonPrePct = total ? nonPrebookCount/total*100 : 0;
+  const grpRow = (name, color, count, pct, preCount, prePct, nonPrebookCount, nonPrePct) => {
     return `<div class="grp-row">
       <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
       <div class="grp-nums">
@@ -1546,16 +1593,15 @@ function updateDashboard(rows){
     </div>`;
   };
   softUpdate(document.getElementById('body-aispartner'),
-    grpRow('AIS','var(--gold)', M.otCounts.AIS, M.prebookByGrp.AIS, M.nonPrebookByGrp.AIS, M.otTotal) +
-    grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.prebookByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.otTotal));
+    grpRow('AIS','var(--gold)', M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
+    grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
 
   // Sub stock destination
   const stockHtml = M.stockArr.map((s,i) => {
-    const pct = M.stockTotal ? s.count/M.stockTotal*100 : 0;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
     return `<div class="legend-row">
       <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
-      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(pct)}</span></div>
+      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('body-substock'), stockHtml);
@@ -1570,7 +1616,7 @@ function updateDashboard(rows){
   ];
   const tierHtml = tierDefs.map(t => {
     const c = M.tierCounts[t.key] || 0;
-    const pct = M.durTotal ? c/M.durTotal*100 : 0;
+    const pct = M.tierPct[t.key] || 0;
     return `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
       <div class="n">${fmtNum(c)}</div>
       <div class="l">${t.label}</div>
@@ -1584,9 +1630,7 @@ function updateDashboard(rows){
   const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    const preLabel = m.prebookCount
-      ? `Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`
-      : 'ไม่มี Pre-Booking';
+    const preLabel = `ไม่รวม Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
     return `<div class="bar-row">
       <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
@@ -1726,9 +1770,9 @@ function updateStockChart(M){
           tooltip:{
             ...TOOLTIP_STYLE,
             callbacks:{ label: c => {
-              const total = c.dataset.data.reduce((a,b) => a+b, 0);
-              const pct = total ? (c.parsed/total*100).toFixed(1) : '0.0';
-              return `${c.label}: ${fmtNum(c.parsed)} (${pct}%)`;
+              const item = lastMetrics && lastMetrics.stockArr && lastMetrics.stockArr[c.dataIndex];
+              const pct = item ? item.pct : 0;
+              return `${c.label}: ${fmtNum(c.parsed)} (${fmtPct(pct)})`;
             } }
           }
         }
