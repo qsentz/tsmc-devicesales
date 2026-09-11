@@ -272,7 +272,6 @@
 
   @media(max-width:600px){.wrap{padding:10px 10px 20px;}.topbar{padding:10px 12px;}}
 </style>
-<base target="_blank">
 </head>
 <body>
 
@@ -898,7 +897,7 @@ function computeMetrics(rows){
   const trackTotal = trackAll.length;
 
   return {
-    grandTotal, completeCount, completePct, statusArr, statusCounts, pendingCount, pendingPct,
+    grandTotal, completeCount, completePct, statusArr, stateCounts, pendingCount, pendingPct,
     revenueTotal, discountTotal, prebookRevenue, revenueByGrp,
     otCounts, otTotal, otPct, prebookByGrp, prebookTotal, nonPrebookByGrp,
     prebookPctByGrp, nonPrebookPctByGrp, nonPrebookTotal, prebookPctOfComplete, nonPrebookPctOfComplete,
@@ -1378,7 +1377,7 @@ function legendStyle(){
 function updateKpis(M){
   animateNumber(document.getElementById('k-total'), M.grandTotal);
   document.getElementById('k-total-sub').innerHTML =
-    `จากข้อมูลทั้งหมด <b>${fmtNum(M.trackGrandTotal)}</b> รายการ • DELETE: <b>${fmtNum(M.statusCounts.DELETE || 0)}</b>`;
+    `จากข้อมูลทั้งหมด <b>${fmtNum(M.trackGrandTotal)}</b> รายการ • DELETE: <b>${fmtNum(M.stateCounts.DELETE || 0)}</b>`;
 
   animateNumber(document.getElementById('k-complete'), M.completeCount);
   document.getElementById('k-complete-sub').innerHTML =
