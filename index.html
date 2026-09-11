@@ -165,6 +165,10 @@
   body.body-fs-lock{overflow:hidden;}
   body.body-fs-lock .topbar-wrap{visibility:hidden;}
 
+  /* Tracking Order fullscreen: previously the table kept its normal (fairly short) max-height
+     even at fullscreen, leaving a lot of empty space below it. In fullscreen the card and its
+     table now stretch to fill the available viewport height, with the table itself scrolling
+     internally instead of the page having dead space under a short table. */
   #trackingSection.is-fullscreen{overflow:hidden;}
   #trackingSection.is-fullscreen .card{flex:1 1 auto; min-height:0;}
   #trackingSection.is-fullscreen .track-table-scroll{flex:1 1 auto; max-height:none;}
@@ -185,6 +189,9 @@
     font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
+  /* Card-header tags now match the pill/badge look used on sub-card tags (see
+     .rank-subcard-head .tag below) — previously these were plain unstyled text, which made
+     them look inconsistent with tags like "Pre-Booking: 1" elsewhere on the same dashboard. */
   .card h2 .tag{
     font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;
     background:var(--bg-2); padding:1px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;
@@ -235,6 +242,13 @@
     .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:10px;}
   }
 
+  /* Year-over-Year compare card: sits as a narrow column next to the hero (COMPLETE) card
+     instead of its own full-width row — COMPLETED at 80% width, Year-over-Year at 20%, the
+     same proportional concept as .grid-70-30 (Top Selling & Marketing / Order by Menu) below,
+     so COMPLETED reads as the primary card and Year-over-Year as its smaller supporting card.
+     When Compare_data isn't available, updateCompareChart() adds .no-compare to #heroRow so
+     the hero simply takes the full width instead of leaving a blank gap where the card would
+     have been. */
   .hero-row{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .hero-row{grid-template-columns:80% 1fr;} }
   .hero-row.no-compare{grid-template-columns:1fr;}
@@ -248,6 +262,20 @@
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
   .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  /* Four cards share one height here: "Order Volume — Hourly Order Count" is the reference —
+     its height comes straight from CSS (.chart-wrap's fixed height) and is never overridden.
+     "Order Omni & Shipping" is pinned in JS (syncSummaryCardHeights()) to that same reference
+     height. "Order Source & Stock Destination" is then pinned to the reference height + gap +
+     Omni's height, i.e. exactly as tall as "Order Volume" and "Order Omni & Shipping" stacked
+     together; `.subcards-fill-eq` below splits that height evenly between its two internal
+     subcards ("AIS Shop vs Partner" and "Sub Stock Destination"), so every one of the four
+     cards ends up the same height as the Order Volume reference (Order Source only slightly
+     over, by half the 12px gap, once split — unavoidable when two sub-panels of a taller card
+     are compared to a single reference card). Pixel values come from measuring the actual
+     rendered cards (not a hardcoded guess), so this keeps working as card content changes.
+     Only applied at desktop widths where the two columns sit side by side; below 900px this
+     CSS grid collapses to a single stacked column and syncSummaryCardHeights() skips the
+     height overrides entirely so cards just size to their own content. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;}
   .col-wide > .card{flex:1 1 0; min-height:0;}
@@ -331,7 +359,7 @@
   /* Combined ranking card */
   .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:10px;}
   .rank-subcard{border:1px solid var(--border); border-top:2px solid var(--gold); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
-  .rank-subcard.alt{border-top:2px solid var(--gold);}
+  .rank-subcard.alt{border-top:2px solid var(--gold);} /* kept as a no-op alias: all subcards now share the same top accent */
   .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
   .rank-subcard-head h3{font-family:var(--font-serif); font-size:11.5px; margin:0; font-weight:700; color:var(--text);}
   .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
@@ -340,7 +368,10 @@
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
-  
+  /* In-cell data bar
+     The label and its data bar are now ONE visual data cell. The bar sits
+     beneath the label, so it never crosses/competes with the text or count.
+     This shared component is used by every rankRows()-based card. */
   .rank-row{
     display:grid;
     grid-template-columns:minmax(0,1fr) auto;
@@ -418,6 +449,11 @@
   /* Sub-cards stacked layout */
   .subcards-stack{grid-template-columns:1fr;}
 
+  /* Modifier for the "Order Source & Stock Destination" card only: makes the stacked
+     subcards grow to fill the card's full (possibly stretched) height, split evenly between
+     the two of them, instead of each sizing to its own content and leaving blank space
+     below. Requires the .rank-subcards element itself to be a flex-grow child of its
+     (flex-column) .card, hence flex:1 1 auto + min-height:0 here. */
   .subcards-fill-eq{flex:1 1 auto; min-height:0; grid-template-rows:1fr 1fr;}
   .subcards-fill-eq > .rank-subcard{min-height:0;}
 
@@ -523,6 +559,10 @@
   .track-tooltip .tt-lock{font-size:10px; color:var(--muted); line-height:1.5; margin-bottom:8px;}
   .track-tooltip .track-detail-grid{grid-template-columns:1fr; gap:5px;}
 
+  /* ---------- Tracking Order: Commercial Name / Order Omni no longer stretch the column ----------
+     Long values used to widen <td> via white-space:nowrap, pushing later columns (Order Omni) off
+     screen. The cell now clips to a fixed max-width with an ellipsis; the full value moves to the
+     custom hover tooltip below instead of the (plain, cramped-looking) native title="" bubble. */
   .track-table th.col-commname, .track-table td.col-commname{max-width:130px;}
   .track-table th.col-orderomni, .track-table td.col-orderomni{max-width:110px;}
   .cust-name-cell{
@@ -530,10 +570,20 @@
     white-space:nowrap; vertical-align:bottom; border-bottom:1px dashed var(--muted);
   }
 
-  /* ---------- Generic hover tooltip ---------- */
+  /* ---------- Generic hover tooltip ----------
+     Replaces native title="" attributes on truncated / supplementary data (Commercial Name,
+     Order Omni, duration badge, top-item names, masked-name lock hint) with a small themed
+     card instead of the browser's plain OS tooltip. Triggered via [data-tip] + #hoverTip,
+     wired up once in initHoverTips(). */
   [data-tip]{cursor:help;}
+  /* A few table cells (e.g. the Branch & Stock Flow name column) still use a plain native
+     title="" tooltip rather than the custom [data-tip] one above — same hover cue for those. */
   td[title]{cursor:help;}
 
+  /* Chart.js canvases: cursor is switched between this default and "help" by each chart's own
+     onHover option whenever the pointer is over a hoverable data point/bar/slice, i.e.
+     whenever a tooltip is available — same visual cue as [data-tip] above, applied to
+     canvas-drawn charts instead of DOM elements. */
   .chart-wrap canvas{cursor:default;}
   .hover-tip{
     position:fixed; z-index:1200; display:none; max-width:240px;
@@ -606,6 +656,10 @@ let refreshTimer = null;
 let isLoading = false;
 let lastMetrics = null;
 
+// A wider, hue-separated categorical palette (used across Sub Stock Destination, Shipping
+// Breakdown, and Order by Menu) — each color sits far apart on the color wheel (blue, violet,
+// amber, green, pink, orange, red, gray) so adjacent legend entries never look like
+// near-duplicates of each other, even when several categories are shown at once.
 const STOCK_PALETTE = ['#38BDF2','#A78BFA','#FBBF24','#34D399','#F472B6','#FB923C','#EF4444','#94A3B8'];
 
 const TOOLTIP_STYLE = {
@@ -631,6 +685,8 @@ function getConfig(){
   return {
     sheetId: params.get('sheetId') || saved.sheetId || '',
     sheetName: params.get('sheetName') || saved.sheetName || 'Order',
+    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up
+    // in browser history / shared links / server logs — only ever from localStorage.
     secretKey: saved.secretKey || ''
   };
 }
@@ -654,11 +710,15 @@ const COL = {
 const COL_OPTIONAL = {
   locationSource: 'locationSource',
   imageUrl: 'orders.device.imageUrl',
+  // Fields below only power the "Tracking Order" card. Kept optional so the
+  // rest of the dashboard still works fine on an older Sheet that hasn't
+  // added these columns yet — the table just shows '-' for whatever is missing.
   userId: 'userId',
   custFirstName: 'customer.firstName',
   custLastName: 'customer.lastName',
   custMobileNo: 'customer.cusMobileNo',
-  orderState: 'orders.state',
+  orderState: 'orders.state', // NOTE: distinct from orders.status ("state" above) — this is the
+                               // granular workflow step (DEVICE_SELECTED / PAYMENT_PAID / ...)
   brand: 'orders.device.brand',
   model: 'orders.device.model',
   matCode: 'orders.device.matCode',
@@ -672,9 +732,14 @@ const COL_OPTIONAL = {
 };
 const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
 
-/* ===================== DECRYPTION ===================== */
-let hmacKeyCache = null;
-const decryptCache = new Map();
+/* ===================== DECRYPTION (mirrors Code.gs encryptText_ / decryptText_) =====================
+   customer.firstName / customer.lastName / customer.cusMobileNo are stored in the Sheet as
+   base64( 8-byte random IV ++ XOR(plaintext, keystream) ), where the keystream is built from
+   repeated HMAC-SHA256(secretKey, ivHex + '|' + counter) blocks. Decrypting here needs the same
+   Secret Key that Code.gs's setupEncryptionKey() saved to Script Properties — entered once in
+   the config panel above and kept only in this browser's localStorage; it is never sent anywhere. */
+let hmacKeyCache = null;        // { secretKey, cryptoKeyPromise } — one-slot cache
+const decryptCache = new Map(); // `${secretKey}::${cipherB64}` -> Promise<string>
 
 function base64ToBytes(b64){
   const bin = atob(b64);
@@ -720,6 +785,9 @@ async function decryptText_(cipherB64, secretKey){
   for (let i = 0; i < cipherBytes.length; i++) plainBytes[i] = cipherBytes[i] ^ keystream[i];
   return new TextDecoder('utf-8').decode(plainBytes);
 }
+// Cached wrapper — the same ciphertext + key always decrypts to the same plaintext, so repeated
+// renders (10s auto-refresh, slider/filter changes) don't redo the HMAC work for rows already
+// decrypted this session. Returns the sentinel '__DECRYPT_FAILED__' instead of throwing.
 function decryptCached(cipherB64, secretKey){
   if (!cipherB64 || !secretKey) return Promise.resolve('');
   const cacheKey = secretKey + '::' + cipherB64;
@@ -734,7 +802,7 @@ function getSecretKey(){
   return el ? el.value.trim() : '';
 }
 
-/* ===================== FETCH ===================== */
+/* ===================== FETCH (Google Visualization / gviz) ===================== */
 async function fetchSheet(sheetId, sheetName){
   const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&headers=1&_=${Date.now()}`;
   const res = await fetch(url);
@@ -753,10 +821,15 @@ async function fetchSheet(sheetId, sheetName){
   return { cols, rows };
 }
 
-/* ===================== LOCATION MASTER ===================== */
+/* ===================== LOCATION MASTER (locationSource code -> ชื่อสาขา) =====================
+   Separate tab in the same spreadsheet ("LocationMaster", columns locationCode / locationName).
+   Optional: if the tab or columns are missing, we just fall back to showing the raw
+   locationSource code everywhere — this must never break the main dashboard load. Loaded once
+   per sheetId (not on every 10s auto-refresh poll) since branch master data rarely changes;
+   the explicit "โหลดข้อมูล" button forces a re-fetch in case it was just edited. */
 const LOCATION_MASTER_SHEET_NAME = 'LocationMaster';
-let locationNameMap = {};
-let locationMasterLoadedFor = null;
+let locationNameMap = {};          // locationCode (string) -> locationName
+let locationMasterLoadedFor = null; // sheetId this map was last (successfully or not) loaded for
 async function loadLocationMasterIfNeeded(sheetId, force){
   if (!force && locationMasterLoadedFor === sheetId) return;
   try {
@@ -770,16 +843,20 @@ async function loadLocationMasterIfNeeded(sheetId, force){
     rows.forEach(r => {
       const code = r[codeIdx] == null ? '' : String(r[codeIdx]).trim();
       const name = r[nameIdx] == null ? '' : String(r[nameIdx]).trim();
-      if (code && name) map[code] = name;
+      if (code && name) map[code] = name; // last row wins if a code appears more than once
     });
     locationNameMap = map;
   } catch(err){
+    // Missing tab / columns / transient fetch error: keep dashboard working, just log it.
+    // (Don't wipe a previously-loaded map on a transient failure of a forced re-fetch.)
     console.warn('โหลด LocationMaster ไม่สำเร็จ (จะแสดง locationSource แบบรหัสดิบแทน):', err.message);
     if (locationMasterLoadedFor !== sheetId) locationNameMap = {};
   } finally {
     locationMasterLoadedFor = sheetId;
   }
 }
+// Resolve a locationSource code to "code - branch name"; falls back to the raw code alone
+// when there's no match (unmapped code, or LocationMaster failed/hasn't loaded).
 function locationDisplayName(code){
   if (isBlank(code)) return code;
   const name = locationNameMap[code];
@@ -797,10 +874,21 @@ function parseGvizDate(v){
   return isNaN(d.getTime()) ? null : d;
 }
 
-/* ===================== YEAR-OVER-YEAR COMPARE DATA ===================== */
+/* ===================== YEAR-OVER-YEAR COMPARE DATA =====================
+   Separate tab in the same spreadsheet ("Compare_data", columns Date / Count) holding a
+   manually-entered summary of last year's daily order totals (e.g. the first few days of
+   the equivalent period), used to draw the Year-over-Year comparison chart. Optional, same
+   fail-soft pattern as LocationMaster above: a missing tab or bad columns never breaks the
+   main dashboard — the comparison card just stays hidden. Re-fetched on every load (initial,
+   manual "LOAD DATA"/REFRESH click, and every 10s auto-refresh poll alike — see the `true` at
+   the loadData() call site) so a newly appended row shows up automatically, the same way the
+   main Order sheet's data already does, without needing a manual browser refresh. */
 const COMPARE_SHEET_NAME = 'Compare_data';
-let compareData = [];
+let compareData = [];          // [{date: Date, count: Number}], sorted ascending by date
 let compareDataLoadedFor = null;
+// Compare_data's "Date" column is plain text like "19/09/2025" (day/month/year), not a
+// gviz date cell, so this tries that format first and falls back to parseGvizDate for a
+// real date cell or an ISO-style string.
 function parseCompareDate(v){
   if (v == null) return null;
   if (typeof v === 'string'){
@@ -898,9 +986,18 @@ function topN(rows, field, n){
 }
 function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
 
+// Rounds a set of counts that share a common `total` into percentages (1 decimal place) using
+// the largest-remainder method, instead of rounding each one independently. Independent
+// rounding is why, e.g., three tiles showing 33.3% / 33.3% / 33.3% visually add up to 99.9%
+// instead of 100% — this instead rounds every value down first, then hands the leftover
+// tenths-of-a-percent to whichever entries had the largest fractional remainder, so the
+// displayed values always add up to exactly round(sum(counts)/total*1000)/10 (100.0% when
+// `counts` fully covers `total`; less than that if `counts` is a partial breakdown of `total`,
+// which is correct rather than padded). Returns an array of numbers (not strings) in the same
+// order as `counts`, ready to pass into fmtPct().
 function distributePct(counts, total){
   if (!total) return counts.map(() => 0);
-  const raw = counts.map(c => (c / total) * 1000);
+  const raw = counts.map(c => (c / total) * 1000); // tenths-of-a-percent, so rounding to whole units still gives 1-decimal precision
   const floors = raw.map(Math.floor);
   const used = floors.reduce((a,b) => a+b, 0);
   const target = Math.round(raw.reduce((a,b) => a+b, 0));
@@ -914,6 +1011,9 @@ function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function bucketDate(d, mode){
+  // 'min10' buckets timestamps into 10-minute slots (e.g. 09:00, 09:10, 09:20 ...) instead
+  // of whole hours, giving the Order Volume chart finer x-axis granularity when the data
+  // spans a single day.
   if (mode === 'min10') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), Math.floor(d.getMinutes()/10)*10);
   if (mode === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -924,6 +1024,7 @@ function hourLabel(d, mode){
   if (mode === 'month') return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
   return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
 }
+// 'YYYY-MM-DD' key for a Date, in local time (used to match same calendar day across sources).
 function dayKey(d){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
@@ -991,7 +1092,10 @@ function computeMetrics(rows){
   const stateCounts = {}; STATES.forEach(s => stateCounts[s] = 0);
   stateRows.forEach(r => { if (stateCounts[r.state] === undefined) stateCounts[r.state] = 0; stateCounts[r.state]++; });
   const completeCount = stateCounts.COMPLETE || 0;
-
+  // COMPLETE + the "other statuses" tiles are all fractions of the same grandTotal and are
+  // shown together (ring + tiles) as one breakdown, so they're distributed as one group —
+  // otherwise COMPLETE's ring % and the four tiles' %'s could independently round to a sum
+  // just off of 100%.
   const otherStates = STATES.filter(s => s !== 'COMPLETE');
   const statusPctAll = distributePct([completeCount, ...otherStates.map(s => stateCounts[s]||0)], grandTotal);
   const completePct = statusPctAll[0];
@@ -1013,7 +1117,10 @@ function computeMetrics(rows){
     AIS: otCounts.AIS - prebookByGrp.AIS,
     PARTNER: otCounts.PARTNER - prebookByGrp.PARTNER
   };
-
+  // AIS vs PARTNER share is one group out of otTotal (sums to 100%). Within each group, its
+  // Pre-Booking / non-Pre-Booking split is distributed against that SAME otTotal denominator
+  // (not against the group's own count) so "non-Pre % + Pre % " always reconstructs exactly
+  // that group's own % — no independent-rounding drift between the two numbers.
   const [otPctAIS, otPctPartner] = distributePct([otCounts.AIS, otCounts.PARTNER], otTotal);
   const otPct = {AIS: otPctAIS, PARTNER: otPctPartner};
   const [prePctAIS, nonPrePctAIS] = distributePct([prebookByGrp.AIS, nonPrebookByGrp.AIS], otTotal);
@@ -1021,6 +1128,8 @@ function computeMetrics(rows){
   const prebookPctByGrp = {AIS: prePctAIS, PARTNER: prePctPartner};
   const nonPrebookPctByGrp = {AIS: nonPrePctAIS, PARTNER: nonPrePctPartner};
 
+  // Overall Complete vs Pre-Booking (hero card) — same net-out-Pre-Booking treatment: how many
+  // of the completed orders have no Pre-Booking number vs how many do, each with its own %.
   const nonPrebookTotal = completeCount - prebookTotal;
   const [prebookPctOfComplete, nonPrebookPctOfComplete] = distributePct([prebookTotal, nonPrebookTotal], completeCount);
 
@@ -1038,7 +1147,9 @@ function computeMetrics(rows){
   const stockPctArr = distributePct(stockArr.map(s => s.count), stockTotal);
   stockArr = stockArr.map((s,i) => ({...s, pct: stockPctArr[i]}));
 
-  // Order Omni & Shipping
+  // Order Omni & Shipping — "Order Omni" = completed order that has a reserve/omni order
+  // number (orders.reserve.orderNo), same field orderOmniCellHtml() in the Tracking Order
+  // table checks to decide whether to show a value or '-'.
   const omniRows = completeRows.filter(r => !isBlank(r.resOrderNo));
   const omniTotal = omniRows.length;
   const nonOmniTotal = completeCount - omniTotal;
@@ -1048,7 +1159,8 @@ function computeMetrics(rows){
     const label = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ') || 'ไม่ระบุ';
     shipMap[label] = (shipMap[label] || 0) + 1;
   });
-
+  // Every Omni row lands in exactly one bucket (falls back to 'ไม่ระบุ' if both shipping
+  // fields are blank), so shipTotal === omniTotal and the %'s always sum to 100% of Omni orders.
   let shipArr = Object.entries(shipMap).map(([name,count]) => ({name,count})).sort((a,b) => b.count - a.count);
   const shipTotal = omniTotal;
   const shipPctArr = distributePct(shipArr.map(s => s.count), shipTotal);
@@ -1084,6 +1196,10 @@ function computeMetrics(rows){
   }
   const volTotal = tsRows.length;
 
+  // Day-level totals (independent of `mode`/bucket granularity above), keyed 'YYYY-MM-DD'.
+  // Used to line up "this year" counts against the Compare_data sheet's "last year" totals
+  // for the Year-over-Year comparison chart, regardless of whether the main chart above is
+  // currently bucketing by 10-minute, day, or month.
   const dayCounts = {};
   tsRows.forEach(r => {
     const k = dayKey(r.ts);
@@ -1185,6 +1301,13 @@ function computeMetrics(rows){
   const deviceImgMap = buildImgMap(devRows);
   const accessoryImgMap = buildImgMap(accRows);
 
+  // ---- Tracking Order (row-level table, every status — not just COMPLETE) ----
+  // Sorted latest-first by TIMESTAMP, same as the source Vega table. No longer capped
+  // (previously capped at 500 latest rows) — a cap here meant the search box could never
+  // find a transaction older than the cap, since it filtered inside an already-truncated
+  // array. The "SHOW" slider below still limits how many rows are actually rendered/decrypted
+  // at once (client-side, after search), so the visible table stays small by default even
+  // though the full history is now searchable.
   const trackGrandTotal = rows.filter(r => r.orderId).length;
   const trackAll = rows.filter(r => r.orderId)
     .slice()
@@ -1219,6 +1342,7 @@ function toggleFullscreen(sectionId){
   if (!el) return;
   const entering = !el.classList.contains('is-fullscreen');
 
+  // If another section is currently fullscreen, drop it first so only one expands at a time.
   document.querySelectorAll('.dash-section.is-fullscreen').forEach(other => {
     if (other !== el){
       other.classList.remove('is-fullscreen');
@@ -1235,6 +1359,7 @@ function toggleFullscreen(sectionId){
     btn.title = entering ? 'ปิดโหมดเต็มจอ' : 'ขยายเต็มจอ';
   }
   if (entering) el.scrollTop = 0;
+  // Resize any Chart.js instances so their canvases fill the new (fullscreen) size correctly.
   Object.values(charts).forEach(c => { if (c && c.resize) c.resize(); });
 }
 document.addEventListener('keydown', e => {
@@ -1244,7 +1369,7 @@ document.addEventListener('keydown', e => {
   }
 });
 
-/* ===================== SKELETON ===================== */
+/* ===================== SKELETON (built once) ===================== */
 function buildSkeleton(){
   const dash = document.getElementById('dashboard');
   dash.innerHTML = `
@@ -1465,11 +1590,14 @@ function buildSkeleton(){
   dashboardBuilt = true;
 }
 
-/* ===================== TRACKING ORDER ===================== */
+/* ===================== TRACKING ORDER (row-level table) ===================== */
 const trackRowKey = r => (r.transactionId || '') + '|' + (r.orderId || '');
-let openTrackKey = null;
-let trackRenderToken = 0;
+let openTrackKey = null;      // key of the row whose pinned "info" tooltip is open, if any
+let trackRenderToken = 0;     // guards a stale async render from overwriting a newer one
 
+// firstName is shown in full; lastName keeps only its first character and masks the rest
+// with 'x' — same masking rule as the source Vega table. Both are decrypted client-side
+// first (see DECRYPTION section above); the Sheet itself only ever stores ciphertext.
 function customerNameMasked(first, last){
   const f = (first || '').trim();
   let l = (last || '').trim();
@@ -1490,6 +1618,8 @@ function statusBadgeHtml(state){
   return `<span class="badge" style="background:${bg};color:${fg}">${esc(state || '-')}</span>`;
 }
 
+// Order "state" tiers (granular workflow step, e.g. DEVICE_SELECTED,
+// PAYMENT_PAID) — same three groups & colors as the source Vega table.
 const ORDER_STATE_GREEN = new Set(['PAYMENT_PAID','PRE_PROVISION_COMPLETED','PERSO_COMPLETED','CONTRACT_COMPLETED','SIM_REGISTRATION_COMPLETED','BILLING_COMPLETED']);
 const ORDER_STATE_BLUE = new Set(['ORDER_REQUESTED','KYC_VERIFIED','SIM_IDENTIFIED','APPLEWATCH_VERIFIED','MOBILENO_VERIFIED','NEWCA_VERIFIED','EFORM_SIGNED','IDCARD_IDENTIFIED','VERIFY_PASSPORT','REPI_VERIFY_MOBILE','MOBILE_IDENTIFIED','PROFILE_VERIFIED']);
 const ORDER_STATE_ORANGE = new Set(['ACCESSORY_SELECTED','CART_PREPARED','CART_SELECTED','PAYMENT_SELECTED','PAYMENT_SUMMARIZED','CARE_SELECTED','SHARE_PACKAGE_SELECTED','NUMBER_SELECTED','PACKAGE_SELECTED','ORDER_SUMMARIZED','SIMTYPE_SELECTED','DEVICE_SELECTED','EXTRADOC_UPLOADED','BILL_SELECTED']);
@@ -1509,6 +1639,8 @@ function durationLabel(ms){
   if (d > 0) parts.push(d + 'd');
   if (h > 0) parts.push(h + 'h');
   parts.push(m + 'm');
+  // Under 1 minute total, "0m" alone hides the real elapsed time (could be 0s or 59s) — show
+  // seconds too in that case (e.g. "0m 2s") instead of a flat, uninformative "0m".
   if (d === 0 && h === 0 && m === 0){
     const s = Math.floor((ms % 60000) / 1000);
     parts.push(s + 's');
@@ -1529,849 +1661,923 @@ function durationBadgeHtml(durationMs, createdMs){
 }
 
 function commercialNameCellHtml(r){
-  if (isBlank(r.commercialName)) return '<span class="empty">-</span>';
-  return `<span data-tip="${esc(r.commercialName)}">${esc(r.commercialName)}</span>`;
+  if (isBlank(r.commercialName)) return '<span class="empty" style="padding:0;">-</span>';
+  const tip = [
+    !isBlank(r.brand) ? 'Brand: ' + r.brand : null,
+    !isBlank(r.model) ? 'Model: ' + r.model : null,
+    !isBlank(r.matCode) ? 'Mat Code: ' + r.matCode : null,
+    r.priceIncAmt ? 'Price: ' + fmtNum(r.priceIncAmt) : null,
+    r.priceDiscountAmt ? 'Discount: ' + fmtNum(r.priceDiscountAmt) : null
+  ].filter(Boolean).join('\n');
+  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.commercialName)}</span>`;
 }
+
 function orderOmniCellHtml(r){
-  if (isBlank(r.resOrderNo)) return '<span class="empty">-</span>';
-  const tip = ['Reserve Order: ' + r.resOrderNo, 'Type: ' + (r.resType || '-'), 'Shipping: ' + ([r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ') || '-'), 'Location: ' + (r.resLocationName || '-')].join('\n');
-  return `<span class="mono" data-tip="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
+  if (isBlank(r.resOrderNo)) return '<span class="empty" style="padding:0;">-</span>';
+  const shipping = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ');
+  const tip = [
+    !isBlank(r.resLocationName) ? 'Location: ' + r.resLocationName : null,
+    !isBlank(r.resType) ? 'Type: ' + r.resType : null,
+    shipping ? 'Shipping: ' + shipping : null
+  ].filter(Boolean).join('\n');
+  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
 }
 
-async function renderTrackingTable(m){
-  const token = ++trackRenderToken;
-  const tbody = document.getElementById('body-track');
-  const tagEl = document.getElementById('tag-tracktotal');
-  const filterInput = document.getElementById('trackFilter');
-  const slider = document.getElementById('sliderTrack');
-  const sliderVal = document.getElementById('sliderTrackVal');
-  if (!tbody) return;
-
-  const q = filterInput ? filterInput.value.trim().toLowerCase() : '';
-  const limit = slider ? parseInt(slider.value, 10) : 50;
-  if (sliderVal) sliderVal.textContent = limit;
-
-  let filtered = m.trackAll;
-  if (q){
-    filtered = m.trackAll.filter(r =>
-      (r.transactionId && r.transactionId.toLowerCase().includes(q)) ||
-      (r.orderId && r.orderId.toLowerCase().includes(q)) ||
-      (r.preBookingNo && r.preBookingNo.toLowerCase().includes(q)) ||
-      (r.userId && r.userId.toLowerCase().includes(q)) ||
-      (r.orderType && r.orderType.toLowerCase().includes(q)) ||
-      (r.state && r.state.toLowerCase().includes(q)) ||
-      (r.orderState && r.orderState.toLowerCase().includes(q)) ||
-      (r.commercialName && r.commercialName.toLowerCase().includes(q)) ||
-      (r.resOrderNo && r.resOrderNo.toLowerCase().includes(q)) ||
-      (r.custFirstName && r.custFirstName.toLowerCase().includes(q)) ||
-      (r.custLastName && r.custLastName.toLowerCase().includes(q)) ||
-      (r.custMobileNo && r.custMobileNo.toLowerCase().includes(q))
-    );
-  }
-
-  const showing = filtered.slice(0, limit);
-  if (tagEl){
-    const cntTxt = `${fmtNum(showing.length)} / ${fmtNum(filtered.length)}`;
-    tagEl.textContent = (filtered.length !== m.trackGrandTotal)
-      ? `${cntTxt} orders ( filtered from ${fmtNum(m.trackGrandTotal)} )`
-      : `${cntTxt} orders`;
-  }
-
-  if (!showing.length){
-    tbody.innerHTML = `<tr><td colspan="13" class="empty">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
-    return;
-  }
-
+// Content for the pinned "info" tooltip on a Tracking Order row: full decrypted customer
+// name + mobile number (unlike the masked table cell), the product image when available,
+// and the rest of the order detail fields. Decryption runs client-side with the Secret Key
+// from the config panel — the Sheet only ever stores ciphertext for these fields, so anyone
+// viewing the Sheet (or this page without the key) never sees more than ciphertext/mask.
+async function buildTrackTooltipHtml(r){
   const secretKey = getSecretKey();
-  const decryptedNames = await Promise.all(showing.map(async r => {
-    if (!secretKey || (!r.custFirstName && !r.custLastName)) return null;
-    const [f, l] = await Promise.all([
-      decryptCached(r.custFirstName, secretKey),
-      decryptCached(r.custLastName, secretKey)
-    ]);
-    if (f === '__DECRYPT_FAILED__' || l === '__DECRYPT_FAILED__') return '__DECRYPT_FAILED__';
-    return { first: f, last: l };
-  }));
-
-  if (token !== trackRenderToken) return;
-
-  let html = '';
-  showing.forEach((r, i) => {
-    const key = trackRowKey(r);
-    const tsStr = r.ts ? r.ts.toLocaleString('th-TH',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '-';
-    const dec = decryptedNames[i];
-    let nameHtml = '-';
-    if (dec === '__DECRYPT_FAILED__'){
-      nameHtml = '<span class="red-txt" data-tip="ถอดรหัสล้มเหลว (ตรวจสอบ Secret Key ใน Setting)">DECRYPT FAILED</span>';
-    } else if (dec && (dec.first || dec.last)){
-      const masked = customerNameMasked(dec.first, dec.last);
-      const tipText = 'คลิกปุ่ม ⓘ เพื่อดูข้อมูลแบบถอดรหัสฉบับเต็ม';
-      nameHtml = `<span class="cust-name-cell" data-tip="${esc(tipText)}">${esc(masked)}</span>`;
-    } else if (r.custFirstName || r.custLastName){
-      const lockHint = 'ข้อมูลถูกซ่อน/เข้ารหัส\nใส่ Secret Key ใน Setting เพื่อถอดรหัส';
-      nameHtml = `<span class="cust-name-cell" data-tip="${esc(lockHint)}">🔒 Encrypted</span>`;
-    }
-
-    const isOpen = (openTrackKey === key);
-    const btnClass = 'info-btn' + (isOpen ? ' open' : '');
-
-    html += `
-      <tr data-key="${esc(key)}">
-        <td class="col-info"><button type="button" class="${btnClass}" onclick="toggleTrackTooltip('${esc(key)}', this)">i</button></td>
-        <td class="col-no">${i+1}</td>
-        <td class="mono">${esc(tsStr)}</td>
-        <td class="mono">${esc(r.transactionId || '-')}</td>
-        <td class="mono">${esc(r.preBookingNo || '-')}</td>
-        <td class="mono">${esc(r.userId || '-')}</td>
-        <td>${nameHtml}</td>
-        <td><b>${esc(r.orderType || '-')}</b></td>
-        <td>${statusBadgeHtml(r.state)}</td>
-        <td>${orderStateBadgeHtml(r.orderState)}</td>
-        <td>${durationBadgeHtml(r.durationMs, r.createdMs)}</td>
-        <td class="col-commname">${commercialNameCellHtml(r)}</td>
-        <td class="col-orderomni">${orderOmniCellHtml(r)}</td>
-      </tr>
-    `;
-  });
-
-  tbody.innerHTML = html;
-}
-
-/* ===================== PINNED INFO TOOLTIP ===================== */
-async function toggleTrackTooltip(key, btnEl){
-  const tooltip = document.getElementById('trackTooltip');
-  if (!tooltip) return;
-
-  if (openTrackKey === key){
-    closeTrackTooltip();
-    return;
-  }
-
-  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
-  openTrackKey = key;
-  if (btnEl) btnEl.classList.add('open');
-
-  if (!lastMetrics) return;
-  const r = lastMetrics.trackAll.find(x => trackRowKey(x) === key);
-  if (!r){ closeTrackTooltip(); return; }
-
-  const rect = btnEl.getBoundingClientRect();
-  const ttWidth = 280;
-  let left = rect.right + 8;
-  if (left + ttWidth > window.innerWidth - 10){
-    left = rect.left - ttWidth - 8;
-  }
-  if (left < 10) left = 10;
-  let top = rect.top - 10;
-  if (top + 320 > window.innerHeight){
-    top = window.innerHeight - 330;
-  }
-  if (top < 10) top = 10;
-
-  tooltip.style.left = left + 'px';
-  tooltip.style.top = top + 'px';
-
-  let imgHtml = '';
-  if (!isBlank(r.imageUrl)){
-    imgHtml = `<img class="tt-img" src="${esc(r.imageUrl)}" alt="" />`;
-  }
-
-  const secretKey = getSecretKey();
-  let piiHtml = '';
-  if (secretKey && (r.custFirstName || r.custLastName || r.custMobileNo)){
+  let piiHtml;
+  if (!secretKey){
+    piiHtml = `<div class="tt-lock">🔒 กรอก Secret Key ในแผงตั้งค่า (ดับเบิลคลิกหัวข้อ "Order Dashboard") เพื่อดูชื่อ-เบอร์โทรเต็ม</div>`;
+  } else {
     const [first, last, mobile] = await Promise.all([
       decryptCached(r.custFirstName, secretKey),
       decryptCached(r.custLastName, secretKey),
       decryptCached(r.custMobileNo, secretKey)
     ]);
-
-    if (first === '__DECRYPT_FAILED__' || last === '__DECRYPT_FAILED__' || mobile === '__DECRYPT_FAILED__'){
-      piiHtml = `<div class="tt-pii"><div class="dl">Customer Info</div><div class="dv red-txt">ถอดรหัสล้มเหลว (Secret Key ไม่ถูกต้อง)</div></div>`;
+    if ([first, last, mobile].includes('__DECRYPT_FAILED__')){
+      piiHtml = `<div class="tt-lock">⚠️ ถอดรหัสไม่สำเร็จ — ตรวจสอบว่า Secret Key ตรงกับที่ตั้งไว้ใน Code.gs</div>`;
     } else {
       const fullName = (first + ' ' + last).trim() || '-';
-      piiHtml = `
-        <div class="tt-pii">
-          <div class="dl">Customer Name (Decrypted)</div>
-          <div class="dv">${esc(fullName)}</div>
-          <div class="dl" style="margin-top:4px;">Mobile No</div>
-          <div class="dv mono">${esc(mobile || '-')}</div>
-        </div>
-      `;
+      piiHtml = `<div class="tt-pii">
+        <div class="dl">Customer Name</div><div class="dv">${esc(fullName)}</div>
+        <div class="dl" style="margin-top:4px;">Mobile No.</div><div class="dv">${esc(mobile || '-')}</div>
+      </div>`;
     }
-  } else if (r.custFirstName || r.custLastName || r.custMobileNo){
-    piiHtml = `<div class="tt-lock">🔒 ข้อมูลลูกค้าถูกเข้ารหัส<br>กรอก Secret Key ในเมนู Setting เพื่อถอดรหัส</div>`;
   }
 
-  const fmtAmt = n => n ? '฿' + fmtNum(n) : '-';
-  const startStr = r.createdMs ? new Date(r.createdMs).toLocaleString('th-TH') : '-';
-  const finishStr = r.ts ? r.ts.toLocaleString('th-TH') : '-';
+  const imgHtml = !isBlank(r.imageUrl)
+    ? `<img class="tt-img" src="${esc(r.imageUrl)}" alt="${esc(r.commercialName || '')}" onerror="this.remove()">`
+    : '';
 
-  tooltip.innerHTML = `
-    <button type="button" class="tt-close" onclick="closeTrackTooltip()">✕</button>
+  const fields = [
+    ['Menu', r.menu],
+    ['Order Source', locationDisplayName(r.locationSource)],
+    ['Service Care', r.serviceCareTitle],
+    ['Stock Destination', r.subStockDestination],
+    ['Campaign', r.campaignName],
+    ['Reserve Location', r.resLocationName],
+    ['Reserve Type', r.resType],
+    ['Shipping', [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ')]
+  ];
+  const detailHtml = fields.map(([l,v]) => `<div><div class="dl">${esc(l)}</div><div class="dv">${isBlank(v) ? '-' : esc(v)}</div></div>`).join('');
+
+  return `<button type="button" class="tt-close" title="ปิด">&times;</button>
     ${imgHtml}
-    <div class="tt-title">${esc(r.commercialName || r.orderType || 'Order Detail')}</div>
+    <div class="tt-title">${esc(r.commercialName || r.transactionId || '-')}</div>
     ${piiHtml}
-    <div class="track-detail-grid">
-      <div><div class="dl">Transaction ID</div><div class="dv mono">${esc(r.transactionId || '-')}</div></div>
-      <div><div class="dl">Order ID</div><div class="dv mono">${esc(r.orderId || '-')}</div></div>
-      <div><div class="dl">User ID</div><div class="dv mono">${esc(r.userId || '-')}</div></div>
-      <div><div class="dl">Brand / Model</div><div class="dv">${esc([r.brand, r.model].filter(x=>!isBlank(x)).join(' ') || '-')}</div></div>
-      <div><div class="dl">MAT Code</div><div class="dv mono">${esc(r.matCode || '-')}</div></div>
-      <div><div class="dl">Price / Discount</div><div class="dv">${fmtAmt(r.priceIncAmt)} / ${fmtAmt(r.priceDiscountAmt)}</div></div>
-      <div><div class="dl">Campaign</div><div class="dv">${esc(r.campaignName || '-')}</div></div>
-      <div><div class="dl">Service Care</div><div class="dv">${esc(r.serviceCareTitle || '-')}</div></div>
-      <div><div class="dl">Order Menu</div><div class="dv">${esc(r.menu || '-')}</div></div>
-      <div><div class="dl">Stock Destination</div><div class="dv">${esc(r.subStockDestination || '-')}</div></div>
-      <div><div class="dl">Location Source</div><div class="dv">${esc(locationDisplayName(r.locationSource) || '-')}</div></div>
-      <div><div class="dl">Created At</div><div class="dv mono">${esc(startStr)}</div></div>
-      <div><div class="dl">Finished At</div><div class="dv mono">${esc(finishStr)}</div></div>
-    </div>
-  `;
-
-  tooltip.classList.add('show');
-}
-function closeTrackTooltip(){
-  const tooltip = document.getElementById('trackTooltip');
-  if (tooltip) tooltip.classList.remove('show');
-  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
-  openTrackKey = null;
+    <div class="track-detail-grid">${detailHtml}</div>`;
 }
 
-/* ===================== GENERIC HOVER TOOLTIP ===================== */
+// Generic hover tooltip: shows the text from any [data-tip] element's attribute in a small
+// themed card (#hoverTip) instead of the browser's plain native title="" bubble. Delegated on
+// document since most [data-tip] elements (table cells, rank rows, bar labels) are re-rendered
+// on every refresh. Independent of the pinned #trackTooltip above (that one is click-to-open
+// and stays put; this one is hover-only and always follows the pointer's target).
+function positionHoverTip(box, anchorRect){
+  const pad = 6;
+  const w = box.offsetWidth || 160, h = box.offsetHeight || 24;
+  let x = anchorRect.left + (anchorRect.width - w) / 2;
+  let y = anchorRect.top - h - pad;
+  if (y < 8) y = anchorRect.bottom + pad; // flip below if it would overflow the top
+  if (x < 8) x = 8;
+  if (x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
+  box.style.left = Math.round(Math.max(8, x)) + 'px';
+  box.style.top = Math.round(y) + 'px';
+}
+
 function initHoverTips(){
-  const tipEl = document.getElementById('hoverTip');
-  if (!tipEl) return;
-  
-  let targetEl = null;
-
-  document.addEventListener('mouseover', e => {
-    const el = e.target.closest('[data-tip], td[title]');
-    if (!el) return;
-    
-    targetEl = el;
-    let text = el.getAttribute('data-tip');
-    if (!text && el.hasAttribute('title')){
-      text = el.getAttribute('title');
-      el.setAttribute('data-tip-temp', text);
-      el.removeAttribute('title');
-    }
-    
+  const box = document.getElementById('hoverTip');
+  if (!box) return;
+  let activeEl = null;
+  const show = (el) => {
+    const text = el.getAttribute('data-tip');
     if (!text) return;
-    
-    tipEl.textContent = text;
-    tipEl.classList.add('show');
-    positionTip(e);
+    activeEl = el;
+    box.textContent = text;
+    box.classList.add('show');
+    positionHoverTip(box, el.getBoundingClientRect());
+  };
+  const hide = () => { activeEl = null; box.classList.remove('show'); };
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && el !== activeEl) show(el);
   });
-
-  document.addEventListener('mousemove', e => {
-    if (targetEl && tipEl.classList.contains('show')){
-      positionTip(e);
-    }
+  document.addEventListener('mouseout', (e) => {
+    if (!activeEl) return;
+    const stillInside = e.relatedTarget && activeEl.contains(e.relatedTarget);
+    if (!stillInside) hide();
   });
-
-  document.addEventListener('mouseout', e => {
-    const el = e.target.closest('[data-tip], [data-tip-temp]');
-    if (el && el === targetEl){
-      if (el.hasAttribute('data-tip-temp')){
-        el.setAttribute('title', el.getAttribute('data-tip-temp'));
-        el.removeAttribute('data-tip-temp');
-      }
-      targetEl = null;
-      tipEl.classList.remove('show');
-    }
+  document.addEventListener('focusin', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el);
   });
+  document.addEventListener('focusout', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) hide();
+  });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+}
 
-  function positionTip(e){
-    const x = e.clientX + 12;
-    const y = e.clientY + 12;
-    const rect = tipEl.getBoundingClientRect();
-    let left = x;
-    let top = y;
+function closeTrackTooltip(){
+  openTrackKey = null;
+  const box = document.getElementById('trackTooltip');
+  if (box){ box.classList.remove('show'); box.innerHTML = ''; }
+  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
+}
 
-    if (left + rect.width > window.innerWidth - 10){
-      left = e.clientX - rect.width - 8;
+function positionTrackTooltip(box, anchorRect){
+  const pad = 8;
+  const w = box.offsetWidth || 280, h = box.offsetHeight || 160;
+  let x = anchorRect.right + pad;
+  let y = anchorRect.top;
+  if (x + w > window.innerWidth - 8) x = anchorRect.left - w - pad;
+  if (x < 8) x = Math.min(Math.max(8, anchorRect.left), Math.max(8, window.innerWidth - w - 8));
+  if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
+  box.style.left = Math.round(Math.max(8, x)) + 'px';
+  box.style.top = Math.round(Math.max(8, y)) + 'px';
+}
+
+// Opens (or, if already open on the same row, closes) the pinned info tooltip. Pinned means
+// it stays put until the close button, Escape, an outside click, or a scroll dismisses it —
+// unlike the hover-only image preview above.
+async function openTrackTooltip(key, btnEl){
+  if (openTrackKey === key){ closeTrackTooltip(); return; }
+  const row = (lastMetrics && lastMetrics.trackAll || []).find(r => trackRowKey(r) === key);
+  const box = document.getElementById('trackTooltip');
+  if (!row || !box) return;
+  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
+  if (btnEl) btnEl.classList.add('open');
+  openTrackKey = key;
+  box.innerHTML = '<div class="tt-lock">กำลังโหลด...</div>';
+  box.classList.add('show');
+  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
+  const html = await buildTrackTooltipHtml(row);
+  if (openTrackKey !== key) return; // closed, or another row opened, while this was decrypting
+  box.innerHTML = html;
+  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
+  // The product image loads asynchronously and can grow the box's height after we've already
+  // positioned it above — without this, `top` stays put while the box grows, pushing the
+  // bottom-most fields (Reserve Type / Shipping) off-screen on the very first open. Reopening
+  // used to "fix" it only because the image was by then warm in the browser cache and happened
+  // to be ready before/around this point. Reposition again once the image actually settles
+  // (loaded or failed) instead of relying on that timing.
+  const img = box.querySelector('.tt-img');
+  if (img && btnEl){
+    if (img.complete){
+      positionTrackTooltip(box, btnEl.getBoundingClientRect());
+    } else {
+      const reposition = () => { if (openTrackKey === key) positionTrackTooltip(box, btnEl.getBoundingClientRect()); };
+      img.addEventListener('load', reposition, {once:true});
+      img.addEventListener('error', reposition, {once:true});
     }
-    if (top + rect.height > window.innerHeight - 10){
-      top = e.clientY - rect.height - 8;
-    }
-
-    tipEl.style.left = Math.max(10, left) + 'px';
-    tipEl.style.top = Math.max(10, top) + 'px';
   }
 }
 
-/* ===================== RANK ROWS GENERATOR ===================== */
-function rankRowsHtml(list, total, imgMap, limit, palette){
-  if (!list || !list.length) return '<div class="empty">ไม่มีข้อมูล</div>';
-  const showList = list.slice(0, limit || 10);
-  const max = Math.max(...showList.map(x => x.count), 1);
-  const colors = palette || ['var(--gold)','#38BDF2','#A78BFA','#34D399','#F472B6','#FB923C'];
+async function renderTrackingOrders(){
+  if (!lastMetrics) return;
+  const slider = document.getElementById('sliderTrack');
+  const filterInput = document.getElementById('trackFilter');
+  if (!slider) return;
+  // The slider's ceiling now tracks the real row count instead of a fixed 500, so "SHOW" can
+  // go all the way up to every order in the sheet. Only touch `max` when it actually needs to
+  // change, so this doesn't fight the user mid-drag on every 10s auto-refresh.
+  const sliderMax = Math.max(25, lastMetrics.trackTotal);
+  if (parseInt(slider.max, 10) !== sliderMax) slider.max = String(sliderMax);
+  const n = parseInt(slider.value, 10);
+  document.getElementById('sliderTrackVal').textContent = n;
+  document.getElementById('tag-tracktotal').textContent = `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
 
-  return showList.map((x, idx) => {
-    const pct = total ? (x.count / total * 100) : 0;
-    const barW = (x.count / max * 100).toFixed(1) + '%';
-    const color = colors[idx % colors.length];
-    const imgUrl = imgMap ? imgMap[x.name] : null;
-    const imgAttr = imgUrl ? ` data-img="${esc(imgUrl)}"` : '';
-    const cls = 'rank-name' + (imgUrl ? ' has-img' : '');
+  const q = ((filterInput && filterInput.value) || '').trim().toLowerCase();
+  let list = lastMetrics.trackAll;
+  if (q){
+    list = list.filter(r =>
+      (r.transactionId||'').toLowerCase().includes(q) ||
+      (r.userId||'').toLowerCase().includes(q) ||
+      (r.custFirstName||'').toLowerCase().includes(q) ||
+      (r.custLastName||'').toLowerCase().includes(q) ||
+      (r.orderType||'').toLowerCase().includes(q) ||
+      (r.commercialName||'').toLowerCase().includes(q)
+    );
+  }
+  list = list.slice(0, n);
 
-    return `
-      <div class="rank-row">
-        <div class="rank-main">
-          <span class="${cls}"${imgAttr} data-tip="${esc(x.name)}">${esc(x.name)}</span>
-          <div class="rank-bar-track">
-            <div class="rank-bar-fill" style="width:${barW};background:${color};"></div>
-          </div>
-        </div>
-        <div class="rank-count">${fmtNum(x.count)} <span style="font-size:9px;color:var(--muted);font-weight:600;">(${fmtPct(pct)})</span></div>
-      </div>
-    `;
-  }).join('');
+  // Close the pinned tooltip if its row fell out of the current filtered/sliced view.
+  if (openTrackKey && !list.some(r => trackRowKey(r) === openTrackKey)) closeTrackTooltip();
+
+  // Decrypt just enough to build the masked "Customer Name" cell for every visible row
+  // (full name/mobile are only ever decrypted for the one row shown in the pinned tooltip).
+  const myToken = ++trackRenderToken;
+  const secretKey = getSecretKey();
+  const maskedByKey = {};
+  if (secretKey){
+    await Promise.all(list.map(async r => {
+      const [first, last] = await Promise.all([
+        decryptCached(r.custFirstName, secretKey),
+        decryptCached(r.custLastName, secretKey)
+      ]);
+      maskedByKey[trackRowKey(r)] = (first === '__DECRYPT_FAILED__' || last === '__DECRYPT_FAILED__')
+        ? '⚠️ ถอดรหัสไม่สำเร็จ'
+        : customerNameMasked(first, last);
+    }));
+  }
+  if (myToken !== trackRenderToken) return; // a newer render call superseded this one
+
+  const rowsHtml = list.map((r,i) => {
+    const key = trackRowKey(r);
+    const isOpen = openTrackKey === key;
+    const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
+    const custName = secretKey ? (maskedByKey[key] || '-') : '🔒';
+    const custAttr = secretKey ? '' : ' class="cust-name-cell" data-tip="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
+    return `<tr>
+      <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
+      <td class="col-no">${i+1}</td>
+      <td>${esc(tsLabel)}</td>
+      <td class="mono">${esc(r.transactionId || '-')}</td>
+      <td>${isBlank(r.preBookingNo) ? '<span class="empty" style="padding:0;">-</span>' : esc(r.preBookingNo)}</td>
+      <td class="mono">${esc(r.userId || '-')}</td>
+      <td${custAttr}>${esc(custName)}</td>
+      <td>${esc(r.orderType || '-')}</td>
+      <td>${statusBadgeHtml(r.state)}</td>
+      <td>${orderStateBadgeHtml(r.orderState)}</td>
+      <td>${durationBadgeHtml(r.durationMs, r.createdMs)}</td>
+      <td class="col-commname">${commercialNameCellHtml(r)}</td>
+      <td class="col-orderomni">${orderOmniCellHtml(r)}</td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="13" class="empty">ไม่พบข้อมูล</td></tr>`;
+
+  document.getElementById('body-track').innerHTML = rowsHtml;
 }
 
-/* ===================== RENDER SUMMARY ===================== */
-function renderSummary(m){
+/* ===================== RENDER / UPDATE ===================== */
+function rankRows(items, count, color, imgMap){
+  const shown = items.slice(0, count);
+  /* Keep the scale stable across slider changes: compare every visible row
+     against the same maximum from the complete ranked dataset. */
+  const max = Math.max(1, ...items.map(i => i.count));
+  return shown.map(i => {
+    const pct = i.count > 0 ? Math.max(2, i.count/max*100) : 0;
+    const img = imgMap && imgMap[i.name];
+    const imgAttr = img ? ` data-img="${esc(img)}"` : '';
+    const nameCls = img ? 'rank-name has-img' : 'rank-name';
+    return `<div class="rank-row"${imgAttr}>
+      <div class="rank-main">
+        <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
+        <div class="rank-bar-track" aria-hidden="true">
+          <div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>
+      <div class="rank-count">${fmtNum(i.count)}</div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+}
+
+function renderDeviceAccessory(){
+  if (!lastMetrics) return;
+  const slider = document.getElementById('sliderDevice');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
+  document.getElementById('sliderDeviceVal').textContent = n;
+  document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--gold)', lastMetrics.deviceImgMap);
+  document.getElementById('body-accessory-list').innerHTML = rankRows(lastMetrics.accessoryTop, n, 'var(--stone)', lastMetrics.accessoryImgMap);
+}
+function renderCampaignService(){
+  if (!lastMetrics) return;
+  const slider = document.getElementById('sliderCampaign');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
+  document.getElementById('sliderCampaignVal').textContent = n;
+  document.getElementById('body-camp-list').innerHTML = rankRows(lastMetrics.campTop, n, 'var(--gold)');
+  document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--stone)');
+}
+
+function updateDashboard(rows){
+  const M = computeMetrics(rows);
   if (!dashboardBuilt) buildSkeleton();
 
-  animateNumber(document.getElementById('val-complete'), m.completeCount);
-  softUpdate(document.getElementById('tag-grandtotal'), `คิดเป็น <b>${fmtPct(m.completePct)}</b> จากทั้งหมด ${fmtNum(m.grandTotal)} รายการ`);
-  softUpdate(document.getElementById('tag-completeprebook'), `Pre-Booking <b>${fmtNum(m.prebookTotal)}</b> รายการ (${fmtPct(m.prebookPctOfComplete)}) | Normal <b>${fmtNum(m.nonPrebookTotal)}</b> รายการ (${fmtPct(m.nonPrebookPctOfComplete)})`);
-
-  const ringCompleteCanvas = document.getElementById('ringComplete');
-  if (ringCompleteCanvas) drawRing(ringCompleteCanvas, m.completePct, '#3FBE83', 100);
-
-  // Tiles
-  const tilesHtml = m.statusTiles.map(t => `
-    <div class="tile">
+  // Total order completed
+  document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
+  document.getElementById('tag-completeprebook').innerHTML =
+    `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
+    `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
+  animateNumber(document.getElementById('val-complete'), M.completeCount);
+  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2', 100);
+  const statusColors = {
+    WAITING_PAYMENT: ['var(--gold-bg)','#7DE0EE'],
+    READY_TO_PAY: ['var(--slate-bg)','#B9C6FA'],
+    PENDING: ['var(--stone-bg)','#C7D0E3'],
+    DELETE: ['var(--accent-bg)','#C9C4FA']
+  };
+  const tilesHtml = M.statusTiles.map(t => {
+    const [bg,fg] = statusColors[t.state] || ['var(--border-soft)','var(--text)'];
+    return `<div class="tile" style="background:${bg};color:${fg};">
       <div class="n">${fmtNum(t.count)}</div>
       <div class="p">${fmtPct(t.pct)}</div>
-      <div class="l">${esc(t.state)}</div>
-    </div>
-  `).join('');
+      <div class="l">${t.state.replace(/_/g,' ')}</div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('tiles-status'), tilesHtml);
 
-  // Top Selling Device & Accessory
-  const sliderDev = document.getElementById('sliderDevice');
-  const limDev = sliderDev ? parseInt(sliderDev.value, 10) : 10;
-  softUpdate(document.getElementById('sliderDeviceVal'), String(limDev));
-  softUpdate(document.getElementById('hdr-device-items'), `Device (${fmtNum(m.deviceItems)} รุ่น)`);
-  softUpdate(document.getElementById('cnt-device'), fmtNum(m.deviceOrders));
-  softUpdate(document.getElementById('body-device-list'), rankRowsHtml(m.deviceTop, m.deviceOrders, m.deviceImgMap, limDev));
-
-  softUpdate(document.getElementById('hdr-accessory-items'), `Accessory (${fmtNum(m.accessoryItems)} รุ่น)`);
-  softUpdate(document.getElementById('cnt-accessory'), fmtNum(m.accessoryOrders));
-  softUpdate(document.getElementById('body-accessory-list'), rankRowsHtml(m.accessoryTop, m.accessoryOrders, m.accessoryImgMap, limDev));
-
-  // Top Campaign & Service Care
-  const sliderCamp = document.getElementById('sliderCampaign');
-  const limCamp = sliderCamp ? parseInt(sliderCamp.value, 10) : 10;
-  softUpdate(document.getElementById('sliderCampaignVal'), String(limCamp));
-  softUpdate(document.getElementById('hdr-camp-items'), `Campaign (${fmtNum(m.campItems)} รายการ)`);
-  softUpdate(document.getElementById('cnt-camp'), fmtNum(m.campOrders));
-  softUpdate(document.getElementById('body-camp-list'), rankRowsHtml(m.campTop, m.campOrders, null, limCamp));
-
-  softUpdate(document.getElementById('hdr-svc-items'), `Service Care (${fmtNum(m.svcItems)} รายการ)`);
-  softUpdate(document.getElementById('cnt-svc'), fmtNum(m.svcOrders));
-  softUpdate(document.getElementById('body-svc-list'), rankRowsHtml(m.svcTop, m.svcOrders, null, limCamp));
-
-  // Order by Menu
-  const menuHtml = m.menuArr.map(x => {
-    const totalPct = m.completeCount ? (x.orderCount / m.completeCount * 100) : 0;
-    return `
-      <div class="bar-row">
-        <div class="top">
-          <span class="name" data-tip="${esc(x.menu)}">${esc(x.menu)}</span>
-          <span class="val">${fmtNum(x.orderCount)} (${fmtPct(totalPct)})</span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" style="width:${Math.min(100, totalPct).toFixed(1)}%;background:var(--gold);"></div>
-        </div>
-        <div class="menu-sub">Pre-Booking <b>${fmtNum(x.prebookCount)}</b> (${fmtPct(x.prebookPct)}) | Normal <b>${fmtNum(x.nonPrebookCount)}</b> (${fmtPct(x.nonPrebookPct)})</div>
+  // AIS Shop vs Partner — horizontal split-bar "chart" + compact legend, so the AIS/Partner
+  // share is readable at a glance instead of only as two stacked number blocks.
+  document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
+  const AIS_PARTNER_COLORS = { AIS: '#38BDF2', PARTNER: '#FB923C' };
+  const splitBarHtml = `<div class="split-bar">
+      <div class="split-seg" style="width:${M.otPct.AIS}%;background:${AIS_PARTNER_COLORS.AIS}" data-tip="AIS: ${fmtPct(M.otPct.AIS)}"></div>
+      <div class="split-seg" style="width:${M.otPct.PARTNER}%;background:${AIS_PARTNER_COLORS.PARTNER}" data-tip="PARTNER: ${fmtPct(M.otPct.PARTNER)}"></div>
+    </div>`;
+  const grpRow = (name, color, count, pct, preCount, prePct, nonPrebookCount, nonPrePct) => {
+    return `<div class="grp-row">
+      <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
+      <div class="grp-nums">
+        <div class="n">${fmtNum(count)}</div>
+        <div class="p">${fmtPct(pct)}</div>
+        <div class="pre-badge">Non Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
+        <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
       </div>
-    `;
+    </div>`;
+  };
+  softUpdate(document.getElementById('body-aispartner'),
+    splitBarHtml +
+    grpRow('AIS', AIS_PARTNER_COLORS.AIS, M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
+    grpRow('PARTNER', AIS_PARTNER_COLORS.PARTNER, M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
+
+  // Sub stock destination
+  const stockHtml = M.stockArr.map((s,i) => {
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    return `<div class="legend-row">
+      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
+      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+  softUpdate(document.getElementById('body-substock'), stockHtml);
+  updateStockChart(M);
+
+  // Order Omni & Shipping — Omni share as a ring chart (reuses the same drawRing() used for
+  // the hero "Completed" ring), Shipping Breakdown as horizontal bars instead of a bare list.
+  document.getElementById('tag-omnitotal').textContent = `${fmtNum(M.omniTotal)} orders`;
+  drawRing(document.getElementById('ringOmni'), M.omniPctOfComplete, '#38BDF2', 128);
+  const omniHtml = `<div class="grp-row" style="border-bottom:none;padding-bottom:0;">
+    <div class="grp-name"><span class="dot" style="background:#38BDF2"></span>Order Omni</div>
+    <div class="grp-nums">
+      <div class="n">${fmtNum(M.omniTotal)}</div>
+      <div class="p">${fmtPct(M.omniPctOfComplete)}</div>
+      <div class="pre-badge">ไม่ใช่ Order Omni: <b>${fmtNum(M.nonOmniTotal)}</b> (${fmtPct(M.nonOmniPctOfComplete)})</div>
+      <div class="pre-badge">Order Omni: <b>${fmtNum(M.omniTotal)}</b> (${fmtPct(M.omniPctOfComplete)})</div>
+    </div>
+  </div>`;
+  softUpdate(document.getElementById('body-omni'), M.omniTotal || M.nonOmniTotal ? omniHtml : '<div class="empty">ไม่มีข้อมูล</div>');
+  const maxShip = Math.max(1, ...M.shipArr.map(s => s.count));
+  const shippingHtml = M.shipArr.map((s,i) => {
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    const fillPct = s.count / maxShip * 100;
+    return `<div class="bar-row">
+      <div class="top"><span class="name" data-tip="${esc(s.name)}">${esc(s.name)}</span><span class="val">${fmtNum(s.count)} (${fmtPct(s.pct)})</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มี Order Omni</div>';
+  softUpdate(document.getElementById('body-shipping'), shippingHtml);
+
+  // Duration overview tiers
+  document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
+  const tierDefs = [
+    {key:'green', label:'FAST < 10m', fg:'#8FE8BE', bg:'var(--green-bg)'},
+    {key:'yellow', label:'MED 10-30m', fg:'#7DE0EE', bg:'var(--gold-bg)'},
+    {key:'red', label:'SLOW >= 30m', fg:'#C9C4FA', bg:'var(--accent-bg)'}
+  ];
+  const tierHtml = tierDefs.map(t => {
+    const c = M.tierCounts[t.key] || 0;
+    const pct = M.tierPct[t.key] || 0;
+    return `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
+      <div class="n">${fmtNum(c)}</div>
+      <div class="l">${t.label}</div>
+      <div class="p">${fmtPct(pct)}</div>
+    </div>`;
   }).join('');
-  softUpdate(document.getElementById('body-menu'), menuHtml || '<div class="empty">ไม่มีข้อมูล</div>');
+  softUpdate(document.getElementById('tiles-tier'), M.durTotal ? tierHtml : '<div class="empty">ไม่มีข้อมูล</div>');
 
-  // AIS Shop vs Partner
-  softUpdate(document.getElementById('tag-prebooktotal'), `Pre-Booking รวม ${fmtNum(m.prebookTotal)}`);
-  const aisHtml = `
-    <div class="grp-row">
-      <div class="grp-name"><span class="dot" style="background:#3FBE83;"></span>AIS Shop</div>
-      <div class="grp-nums">
-        <div class="n">${fmtNum(m.otCounts.AIS)}</div>
-        <div class="p">${fmtPct(m.otPct.AIS)}</div>
-      </div>
-    </div>
-    <div class="pre-badge">Pre-Booking: <b>${fmtNum(m.prebookByGrp.AIS)}</b> (${fmtPct(m.prebookPctByGrp.AIS)}) | Normal: <b>${fmtNum(m.nonPrebookByGrp.AIS)}</b> (${fmtPct(m.nonPrebookPctByGrp.AIS)})</div>
-    <div class="grp-row" style="margin-top:10px;">
-      <div class="grp-name"><span class="dot" style="background:#7C93F5;"></span>Partner</div>
-      <div class="grp-nums">
-        <div class="n">${fmtNum(m.otCounts.PARTNER)}</div>
-        <div class="p">${fmtPct(m.otPct.PARTNER)}</div>
-      </div>
-    </div>
-    <div class="pre-badge">Pre-Booking: <b>${fmtNum(m.prebookByGrp.PARTNER)}</b> (${fmtPct(m.prebookPctByGrp.PARTNER)}) | Normal: <b>${fmtNum(m.nonPrebookByGrp.PARTNER)}</b> (${fmtPct(m.nonPrebookPctByGrp.PARTNER)})</div>
-    <div class="split-bar" style="margin-top:12px;">
-      <div class="split-seg" style="width:${m.otPct.AIS.toFixed(1)}%;background:#3FBE83;"></div>
-      <div class="split-seg" style="width:${m.otPct.PARTNER.toFixed(1)}%;background:#7C93F5;"></div>
-    </div>
-  `;
-  softUpdate(document.getElementById('body-aispartner'), aisHtml);
+  // Order by menu
+  const maxMenu = Math.max(1, ...M.menuArr.map(m => m.orderCount));
+  const menuHtml = M.menuArr.map((m,i) => {
+    const fillPct = m.orderCount / maxMenu * 100;
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    const preLabel = `Non Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
+    return `<div class="bar-row">
+      <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
+      <div class="menu-sub">${preLabel}</div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+  softUpdate(document.getElementById('body-menu'), menuHtml);
 
-  // Sub Stock Legend
-  const stockLegendHtml = m.stockArr.map((s, idx) => `
-    <div class="legend-row">
-      <div class="lg-name">
-        <span class="lg-dot" style="background:${STOCK_PALETTE[idx % STOCK_PALETTE.length]};"></span>
-        <span class="lg-label" data-tip="${esc(s.name)}">${esc(s.name)}</span>
-      </div>
-      <div>
-        <span class="lg-val">${fmtNum(s.count)}</span>
-        <span class="lg-pct">(${fmtPct(s.pct)})</span>
-      </div>
-    </div>
-  `).join('');
-  softUpdate(document.getElementById('body-substock'), stockLegendHtml || '<div class="empty">ไม่มีข้อมูล</div>');
+  // Order volume chart
+  document.getElementById('tag-voltotal').textContent = `Total: ${fmtNum(M.volTotal)}`;
+  updateCharts(M);
 
-  // Order Omni & Shipping
-  softUpdate(document.getElementById('tag-omnitotal'), `Omni รวม ${fmtNum(m.omniTotal)} (${fmtPct(m.omniPctOfComplete)})`);
-  const ringOmniCanvas = document.getElementById('ringOmni');
-  if (ringOmniCanvas) drawRing(ringOmniCanvas, m.omniPctOfComplete, '#22B8CF', 128);
+  // Avg/P90 duration
+  const otRowsHtml = M.otDur.map(o => `<tr>
+    <td>${esc(o.orderType)}</td>
+    <td>${o.avg.toFixed(1)}m</td>
+    <td>${(o.p90||0).toFixed(1)}m</td>
+    <td>${fmtNum(o.cnt)}</td>
+  </tr>`).join('') || `<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>`;
+  softUpdate(document.getElementById('body-avgp90'), otRowsHtml);
 
-  const omniHtml = `
-    <div class="grp-row">
-      <div class="grp-name"><span class="dot" style="background:#22B8CF;"></span>Reserve / Omni</div>
-      <div class="grp-nums">
-        <div class="n">${fmtNum(m.omniTotal)}</div>
-        <div class="p">${fmtPct(m.omniPctOfComplete)}</div>
-      </div>
-    </div>
-    <div class="grp-row" style="margin-top:8px;">
-      <div class="grp-name"><span class="dot" style="background:var(--border);"></span>Non-Omni</div>
-      <div class="grp-nums">
-        <div class="n">${fmtNum(m.nonOmniTotal)}</div>
-        <div class="p">${fmtPct(m.nonOmniPctOfComplete)}</div>
-      </div>
-    </div>
-  `;
-  softUpdate(document.getElementById('body-omni'), omniHtml);
+  // Top selling device & accessory
+  lastMetrics = M;
+  document.getElementById('hdr-device-items').textContent = `Device — ${fmtNum(M.deviceItems)} items`;
+  document.getElementById('cnt-device').textContent = fmtNum(M.deviceOrders);
+  document.getElementById('hdr-accessory-items').textContent = `Accessory — ${fmtNum(M.accessoryItems)} items`;
+  document.getElementById('cnt-accessory').textContent = fmtNum(M.accessoryOrders);
+  document.getElementById('hdr-camp-items').textContent = `Campaign — ${fmtNum(M.campItems)} campaigns`;
+  document.getElementById('cnt-camp').textContent = fmtNum(M.campOrders);
+  document.getElementById('hdr-svc-items').textContent = `Service Care — ${fmtNum(M.svcItems)} types`;
+  document.getElementById('cnt-svc').textContent = fmtNum(M.svcOrders);
+  renderDeviceAccessory();
+  renderCampaignService();
+  renderTrackingOrders();
 
-  const shipHtml = m.shipArr.map((x, idx) => `
-    <div class="bar-row">
-      <div class="top">
-        <span class="name" data-tip="${esc(x.name)}">${esc(x.name)}</span>
-        <span class="val">${fmtNum(x.count)} (${fmtPct(x.pct)})</span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width:${x.pct.toFixed(1)}%;background:${STOCK_PALETTE[idx % STOCK_PALETTE.length]};"></div>
-      </div>
-    </div>
-  `).join('');
-  softUpdate(document.getElementById('body-shipping'), shipHtml || '<div class="empty">ไม่มีข้อมูล Omni Shipping</div>');
+  // Slowest orders
+  const slowHtml = M.slowest.map(s => `<tr>
+    <td class="mono">${esc(s.id)}</td>
+    <td>${esc(s.orderType)}</td>
+    <td class="red-txt">${esc(s.durLabel)}</td>
+  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
+  softUpdate(document.getElementById('body-slowest'), slowHtml);
 
-  // Duration Performance
-  softUpdate(document.getElementById('tag-durtotal'), `วัดผลได้ ${fmtNum(m.durTotal)} รายการ`);
-  const tierHtml = `
-    <div class="tier-box" style="background:var(--green-bg);border-color:#3FBE83;">
-      <div class="n" style="color:#8FE8BE;">${fmtNum(m.tierCounts.green)}</div>
-      <div class="l" style="color:#8FE8BE;">&lt; 10m</div>
-      <div class="p" style="color:#8FE8BE;">${fmtPct(m.tierPct.green)}</div>
-    </div>
-    <div class="tier-box" style="background:var(--gold-bg);border-color:#22B8CF;">
-      <div class="n" style="color:#7DE0EE;">${fmtNum(m.tierCounts.yellow)}</div>
-      <div class="l" style="color:#7DE0EE;">10m - 30m</div>
-      <div class="p" style="color:#7DE0EE;">${fmtPct(m.tierPct.yellow)}</div>
-    </div>
-    <div class="tier-box" style="background:var(--accent-bg);border-color:#EF4444;">
-      <div class="n" style="color:#F87171;">${fmtNum(m.tierCounts.red)}</div>
-      <div class="l" style="color:#F87171;">&gt;= 30m</div>
-      <div class="p" style="color:#F87171;">${fmtPct(m.tierPct.red)}</div>
-    </div>
-  `;
-  softUpdate(document.getElementById('tiles-tier'), tierHtml);
+  // Branch & stock flow
+  document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
+  softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
+  const branchStockHtml = M.locTop.map(b => `<tr>
+    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
+    <td>${fmtNum(b.count)}</td>
+    <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
+  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
+  softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
 
-  const avgp90Html = m.otDur.map(x => `
-    <tr>
-      <td class="mono"><b>${esc(x.orderType)}</b></td>
-      <td class="mono">${x.avg.toFixed(1)}m</td>
-      <td class="mono">${x.p90.toFixed(1)}m</td>
-      <td class="mono">${fmtNum(x.cnt)}</td>
-    </tr>
-  `).join('');
-  softUpdate(document.getElementById('body-avgp90'), avgp90Html || '<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>');
+  document.getElementById('dashboard').style.display = 'flex';
+  document.getElementById('placeholder').style.display = 'none';
+  syncSummaryCardHeights();
 
-  const slowestHtml = m.slowest.map(x => `
-    <tr>
-      <td class="mono" data-tip="${esc(x.id)}">${esc(x.id)}</td>
-      <td>${esc(x.orderType)}</td>
-      <td class="red-txt mono">${esc(x.durLabel)}</td>
-    </tr>
-  `).join('');
-  softUpdate(document.getElementById('body-slowest'), slowestHtml || '<tr><td colspan="3" class="empty">ไม่มีรายการช้าเกิน 30 นาที</td></tr>');
-
-  // Branch & Stock Flow
-  softUpdate(document.getElementById('tag-loctotal'), `รวม ${fmtNum(m.locItems)} สาขา (${fmtNum(m.locTotal)} orders)`);
-  softUpdate(document.getElementById('body-branch-list'), rankRowsHtml(m.locTop, m.locTotal, null, 10));
-
-  /* ===================== [จุดที่ทำการแก้ไข HOVER TOOLTIP] =====================
-     เปลี่ยนจาก title="..." เป็น data-tip="..." เพื่อให้สอดคล้องกับระบบ Hover Tooltip ของ Dashboard
-  =========================================================================== */
-  const branchStockHtml = m.locTop.map(x => `
-    <tr>
-      <td data-tip="${esc(x.name)}">${esc(x.name)}</td>
-      <td class="mono">${fmtNum(x.count)}</td>
-      <td class="mono" data-tip="${esc(x.topStock || '-')}">${esc(x.topStock || '-')} <span style="font-size:9px;color:var(--muted);">(${x.topStockPct.toFixed(0)}%)</span></td>
-    </tr>
-  `).join('');
-  softUpdate(document.getElementById('body-branch-stock'), branchStockHtml || '<tr><td colspan="3" class="empty">ไม่มีข้อมูล</td></tr>');
-
-  // Charts update
-  updateVolumeChart(m);
-  updateStockChart(m);
-  updateCompareChart(m);
+  const rangeEl = document.getElementById('rangeLabel');
+  if (rows.length){
+    const tsAll = rows.map(r=>r.ts).filter(Boolean);
+    if (tsAll.length){
+      const min = new Date(Math.min(...tsAll)), max = new Date(Math.max(...tsAll));
+      rangeEl.textContent = `ข้อมูลตั้งแต่ ${min.toLocaleString('th-TH')} ถึง ${max.toLocaleString('th-TH')} • ${fmtNum(rows.length)} rows`;
+    }
+  }
 }
 
-/* ===================== CHARTS ===================== */
-function updateVolumeChart(m){
-  const canvas = document.getElementById('chartVolume');
-  if (!canvas) return;
+function chartFallback(canvasEl, msg){
+  if (!canvasEl) return;
+  const div = document.createElement('div');
+  div.className = 'empty';
+  div.style.paddingTop = '40px';
+  div.textContent = msg;
+  canvasEl.replaceWith(div);
+}
 
-  const labels = m.buckets.map(b => hourLabel(b.date, m.mode));
-  const dataAIS = m.buckets.map(b => b.AIS);
-  const dataPartner = m.buckets.map(b => b.PARTNER);
-
-  softUpdate(document.getElementById('tag-voltotal'), `รวม ${fmtNum(m.volTotal)} orders`);
-
-  if (charts.volume){
-    charts.volume.data.labels = labels;
-    charts.volume.data.datasets[0].data = dataAIS;
-    charts.volume.data.datasets[1].data = dataPartner;
-    charts.volume.update();
+function updateCharts(M){
+  if (typeof Chart === 'undefined'){
+    chartFallback(document.getElementById('chartVolume'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ');
     return;
   }
 
-  charts.volume = new Chart(canvas, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: 'AIS Shop', data: dataAIS, backgroundColor: '#3FBE83', borderRadius: 2 },
-        { label: 'Partner', data: dataPartner, backgroundColor: '#7C93F5', borderRadius: 2 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#BAC6DC', font: { family: "'IBM Plex Sans Thai',sans-serif", size: 10 }, boxWidth: 10 } },
-        tooltip: TOOLTIP_STYLE
-      },
-      scales: {
-        x: { stacked: true, grid: { color: '#1F2D48' }, ticks: { color: '#7C8AA8', font: { size: 9 } } },
-        y: { stacked: true, grid: { color: '#1F2D48' }, ticks: { color: '#7C8AA8', font: { size: 9 } } }
-      }
+  const labels = M.buckets.map(b => hourLabel(b.date, M.mode));
+  const aisData = M.buckets.map(b => b.AIS);
+  const partnerData = M.buckets.map(b => b.PARTNER);
+  // Cumulative running total (AIS+PARTNER) across buckets, plotted as a line on a second
+  // right-hand axis so it's easy to see progress toward the day's eventual total at a
+  // glance, on top of the per-bucket bars.
+  let running = 0;
+  const cumulativeData = M.buckets.map(b => (running += (b.AIS + b.PARTNER)));
+  const ctx1 = document.getElementById('chartVolume');
+  if (ctx1){
+    if (!charts.volume){
+      charts.volume = new Chart(ctx1, {
+        type: 'bar',
+        data: { labels, datasets: [
+          {type:'bar', label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
+          {type:'bar', label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
+          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#F5B841', backgroundColor:'#F5B841', borderWidth:2, pointRadius:2, pointBackgroundColor:'#F5B841', tension:.3, fill:false, yAxisID:'y1', order:0}
+        ]},
+        options: {
+          responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+          // mode:'index', intersect:false: the tooltip (and hover) target the whole x
+          // position (hour bucket) rather than requiring the pointer to land exactly on a
+          // bar or line-point. This is what makes every dataset at that hour — AIS, PARTNER,
+          // and the Cumulative line — show together in one tooltip, and it's also what fixes
+          // the Cumulative line blocking the bars: since hit-testing no longer depends on
+          // which element is drawn on top at that pixel, the line stays visually in front
+          // (so its trend is still easy to read) without shadowing the bars underneath it.
+          interaction:{mode:'index', intersect:false},
+          onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
+          scales:{
+            x:{stacked:true, grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
+            y:{stacked:true, beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
+            y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, ticks:{color:'#F5B841', font:{size:9.5}}}
+          },
+          plugins:{
+            legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
+            tooltip:{
+              ...TOOLTIP_STYLE,
+              mode:'index', intersect:false,
+              callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
+            }
+          }
+        }
+      });
+    } else {
+      charts.volume.data.labels = labels;
+      charts.volume.data.datasets[0].data = aisData;
+      charts.volume.data.datasets[1].data = partnerData;
+      charts.volume.data.datasets[2].data = cumulativeData;
+      charts.volume.update();
     }
-  });
-}
-
-function updateStockChart(m){
-  const canvas = document.getElementById('chartStock');
-  if (!canvas) return;
-
-  const labels = m.stockArr.map(s => s.name);
-  const data = m.stockArr.map(s => s.count);
-
-  if (charts.stock){
-    charts.stock.data.labels = labels;
-    charts.stock.data.datasets[0].data = data;
-    charts.stock.update();
-    return;
   }
 
-  charts.stock = new Chart(canvas, {
-    type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{
-        data,
-        backgroundColor: STOCK_PALETTE,
-        borderWidth: 1,
-        borderColor: '#141F35'
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: TOOLTIP_STYLE
-      },
-      cutout: '68%'
-    }
-  });
+  updateCompareChart(M);
 }
 
-function updateCompareChart(m){
+/* Year-over-Year comparison chart: this year's per-day order count (from the main sheet,
+   M.dayCounts) plotted against last year's per-day totals from the Compare_data sheet
+   (global `compareData`). Aligned by "days since each year's own first day with data" —
+   e.g. if this year's data starts 11/09/2026 and last year's Compare_data starts 19/09/2025,
+   those two dates are both "day 1" and get compared directly, day 2 vs day 2, and so on —
+   rather than matching the same calendar day/month across years (the two periods don't
+   necessarily start on the same date). The whole card (and its column in #heroRow) stays
+   hidden whenever Compare_data hasn't been (successfully) loaded, so this never shows an
+   empty chart or leaves a blank gap next to the hero. */
+function updateCompareChart(M){
   const card = document.getElementById('compareCard');
   const heroRow = document.getElementById('heroRow');
-  const canvas = document.getElementById('chartCompare');
+  if (!card) return;
 
-  if (!compareData || !compareData.length){
-    if (card) card.style.display = 'none';
+  const thisYearDayKeys = Object.keys(M.dayCounts).sort();
+  if (typeof Chart === 'undefined' || !compareData.length || !thisYearDayKeys.length){
+    card.style.display = 'none';
     if (heroRow) heroRow.classList.add('no-compare');
     return;
   }
-
-  if (card) card.style.display = 'flex';
+  card.style.display = '';
   if (heroRow) heroRow.classList.remove('no-compare');
 
-  const dates = compareData.map(c => c.date);
-  const labels = dates.map(d => hourLabel(d, 'day'));
-  const lastYearData = compareData.map(c => c.count);
-  const thisYearData = dates.map(d => {
-    const k = dayKey(d);
-    return m.dayCounts[k] || 0;
+  const [ty, tm, td] = thisYearDayKeys[0].split('-').map(Number);
+  const thisYearStart = new Date(ty, tm - 1, td);
+
+  const pad = n => String(n).padStart(2,'0');
+  const fmtDate = d => pad(d.getDate()) + '/' + pad(d.getMonth()+1);
+  const labels = [];
+  const thisYearData = [];
+  const lastYearData = [];
+  const thisYearDates = [];
+  const lastYearDates = [];
+  compareData.forEach((c, i) => {
+    const tyDate = new Date(thisYearStart.getFullYear(), thisYearStart.getMonth(), thisYearStart.getDate() + i);
+    thisYearData.push(M.dayCounts[dayKey(tyDate)] || 0);
+    lastYearData.push(c.count);
+    thisYearDates.push(fmtDate(tyDate));
+    lastYearDates.push(fmtDate(c.date));
+    labels.push(`Day ${i + 1}`);
   });
 
-  const sumLast = lastYearData.reduce((a,b)=>a+b, 0);
-  const sumThis = thisYearData.reduce((a,b)=>a+b, 0);
-  softUpdate(document.getElementById('tag-comparetotal'), `ปีนี้ ${fmtNum(sumThis)} / ปีก่อน ${fmtNum(sumLast)}`);
+  const thisYearTotal = thisYearData.reduce((a,b) => a+b, 0);
+  const lastYearTotal = lastYearData.reduce((a,b) => a+b, 0);
+  const tagEl = document.getElementById('tag-comparetotal');
+  if (tagEl) tagEl.textContent = `${fmtNum(thisYearTotal)} vs ${fmtNum(lastYearTotal)}`;
 
-  if (charts.compare){
+  const ctx = document.getElementById('chartCompare');
+  if (!ctx) return;
+  if (!charts.compare){
+    charts.compare = new Chart(ctx, {
+      type: 'bar',
+      // Cyan (this year) vs. amber (last year) — far apart on the color wheel, unlike the
+      // previous cyan-vs-gray pairing, so the two series stay easy to tell apart at a glance.
+      data: { labels, datasets: [
+        {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:28},
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#F5B841', borderRadius:3, maxBarThickness:28}
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+        // mode:'index', intersect:false: hovering anywhere over a "Day N" column shows both
+        // this-year and last-year bars for that day in one tooltip, instead of only whichever
+        // single bar the pointer happens to be directly over.
+        interaction:{mode:'index', intersect:false},
+        onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
+        scales:{
+          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9}}},
+          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9}}}
+        },
+        plugins:{
+          legend:{position:'top', labels:{boxWidth:8, font:{size:9.5}, color:'#BAC6DC'}},
+          tooltip:{
+            ...TOOLTIP_STYLE,
+            mode:'index', intersect:false,
+            callbacks:{
+              title: items => {
+                const i = items[0].dataIndex;
+                return `${labels[i]} (ปีนี้ ${thisYearDates[i]} / ปีที่แล้ว ${lastYearDates[i]})`;
+              },
+              label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}`,
+              // Difference + % difference between the two series for this day, shown below
+              // the two per-series lines above so the comparison reads at a glance without
+              // the person having to do the subtraction themselves.
+              afterBody: items => {
+                const i = items[0].dataIndex;
+                const ty = thisYearData[i], ly = lastYearData[i];
+                const diff = ty - ly;
+                const sign = diff > 0 ? '+' : (diff < 0 ? '' : '±');
+                const pct = ly ? (diff / ly * 100) : (ty ? 100 : 0);
+                return ['', `ผลต่าง: ${sign}${fmtNum(diff)} (${sign}${pct.toFixed(1)}%)`];
+              }
+            }
+          }
+        }
+      }
+    });
+  } else {
     charts.compare.data.labels = labels;
     charts.compare.data.datasets[0].data = thisYearData;
     charts.compare.data.datasets[1].data = lastYearData;
     charts.compare.update();
+  }
+}
+
+function updateStockChart(M){
+  if (typeof Chart === 'undefined'){
+    chartFallback(document.getElementById('chartStock'), 'โหลดไลบรารีกราฟไม่สำเร็จ');
     return;
   }
-
-  charts.compare = new Chart(canvas, {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'ปีนี้', data: thisYearData, borderColor: '#22B8CF', backgroundColor: 'rgba(34,184,207,0.1)', fill: true, tension: 0.3, borderWidth: 2 },
-        { label: 'ปีก่อน', data: lastYearData, borderColor: '#7C8AA8', borderDash: [4,4], fill: false, tension: 0.3, borderWidth: 1.5 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: true, position: 'top', labels: { color: '#BAC6DC', font: { family: "'IBM Plex Sans Thai',sans-serif", size: 9 }, boxWidth: 8 } },
-        tooltip: TOOLTIP_STYLE
-      },
-      scales: {
-        x: { grid: { color: '#1F2D48' }, ticks: { color: '#7C8AA8', font: { size: 9 } } },
-        y: { grid: { color: '#1F2D48' }, ticks: { color: '#7C8AA8', font: { size: 9 } } }
+  const ctx = document.getElementById('chartStock');
+  if (!ctx) return;
+  const labels = M.stockArr.map(s => s.name);
+  const data = M.stockArr.map(s => s.count);
+  const colors = labels.map((_,i) => STOCK_PALETTE[i % STOCK_PALETTE.length]);
+  if (!charts.stock){
+    charts.stock = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#141F35', borderWidth: 2 }] },
+      options: {
+        responsive:true, maintainAspectRatio:false, cutout:'66%',
+        animation:{duration:450, easing:'easeOutQuart'},
+        onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            ...TOOLTIP_STYLE,
+            callbacks:{ label: c => {
+              const item = lastMetrics && lastMetrics.stockArr && lastMetrics.stockArr[c.dataIndex];
+              const pct = item ? item.pct : 0;
+              return `${c.label}: ${fmtNum(c.parsed)} (${fmtPct(pct)})`;
+            } }
+          }
+        }
       }
-    }
+    });
+  } else {
+    charts.stock.data.labels = labels;
+    charts.stock.data.datasets[0].data = data;
+    charts.stock.data.datasets[0].backgroundColor = colors;
+    charts.stock.update();
+  }
+}
+
+/* Standardizes the height of the four "Order Source & Stock Destination" / "Order Volume" /
+   "Order Omni & Shipping" cards (see the .grid-asym CSS comment for the full picture). Order
+   Volume is the reference and is never touched — its height is fixed by CSS alone — everything
+   else is measured and pinned to match it. Skipped below the 900px breakpoint, where .grid-asym
+   collapses to a single stacked column and forcing these heights would just leave blank space. */
+function syncSummaryCardHeights(){
+  const volumeCard = document.getElementById('cardVolume');
+  const omniCard = document.getElementById('cardOmni');
+  const sourceCard = document.getElementById('cardOrderSource');
+  if (!volumeCard || !omniCard || !sourceCard) return;
+  // Clear any previous override first so shrinking content (e.g. fewer shipping types) is
+  // measured correctly too, instead of being padded out by a stale, now-too-tall min-height.
+  omniCard.style.minHeight = '';
+  sourceCard.style.minHeight = '';
+  if (window.innerWidth < 900) return;
+  // Double rAF: wait for the browser to finish the layout pass triggered by clearing the
+  // min-heights above (and by Chart.js's own canvas resize) before measuring, so the values
+  // read below reflect the settled layout rather than a mid-reflow snapshot.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const refHeight = volumeCard.offsetHeight;
+      if (!refHeight) return;
+      omniCard.style.minHeight = refHeight + 'px';
+      requestAnimationFrame(() => {
+        const gap = 12; // matches .col-wide{gap:12px}
+        sourceCard.style.minHeight = (refHeight + gap + omniCard.offsetHeight) + 'px';
+      });
+    });
   });
 }
 
-/* ===================== IMAGE PREVIEW ===================== */
-function initImagePreview(){
-  const preview = document.getElementById('imgPreview');
+/* ===================== IMAGE HOVER PREVIEW ===================== */
+function showImgPreview(url){
+  const box = document.getElementById('imgPreview');
   const img = document.getElementById('imgPreviewImg');
-  if (!preview || !img) return;
-
+  if (!box || !img || !url) return;
+  img.src = url;
+  box.style.display = 'block';
+}
+function positionImgPreview(evt){
+  const box = document.getElementById('imgPreview');
+  if (!box || box.style.display !== 'block') return;
+  const pad = 14, boxW = 144, boxH = 144;
+  let x = evt.clientX + pad, y = evt.clientY + pad;
+  if (x + boxW > window.innerWidth) x = evt.clientX - boxW - pad;
+  if (y + boxH > window.innerHeight) y = evt.clientY - boxH - pad;
+  box.style.left = Math.max(4, x) + 'px';
+  box.style.top = Math.max(4, y) + 'px';
+}
+function hideImgPreview(){
+  const box = document.getElementById('imgPreview');
+  if (box) box.style.display = 'none';
+}
+function bindImgPreviewEvents(){
   document.addEventListener('mouseover', e => {
-    const el = e.target.closest('[data-img]');
-    if (!el) return;
-    const url = el.getAttribute('data-img');
-    if (!url) return;
-    img.src = url;
-    preview.style.display = 'block';
+    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
+    if (row) showImgPreview(row.dataset.img);
   });
-
-  document.addEventListener('mousemove', e => {
-    if (preview.style.display === 'block'){
-      let x = e.clientX + 15;
-      let y = e.clientY + 15;
-      if (x + 150 > window.innerWidth) x = e.clientX - 155;
-      if (y + 150 > window.innerHeight) y = e.clientY - 155;
-      preview.style.left = x + 'px';
-      preview.style.top = y + 'px';
-    }
-  });
-
+  document.addEventListener('mousemove', positionImgPreview);
   document.addEventListener('mouseout', e => {
-    if (e.target.closest('[data-img]')){
-      preview.style.display = 'none';
-      img.src = '';
-    }
+    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
+    if (row && (!e.relatedTarget || !row.contains(e.relatedTarget))) hideImgPreview();
   });
 }
 
-/* ===================== MAIN LOAD & REFRESH ===================== */
-async function loadData(forceReloadLocationMaster = false){
+/* ===================== ERROR / STATUS UI ===================== */
+function setStatus(mode, text){
+  const dot = document.getElementById('statusDot');
+  dot.className = 'status-dot' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : ' ok');
+  document.getElementById('statusText').textContent = text;
+}
+function showBanner(msg){
+  const b = document.getElementById('banner');
+  b.innerHTML = msg;
+  b.classList.add('show');
+}
+function hideBanner(){ document.getElementById('banner').classList.remove('show'); }
+
+/* ===================== AUTO REFRESH ===================== */
+function resetRefreshBar(){
+  const bar = document.getElementById('refreshBar');
+  if (!bar) return;
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  void bar.offsetWidth;
+  bar.style.transition = `width ${AUTO_REFRESH_MS}ms linear`;
+  bar.style.width = '100%';
+}
+function startAutoRefresh(){
+  if (refreshTimer) clearInterval(refreshTimer);
+  resetRefreshBar();
+  refreshTimer = setInterval(() => { resetRefreshBar(); loadData(true); }, AUTO_REFRESH_MS);
+}
+
+/* ===================== MAIN LOAD FLOW ===================== */
+async function loadData(isAuto){
+  const cfg = getConfig();
+  if (!cfg.sheetId){
+    document.getElementById('configPanel').classList.add('open');
+    setStatus('error', 'ยังไม่ได้ตั้งค่า Sheet ID');
+    return;
+  }
   if (isLoading) return;
   isLoading = true;
-
-  const cfg = getConfig();
-  const statusDot = document.getElementById('statusDot');
-  const statusText = document.getElementById('statusText');
-  const refreshBar = document.getElementById('refreshBar');
-  const rangeLabel = document.getElementById('rangeLabel');
-  const placeholder = document.getElementById('placeholder');
-  const dashboard = document.getElementById('dashboard');
-
-  if (statusDot) statusDot.className = 'status-dot loading';
-  if (statusText) statusText.textContent = 'Loading...';
-  if (refreshBar){ refreshBar.style.transition = 'none'; refreshBar.style.width = '10%'; }
-
+  if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
-    if (!cfg.sheetId){
-      throw new Error('กรุณากรอก DATA ID ในเมนู SETTING ก่อนเริ่มใช้งาน');
-    }
-
-    if (refreshBar){ refreshBar.style.transition = 'width 0.4s ease'; refreshBar.style.width = '40%'; }
-
-    await Promise.all([
-      loadLocationMasterIfNeeded(cfg.sheetId, forceReloadLocationMaster),
-      loadCompareDataIfNeeded(cfg.sheetId, true)
-    ]);
-
-    if (refreshBar) refreshBar.style.width = '70%';
-
-    const { cols, rows } = await fetchSheet(cfg.sheetId, cfg.sheetName);
-    const parsedRows = buildRows(cols, rows);
-
-    if (refreshBar) refreshBar.style.width = '90%';
-
-    lastMetrics = computeMetrics(parsedRows);
-
-    if (placeholder) placeholder.style.display = 'none';
-    if (dashboard) dashboard.style.display = 'flex';
-
-    renderSummary(lastMetrics);
-    await renderTrackingTable(lastMetrics);
-
-    if (statusDot) statusDot.className = 'status-dot ok';
-    if (statusText) statusText.textContent = 'Updated: ' + new Date().toLocaleTimeString('th-TH');
-    if (rangeLabel) rangeLabel.textContent = `CONNECTED: ${cfg.sheetName}`;
-    if (refreshBar){ refreshBar.style.width = '100%'; setTimeout(() => { refreshBar.style.width = '0%'; }, 500); }
-
+    await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
+    // Always force a fresh fetch (not just "once per sheetId" — see loadCompareDataIfNeeded's
+    // own comment) so a newly appended row in Compare_data shows up on the next auto-refresh
+    // poll too, the same way the main Order sheet already does, instead of needing a manual
+    // browser refresh or a "LOAD DATA" click to pick it up.
+    await loadCompareDataIfNeeded(cfg.sheetId, true);
+    const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
+    const parsed = buildRows(cols, rows);
+    updateDashboard(parsed);
+    hideBanner();
+    setStatus('ok', 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH'));
   } catch(err){
     console.error(err);
-    if (statusDot) statusDot.className = 'status-dot err';
-    if (statusText) statusText.textContent = 'Error loading data';
-    if (rangeLabel) rangeLabel.textContent = 'ERROR';
-    if (refreshBar) refreshBar.style.width = '0%';
-
-    const banner = document.getElementById('banner');
-    if (banner){
-      banner.innerHTML = esc(err.message);
-      banner.classList.add('show');
-    }
+    setStatus('error', 'โหลดข้อมูลไม่สำเร็จ');
+    if (!isAuto || !dashboardBuilt) showBanner('<strong>โหลดข้อมูลไม่สำเร็จ:</strong> ' + err.message);
   } finally {
     isLoading = false;
   }
 }
 
-function startAutoRefresh(){
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => { loadData(false); }, AUTO_REFRESH_MS);
-}
-
-/* ===================== INIT ===================== */
-document.addEventListener('DOMContentLoaded', () => {
+/* ===================== INIT / EVENTS ===================== */
+(function init(){
   const cfg = getConfig();
+  document.getElementById('inputSheetId').value = cfg.sheetId;
+  document.getElementById('inputSheetName').value = cfg.sheetName;
+  document.getElementById('inputSecretKey').value = cfg.secretKey;
+  bindImgPreviewEvents();
 
-  const inputSheetId = document.getElementById('inputSheetId');
-  const inputSheetName = document.getElementById('inputSheetName');
-  const inputSecretKey = document.getElementById('inputSecretKey');
+  const applySecretKey = () => {
+    const secretKey = document.getElementById('inputSecretKey').value.trim();
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    saveConfig({ ...saved, secretKey });
+    clearDecryptCache();
+    closeTrackTooltip();
+    renderTrackingOrders();
+  };
+  document.getElementById('btnApplyKey').addEventListener('click', applySecretKey);
+  document.getElementById('inputSecretKey').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applySecretKey();
+  });
 
-  if (inputSheetId) inputSheetId.value = cfg.sheetId;
-  if (inputSheetName) inputSheetName.value = cfg.sheetName;
-  if (inputSecretKey) inputSecretKey.value = cfg.secretKey;
+  document.getElementById('dashTitle').addEventListener('dblclick', () => {
+    document.getElementById('configPanel').classList.toggle('open');
+  });
+  document.getElementById('btnConfig').addEventListener('click', () => {
+    document.getElementById('configPanel').classList.toggle('open');
+  });
+  document.getElementById('btnRefresh').addEventListener('click', () => { resetRefreshBar(); loadData(false); });
 
-  const btnConfig = document.getElementById('btnConfig');
-  const configPanel = document.getElementById('configPanel');
-  const dashTitle = document.getElementById('dashTitle');
+  const bindRankSliders = () => {
+    const sliderDevice = document.getElementById('sliderDevice');
+    const sliderCampaign = document.getElementById('sliderCampaign');
+    const sliderTrack = document.getElementById('sliderTrack');
+    const trackFilter = document.getElementById('trackFilter');
+    if (sliderDevice && !sliderDevice.dataset.bound) {
+      sliderDevice.addEventListener('input', renderDeviceAccessory);
+      sliderDevice.dataset.bound = '1';
+    }
+    if (sliderCampaign && !sliderCampaign.dataset.bound) {
+      sliderCampaign.addEventListener('input', renderCampaignService);
+      sliderCampaign.dataset.bound = '1';
+    }
+    if (sliderTrack && !sliderTrack.dataset.bound) {
+      sliderTrack.addEventListener('input', renderTrackingOrders);
+      sliderTrack.dataset.bound = '1';
+    }
+    if (trackFilter && !trackFilter.dataset.bound) {
+      trackFilter.addEventListener('input', renderTrackingOrders);
+      trackFilter.dataset.bound = '1';
+    }
+  };
 
-  if (dashTitle){
-    dashTitle.addEventListener('dblclick', () => {
-      if (configPanel) configPanel.classList.toggle('open');
-    });
-  }
+  // "i" buttons in the Tracking Order table are recreated on every render, so this is
+  // delegated on document instead of bound per-button. Clicking one opens/closes a pinned
+  // tooltip (see openTrackTooltip) rather than expanding an inline row.
+  document.addEventListener('click', (e) => {
+    const closeBtn = e.target.closest && e.target.closest('.tt-close');
+    if (closeBtn){ closeTrackTooltip(); return; }
+    const btn = e.target.closest && e.target.closest('[data-track-toggle]');
+    if (btn){ openTrackTooltip(btn.getAttribute('data-track-toggle'), btn); return; }
+    if (openTrackKey && !(e.target.closest && e.target.closest('#trackTooltip'))) closeTrackTooltip();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrackTooltip(); });
+  window.addEventListener('scroll', () => { if (openTrackKey) closeTrackTooltip(); }, true);
+  window.addEventListener('resize', () => { if (openTrackKey) closeTrackTooltip(); });
 
-  if (btnConfig && configPanel){
-    btnConfig.addEventListener('click', () => {
-      configPanel.classList.toggle('open');
-    });
-  }
+  // Re-sync the four summary card heights on resize (crossing the 900px breakpoint, or a
+  // width change that alters how much a card's own content wraps/grows), debounced so a drag-
+  // resize doesn't re-measure on every single pixel.
+  let cardHeightResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(cardHeightResizeTimer);
+    cardHeightResizeTimer = setTimeout(syncSummaryCardHeights, 120);
+  });
 
-  const btnLoad = document.getElementById('btnLoad');
-  if (btnLoad){
-    btnLoad.addEventListener('click', () => {
-      const newCfg = {
-        sheetId: inputSheetId ? inputSheetId.value.trim() : '',
-        sheetName: inputSheetName ? inputSheetName.value.trim() : 'Order',
-        secretKey: inputSecretKey ? inputSecretKey.value.trim() : ''
-      };
-      saveConfig(newCfg);
-      clearDecryptCache();
-      if (configPanel) configPanel.classList.remove('open');
-      loadData(true);
-    });
-  }
-
-  const btnApplyKey = document.getElementById('btnApplyKey');
-  if (btnApplyKey){
-    btnApplyKey.addEventListener('click', () => {
-      const currentCfg = getConfig();
-      currentCfg.secretKey = inputSecretKey ? inputSecretKey.value.trim() : '';
-      saveConfig(currentCfg);
-      clearDecryptCache();
-      if (lastMetrics) renderTrackingTable(lastMetrics);
-    });
-  }
-
-  const btnRefresh = document.getElementById('btnRefresh');
-  if (btnRefresh){
-    btnRefresh.addEventListener('click', () => { loadData(false); });
-  }
-
-  // Sliders & Filters
-  const trackFilter = document.getElementById('trackFilter');
-  if (trackFilter){
-    trackFilter.addEventListener('input', () => {
-      if (lastMetrics) renderTrackingTable(lastMetrics);
-    });
-  }
-
-  const sliderTrack = document.getElementById('sliderTrack');
-  if (sliderTrack){
-    sliderTrack.addEventListener('input', () => {
-      if (lastMetrics) renderTrackingTable(lastMetrics);
-    });
-  }
-
-  const sliderDevice = document.getElementById('sliderDevice');
-  if (sliderDevice){
-    sliderDevice.addEventListener('input', () => {
-      if (lastMetrics) renderSummary(lastMetrics);
-    });
-  }
-
-  const sliderCampaign = document.getElementById('sliderCampaign');
-  if (sliderCampaign){
-    sliderCampaign.addEventListener('input', () => {
-      if (lastMetrics) renderSummary(lastMetrics);
-    });
-  }
-
-  initImagePreview();
   initHoverTips();
 
-  if (cfg.sheetId){
-    loadData(true);
+  document.getElementById('btnLoad').addEventListener('click', () => {
+    const sheetId = document.getElementById('inputSheetId').value.trim();
+    const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
+    const secretKey = document.getElementById('inputSecretKey').value.trim();
+    if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
+    saveConfig({sheetId, sheetName, secretKey});
+    document.getElementById('configPanel').classList.remove('open');
+    loadData(false);
     startAutoRefresh();
-  }
-});
+  });
+
+  if (cfg.sheetId) { loadData(false); startAutoRefresh(); }
+  else document.getElementById('configPanel').classList.add('open');
+
+  const sliderBinderTimer = setInterval(() => {
+    const sliderDevice = document.getElementById('sliderDevice');
+    const sliderCampaign = document.getElementById('sliderCampaign');
+    const sliderTrack = document.getElementById('sliderTrack');
+    const trackFilter = document.getElementById('trackFilter');
+    if (sliderDevice || sliderCampaign || sliderTrack || trackFilter) {
+      bindRankSliders();
+      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound && sliderTrack?.dataset.bound && trackFilter?.dataset.bound) {
+        clearInterval(sliderBinderTimer);
+      }
+    }
+  }, 50);
+})();
 </script>
 </body>
 </html>
