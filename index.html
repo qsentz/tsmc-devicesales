@@ -3,661 +3,419 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>[TS-MC] Monitoring and Tracking DeviceSale transactions</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<title>Operations &amp; Sales Monitoring Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..900&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* Primary — dark warm-black base */
-    --bg:#14100D;
-    --bg-2:#1B1613;
-    --surface:#1F1A16;
-    --surface-alt:#262019;
-    --border:#3A2F27;
-    --border-soft:#2B241F;
+    --bg:#0F172A;
+    --bg-2:#0B1220;
+    --card:#1E293B;
+    --card-alt:#243247;
+    --border:#2E3B52;
+    --border-soft:#243247;
+    --text:#E7ECF3;
+    --text-dim:#9FADC2;
+    --muted:#64748B;
 
-    /* Text */
-    --text:#EFE7DA;
-    --text-dim:#C9BEAF;
-    --muted:#8C8074;
+    --em:#10B981;
+    --em-bg:rgba(16,185,129,.14);
+    --em-line:rgba(16,185,129,.35);
+    --blue:#3B82F6;
+    --blue-bg:rgba(59,130,246,.14);
+    --amber:#F59E0B;
+    --amber-bg:rgba(245,158,11,.14);
+    --red:#F87171;
+    --red-bg:rgba(248,113,113,.14);
+    --slate:#94A3B8;
+    --slate-bg:rgba(148,163,184,.14);
 
-    /* Secondary — brass/stone */
-    --gold:#B4863E;
-    --gold-bg:rgba(180,134,62,.16);
-    --stone:#786A5A;
-    --stone-bg:rgba(120,106,90,.20);
-    --slate:#5B7A8C;
-    --slate-bg:rgba(91,122,140,.16);
-    --green:#5C7A54;
-    --green-bg:rgba(92,122,84,.20);
-
-    /* Accent — targeted accent color */
-    --accent:#7A2020;
-    --accent-bright:#A23A2E;
-    --accent-bg:rgba(122,32,32,.20);
-
-    --radius:6px;
-    --font-serif:'Fraunces', 'Noto Serif', serif;
+    --radius:10px;
     --font-sans:'IBM Plex Sans Thai','IBM Plex Sans',-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,monospace;
   }
   *{box-sizing:border-box;}
-  html, body{height:100%; margin:0; padding:0;}
+  html,body{height:100%;margin:0;padding:0;}
   body{
-    background:var(--bg); color:var(--text);
-    font-family:var(--font-sans);
-    font-size:12px;
-    position:relative;
-    display:flex; flex-direction:column;
-    overflow-x:hidden;
+    background:var(--bg); color:var(--text); font-family:var(--font-sans);
+    font-size:13px; display:flex; flex-direction:column; min-height:100vh;
   }
-  /* subtle grain background overlay */
-  body::before{
-    content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
-    opacity:.05; mix-blend-mode:overlay;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  ::-webkit-scrollbar{width:5px; height:5px;}
-  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:5px;}
+  ::-webkit-scrollbar{width:6px;height:6px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
   ::-webkit-scrollbar-track{background:transparent;}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
 
-  .topbar-wrap{position:sticky; top:0; z-index:20; flex:0 0 auto;}
+  /* ---------- Topbar ---------- */
+  .topbar-wrap{position:sticky; top:0; z-index:30;}
   .topbar{
-    display:flex; align-items:center; justify-content:space-between; gap:16px;
-    padding:10px 20px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    gap:16px; padding:12px 22px; background:var(--bg-2); border-bottom:1px solid var(--border);
   }
   .topbar-title{display:flex; align-items:center; gap:10px;}
-  .topbar h1{
-    font-family:var(--font-serif); font-size:19px; margin:0; font-weight:800; letter-spacing:-.01em;
-    cursor:default; user-select:none; color:var(--text);
-  }
-  .live-chip{
-    font-family:var(--font-sans); font-size:9px; font-weight:700; color:var(--bg);
-    background:var(--accent); padding:2px 7px 1px; border-radius:3px; transform:rotate(-2deg);
-    display:inline-block; letter-spacing:.02em;
-  }
-  .topbar .sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
-  .topbar-right{display:flex; align-items:center; gap:10px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--slate);flex:0 0 auto;position:relative;}
+  .dot.ok{background:var(--em);}
+  .dot.loading{background:var(--amber);}
+  .dot.err{background:var(--red);}
+  .dot.ok::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--em-line);
+    animation:pulse 2.2s ease-out infinite;}
+  @keyframes pulse{0%{transform:scale(.6);opacity:1;}100%{transform:scale(1.9);opacity:0;}}
+  .topbar h1{font-size:16px;margin:0;font-weight:600;letter-spacing:-.01em;cursor:pointer;user-select:none;}
+  .topbar h1:hover{color:var(--em);}
+  .topbar .sub{font-size:11px;color:var(--text-dim);margin-top:2px;display:flex;align-items:center;gap:6px;}
+  .top-actions{display:flex;align-items:center;gap:10px;}
   .btn{
-    font-family:var(--font-sans); border:1.5px solid var(--text); background:var(--surface); color:var(--text);
-    padding:5px 14px; border-radius:999px; font-size:11px; cursor:pointer; font-weight:700;
-    box-shadow:2px 2px 0 var(--border); transition:transform .1s ease, box-shadow .1s ease;
+    background:var(--card-alt);border:1px solid var(--border);color:var(--text);
+    border-radius:var(--radius);padding:7px 12px;font-size:12px;font-family:inherit;cursor:pointer;
   }
-  .btn:hover{background:var(--surface-alt);}
-  .btn:active{transform:translate(1px,1px); box-shadow:1px 1px 0 var(--border);}
-  .btn.primary{background:var(--accent); color:#F4EADF; border-color:var(--accent); box-shadow:2px 2px 0 rgba(0,0,0,.45);}
-  .btn.primary:hover{background:var(--accent-bright);}
-  .btn.hidden-cfg{display:none;}
+  .btn:hover{border-color:var(--em);}
+  .btn-primary{background:var(--em);border-color:var(--em);color:#04241A;font-weight:600;}
+  .btn-primary:hover{filter:brightness(1.06);}
 
-  .live-wrap{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--text-dim);}
-  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;position:relative;}
-  .status-dot.err{background:var(--accent);}
-  .status-dot.loading{background:var(--gold);}
-  .status-dot.ok::after{
-    content:''; position:absolute; inset:-4px; border-radius:50%;
-    border:1.5px solid var(--green); animation:pulseRing 1.8s ease-out infinite;
-  }
-  @keyframes pulseRing{
-    0%{ transform:scale(.6); opacity:.7; }
-    80%{ transform:scale(1.9); opacity:0; }
-    100%{ opacity:0; }
-  }
-  #lastUpdated{display:flex; align-items:center; gap:6px;}
+  .refresh-track{height:2px;background:var(--border-soft);overflow:hidden;}
+  .refresh-bar{height:100%;width:0%;background:var(--em);}
 
-  .refresh-track{height:2px; background:var(--border-soft); overflow:hidden;}
-  .refresh-bar{height:100%; width:0%; background:var(--accent);}
-
+  /* ---------- Config panel ---------- */
   .config{
-    display:none; padding:12px 20px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
-    gap:12px; flex-wrap:wrap; align-items:flex-end;
+    display:none;padding:14px 22px;background:var(--bg-2);border-bottom:1px solid var(--border);
+    gap:14px;flex-wrap:wrap;align-items:end;
   }
   .config.open{display:flex;}
-  .field{display:flex; flex-direction:column; gap:4px;}
-  .field label{font-size:10.5px; color:var(--muted); font-weight:700;}
-  .field input{
-    font-family:var(--font-sans);
-    border:1.5px solid var(--border); border-radius:4px; padding:6px 10px; font-size:12px; min-width:240px;
-    background:var(--surface); color:var(--text);
+  .config .f-group input{min-width:280px;}
+  .config .note{font-size:11px;color:var(--muted);max-width:460px;line-height:1.6;}
+  .config .note code{background:var(--card-alt);color:var(--text-dim);padding:1px 5px;border-radius:3px;}
+
+  main{flex:1;padding:20px 22px 40px;max-width:1440px;width:100%;margin:0 auto;}
+  .hidden{display:none !important;}
+
+  .loader-wrap{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:110px 20px;text-align:center;gap:12px;color:var(--text-dim);
   }
-  .config .note{font-size:10.5px; color:var(--muted); max-width:520px; line-height:1.5;}
-  .config .note code{background:var(--surface-alt); color:var(--text-dim); padding:1px 5px; border-radius:3px;}
+  .loader-wrap h2{color:var(--text);font-size:18px;margin:0;font-weight:600;}
+  .loader-wrap p{margin:0;max-width:440px;font-size:13px;line-height:1.6;}
 
-  .wrap{
-    flex:1 1 auto; max-width:1600px; width:100%; margin:0 auto; padding:12px 16px 20px;
-    display:flex; flex-direction:column; gap:12px; min-height:0;
+  .banner{
+    background:var(--red-bg);border:1px solid rgba(248,113,113,.4);color:#FCA5A5;
+    border-radius:var(--radius);padding:11px 16px;font-size:12.5px;margin-bottom:16px;display:none;line-height:1.6;
   }
-  #banner{display:none; padding:8px 12px; border-radius:4px; background:var(--accent-bg); border:1px solid var(--accent); color:#F0C9C1; font-size:11.5px; line-height:1.4;}
-  #banner.show{display:block;}
-  #banner code{background:var(--surface-alt); padding:1px 5px; border-radius:3px;}
+  .banner.show{display:block;}
+  .banner code{background:var(--card-alt);padding:1px 6px;border-radius:4px;}
 
-  #dashboard{display:flex; flex-direction:column; gap:12px;}
-
-  @keyframes fadeInUp{
-    from{opacity:0; transform:translateY(6px);}
-    to{opacity:1; transform:translateY(0);}
+  /* ---------- Filters bar ---------- */
+  .filters{
+    display:flex; flex-wrap:wrap; align-items:end; gap:14px;
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:14px 16px; margin-bottom:18px;
   }
-
-  /* ---------- Generic card styling ---------- */
-  .card{
-    position:relative; min-width:0;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-    padding:10px 12px;
-    display:flex; flex-direction:column;
+  .f-group{display:flex;flex-direction:column;gap:5px;}
+  .f-group label{font-size:10.5px;color:var(--muted);letter-spacing:.03em;}
+  .f-group input, .f-group select{
+    background:var(--bg-2);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit;min-width:150px;
   }
-  .card h2{
-    font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
-    display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
+  .f-group input:focus, .f-group select:focus{outline:none;border-color:var(--em);}
+  .f-reset{margin-left:auto;align-self:end;}
+  .f-count{font-size:11px;color:var(--text-dim);align-self:end;padding-bottom:8px;white-space:nowrap;}
+
+  /* ---------- KPI cards ---------- */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px;}
+  @media (max-width:960px){.kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  .kpi{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px 18px;position:relative;overflow:hidden;
   }
-  .card h2 .tag{font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;}
-  .card-body{min-height:0;}
-  .soft{transition:opacity .28s ease;}
+  .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent-color,var(--em));}
+  .kpi .k-label{font-size:11px;color:var(--text-dim);margin-bottom:8px;}
+  .kpi .k-value{font-size:24px;font-weight:600;font-family:var(--font-mono);letter-spacing:-.01em;}
+  .kpi .k-sub{font-size:11px;color:var(--muted);margin-top:6px;}
+  .kpi .k-sub .good{color:var(--em);}
+  .kpi .k-sub .warn{color:var(--amber);}
+  .kpi .k-sub .bad{color:var(--red);}
 
-  @media(max-width:600px){
-    .wrap{padding:10px 10px 20px;}
-    .topbar{padding:10px 12px;}
+  /* ---------- Charts ---------- */
+  .charts-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:18px;}
+  @media (max-width:960px){.charts-grid{grid-template-columns:1fr;}}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+  .panel h3{margin:0 0 2px;font-size:13px;font-weight:600;}
+  .panel .panel-sub{font-size:11px;color:var(--muted);margin-bottom:12px;}
+  .chart-wrap{position:relative;width:100%;}
+
+  /* ---------- Table ---------- */
+  .table-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+  .table-head{
+    display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;
+    padding:14px 18px;border-bottom:1px solid var(--border);
   }
-
-  /* ---------- HERO: Total Order Completed ---------- */
-  .hero{
-    position:relative; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);
-    padding:12px 16px; box-shadow:4px 4px 0 var(--accent-bg);
-    display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:center;
-    animation:fadeInUp .4s ease both;
+  .table-head h3{margin:0;font-size:13px;font-weight:600;}
+  .search-box{
+    display:flex;align-items:center;gap:8px;background:var(--bg-2);border:1px solid var(--border);
+    border-radius:8px;padding:6px 10px;min-width:260px;
   }
-  .hero-sticker{
-    position:absolute; top:-9px; left:16px; background:var(--accent); color:#F4EADF;
-    font-size:9.5px; font-weight:700; padding:2px 8px 1px; border-radius:3px; transform:rotate(-2deg);
-    box-shadow:2px 2px 0 rgba(0,0,0,.4);
+  .search-box input{background:transparent;border:none;color:var(--text);font-size:12.5px;font-family:inherit;flex:1;outline:none;}
+  .search-box svg{flex:0 0 auto;opacity:.6;}
+  .legend-row{display:flex;flex-wrap:wrap;gap:10px;padding:0 18px 12px;font-size:11px;color:var(--text-dim);}
+  .legend-row span{display:flex;align-items:center;gap:5px;}
+  .legend-dot{width:7px;height:7px;border-radius:2px;}
+
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:900px;}
+  thead th{
+    position:sticky;top:0;background:var(--card-alt);text-align:left;font-weight:600;
+    color:var(--text-dim);font-size:11px;letter-spacing:.02em;padding:10px 14px;border-bottom:1px solid var(--border);
+    white-space:nowrap;
   }
-  .hero-left{display:flex; align-items:center; gap:14px;}
-  .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
-  .hero-ring canvas{width:64px; height:64px; display:block;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:42px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:10px; color:var(--accent-bright); margin-top:2px; font-weight:700; letter-spacing:.03em;}
-  .hero-nums .of-total{font-size:10px; color:var(--muted); margin-top:3px;}
-  .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
-  .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
-  .hero-right{border-left:1px solid var(--border); padding-left:16px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:11.5px; margin:0 0 6px; font-weight:700; color:var(--text-dim);}
-  .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
-  .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft);}
-  .tile .n{font-size:14px; font-weight:800;}
-  .tile .p{font-size:9.5px; opacity:.85;}
-  .tile .l{font-size:8.5px; margin-top:2px; opacity:.85; word-break:break-word;}
+  tbody td{padding:10px 14px;border-bottom:1px solid var(--border-soft);white-space:nowrap;color:var(--text);}
+  tbody tr:hover{background:rgba(255,255,255,.02);}
+  tbody td.wrap{white-space:normal;max-width:220px;}
+  .mono{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);}
 
-  @media(max-width:760px){
-    .hero{grid-template-columns:1fr;}
-    .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:10px;}
-  }
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-complete{background:var(--em-bg);color:var(--em);}
+  .badge-pending{background:var(--amber-bg);color:var(--amber);}
+  .badge-waiting{background:var(--amber-bg);color:var(--amber);}
+  .badge-ready{background:var(--blue-bg);color:var(--blue);}
+  .badge-fail{background:var(--red-bg);color:var(--red);}
+  .badge-none{background:var(--slate-bg);color:var(--slate);}
 
-  /* ---------- Grid layout columns ---------- */
-  .grid-70-30{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-70-30{grid-template-columns:68% 1fr;} }
-  .col-70, .col-30{display:flex; flex-direction:column; min-width:0;}
-  .col-70 .card, .col-30 .card{flex:1 1 auto;}
+  .empty-row td{text-align:center;color:var(--muted);padding:36px;}
 
-  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
-  .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
-  .col-narrow .card:last-child{flex:1 1 auto;}
-  .col-narrow .card:last-child .stock-donut-wrap{flex:1 1 auto;}
-
-  .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
-
-  /* AIS/Partner */
-  .grp-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);}
-  .grp-row:last-child{border-bottom:none;}
-  .grp-name{display:flex; align-items:center; gap:6px; font-weight:700; font-size:11px;}
-  .dot{width:8px;height:8px;border-radius:50%;}
-  .grp-nums{text-align:right;}
-  .grp-nums .n{font-family:var(--font-serif); font-size:17px; font-weight:800;}
-  .grp-nums .p{font-size:9.5px; color:var(--muted);}
-  .pre-badge{font-size:9px; color:var(--muted); margin-top:2px;}
-  .pre-badge b{color:var(--text-dim); font-weight:700;}
-
-  /* Sub stock destination */
-  .bar-row{margin-bottom:8px;}
-  .bar-row:last-child{margin-bottom:0;}
-  .bar-row .top{display:flex; justify-content:space-between; font-size:10.5px; margin-bottom:3px; gap:6px;}
-  .bar-row .top .name{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .bar-row .top .val{color:var(--muted); flex:0 0 auto; font-weight:700;}
-  .bar-track{background:var(--border-soft); border-radius:3px; height:5px; overflow:hidden;}
-  .bar-fill{height:100%; border-radius:3px; transition:width .6s ease;}
-
-  /* Duration tiers */
-  .tier-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(85px,1fr)); gap:6px;}
-  .tier-box{border-radius:4px; padding:8px 4px; text-align:center; border:1px solid var(--border-soft);}
-  .tier-box .n{font-family:var(--font-serif); font-size:16px; font-weight:800;}
-  .tier-box .l{font-size:9.5px; margin-top:2px; font-weight:600;}
-  .tier-box .p{font-size:9px; opacity:.85;}
-
-  .menu-sub{font-size:9px; color:var(--muted); margin-top:3px;}
-  .menu-sub b{color:var(--gold); font-weight:700;}
-
-  /* Sub Stock Destination — donut + legend */
-  .stock-donut-wrap{display:flex; align-items:center; gap:12px;}
-  .chart-wrap.donut{position:relative; flex:0 0 auto; width:100px; height:100px;}
-  .stock-legend{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:6px;}
-  .legend-row{display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:10.5px;}
-  .legend-row .lg-name{display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;}
-  .legend-row .lg-dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto;}
-  .legend-row .lg-label{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .legend-row .lg-val{flex:0 0 auto; font-weight:800; color:var(--text);}
-  .legend-row .lg-pct{flex:0 0 auto; font-size:9px; color:var(--muted); margin-left:4px;}
-  @media(max-width:420px){ .stock-donut-wrap{flex-direction:column; align-items:flex-start;} }
-
-  /* Combined ranking card */
-  .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:10px;}
-  .rank-subcard{border:1px solid var(--border); border-top:2px solid var(--gold); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
-  .rank-subcard.alt{border-top:2px solid var(--gold);} /* kept as a no-op alias: all subcards now share the same top accent */
-  .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
-  .rank-subcard-head h3{font-family:var(--font-serif); font-size:11.5px; margin:0; font-weight:700; color:var(--text);}
-  .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
-  .rank-section{display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px;}
-  .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 6px; background:var(--bg-2); border-radius:4px; margin-bottom:5px;}
-  .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
-  .rank-list{display:flex; flex-direction:column; gap:1px;}
-  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 6px; border-radius:3px; overflow:hidden;}
-  .rank-bar{position:absolute; left:0; top:0; bottom:0; opacity:.20; border-radius:3px; transition:width .5s ease;}
-  .rank-name{position:relative; z-index:1; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-count{position:relative; z-index:1; font-size:10.5px; font-weight:800; flex:0 0 auto;}
-  .rank-slider-row{display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);}
-  .rank-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
-  .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
-  .rank-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:18px; text-align:right;}
-
-  /* Sub-cards stacked layout */
-  .subcards-stack{grid-template-columns:1fr;}
-
-  /* Sub-cards equal trio layout */
-  .subcards-trio{grid-template-columns:1fr;}
-  @media(min-width:900px){ .subcards-trio{grid-template-columns:repeat(3,1fr);} }
-  .subcards-trio .rank-subcard{display:flex; flex-direction:column; height:100%;}
-  .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:190px;}
-  .subcards-trio .tier-grid{flex:1 1 auto;}
-
-  /* Sub-cards equal duo layout */
-  .subcards-duo{grid-template-columns:1fr;}
-  @media(min-width:900px){ .subcards-duo{grid-template-columns:1fr 1fr;} }
-  .subcards-duo .rank-subcard{display:flex; flex-direction:column; height:100%;}
-  .subcards-duo .rank-list{flex:1 1 auto;}
-  .subcards-duo .table-scroll{flex:1 1 auto; min-height:0; max-height:220px;}
-
-  /* Hover-to-preview product image cue */
-  .rank-name.has-img{cursor:help; border-bottom:1px dashed var(--muted);}
-  .img-preview{
-    position:fixed; z-index:9999; pointer-events:none; display:none;
-    background:var(--surface); border:1px solid var(--border); border-radius:6px;
-    padding:6px; box-shadow:4px 4px 0 rgba(0,0,0,.5);
-  }
-  .img-preview img{display:block; width:130px; height:130px; object-fit:contain; border-radius:4px; background:#fff;}
-
-  table{width:100%; border-collapse:collapse; font-size:10.5px;}
-  th{text-align:left; color:var(--muted); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--border); font-size:9px; position:sticky; top:0; background:var(--surface);}
-  td{padding:5px 6px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
-  tr:last-child td{border-bottom:none;}
-  tbody tr{transition:background .12s ease;}
-  tbody tr:hover{background:var(--surface-alt);}
-  .mono{font-family:ui-monospace,Menlo,monospace; color:var(--text);}
-  .red-txt{color:var(--accent-bright); font-weight:700;}
-
-  .empty{color:var(--muted); font-size:11px; text-align:center; padding:12px 0;}
-  .chart-wrap{position:relative; height:180px;}
-  .table-scroll{overflow:auto;}
-  .table-scroll.tall{max-height:220px;}
-
-  /* ---------- Tracking Order ---------- */
-  .track-toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; flex-wrap:wrap;}
-  .track-filter-input{
-    font-family:var(--font-sans); border:1.5px solid var(--border); border-radius:4px; padding:5px 10px;
-    font-size:11px; background:var(--surface-alt); color:var(--text); min-width:220px; flex:1 1 220px;
-  }
-  .track-filter-input::placeholder{color:var(--muted);}
-  .track-slider-row{display:flex; align-items:center; gap:6px; flex:0 0 auto;}
-  .track-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
-  .track-slider-row input[type=range]{width:110px; accent-color:var(--accent);}
-  .track-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:26px; text-align:right;}
-  .track-table-scroll{max-height:440px;}
-  .track-table{font-size:10px;}
-  .track-table td, .track-table th{white-space:nowrap;}
-  .track-table th.col-info, .track-table td.col-info{width:22px; padding-left:6px; padding-right:2px;}
-  .track-table th.col-no, .track-table td.col-no{width:26px; color:var(--muted);}
-  .info-btn{
-    width:16px; height:16px; border-radius:50%; border:1.5px solid var(--gold); background:transparent; color:var(--gold);
-    font-size:9px; font-weight:800; font-style:italic; font-family:Georgia,serif; cursor:pointer;
-    display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:1;
-  }
-  .info-btn:hover{background:var(--gold-bg);}
-  .info-btn.open{background:var(--gold); color:var(--bg);}
-  .badge{display:inline-block; padding:2px 7px; border-radius:999px; font-size:9px; font-weight:700; white-space:nowrap;}
-  .cust-name-cell{cursor:help; border-bottom:1px dashed var(--muted);}
-  .track-detail-row td{background:var(--bg-2); padding:10px 12px; white-space:normal;}
-  .track-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:6px 16px;}
-  .track-detail-grid .dl{font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
-  .track-detail-grid .dv{font-size:11px; color:var(--text-dim); margin-top:1px; word-break:break-word;}
-  @media(max-width:640px){ .track-toolbar{flex-direction:column; align-items:stretch;} .track-filter-input{min-width:0;} }
-
-  /* ---------- Tracking Order: pinned info tooltip ---------- */
-  .track-tooltip{
-    position:fixed; z-index:1000; display:none; width:280px; max-width:calc(100vw - 20px);
-    background:var(--surface); border:1.5px solid var(--gold); border-radius:6px;
-    box-shadow:4px 4px 0 rgba(0,0,0,.45); padding:10px 12px 12px; font-size:11px;
-  }
-  .track-tooltip.show{display:block; animation:fadeInUp .16s ease both;}
-  .track-tooltip .tt-close{
-    position:absolute; top:4px; right:5px; width:18px; height:18px; border-radius:50%;
-    border:none; background:transparent; color:var(--muted); font-size:14px; line-height:1; cursor:pointer;
-  }
-  .track-tooltip .tt-close:hover{color:var(--text); background:var(--surface-alt);}
-  .track-tooltip .tt-img{
-    display:block; width:100%; max-height:120px; object-fit:contain; border-radius:4px;
-    margin-bottom:8px; background:#fff; border:1px solid var(--border-soft);
-  }
-  .track-tooltip .tt-title{
-    font-family:var(--font-serif); font-weight:700; font-size:12px; color:var(--text);
-    margin:0 0 6px; padding-right:16px; word-break:break-word;
-  }
-  .track-tooltip .tt-pii{
-    display:flex; flex-direction:column; gap:2px; padding:6px 8px; margin-bottom:8px;
-    background:var(--surface-alt); border-radius:4px; border:1px dashed var(--gold);
-  }
-  .track-tooltip .tt-pii .dl{font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
-  .track-tooltip .tt-pii .dv{font-size:11.5px; color:var(--text); font-weight:600; word-break:break-word;}
-  .track-tooltip .tt-lock{font-size:10px; color:var(--muted); line-height:1.5; margin-bottom:8px;}
-  .track-tooltip .track-detail-grid{grid-template-columns:1fr; gap:5px;}
-
-  /* ---------- Tracking Order: Commercial Name / Order Omni no longer stretch the column ----------
-     Long values used to widen <td> via white-space:nowrap, pushing later columns (Order Omni) off
-     screen. The cell now clips to a fixed max-width with an ellipsis; the full value moves to the
-     custom hover tooltip below instead of the (plain, cramped-looking) native title="" bubble. */
-  .track-table th.col-commname, .track-table td.col-commname{max-width:130px;}
-  .track-table th.col-orderomni, .track-table td.col-orderomni{max-width:110px;}
-  .cust-name-cell{
-    display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis;
-    white-space:nowrap; vertical-align:bottom; border-bottom:1px dashed var(--muted);
-  }
-
-  /* ---------- Generic hover tooltip ----------
-     Replaces native title="" attributes on truncated / supplementary data (Commercial Name,
-     Order Omni, duration badge, top-item names, masked-name lock hint) with a small themed
-     card instead of the browser's plain OS tooltip. Triggered via [data-tip] + #hoverTip,
-     wired up once in initHoverTips(). */
-  [data-tip]{cursor:help;}
-  .hover-tip{
-    position:fixed; z-index:1200; display:none; max-width:240px;
-    background:var(--surface); border:1px solid var(--gold); border-radius:5px;
-    box-shadow:3px 3px 0 rgba(0,0,0,.4); padding:6px 9px; font-size:10.5px;
-    color:var(--text-dim); line-height:1.6; pointer-events:none; word-break:break-word;
-    white-space:pre-line;
-  }
-  .hover-tip.show{display:block; animation:fadeInUp .12s ease both;}
-
+  .table-foot{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border);font-size:11.5px;color:var(--text-dim);}
+  .pager{display:flex;gap:6px;}
+  .pager button{background:var(--bg-2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 10px;font-size:11.5px;cursor:pointer;font-family:inherit;}
+  .pager button:disabled{opacity:.35;cursor:default;}
+  .pager button.active{border-color:var(--em);color:var(--em);}
 </style>
 </head>
 <body>
 
 <div class="topbar-wrap">
   <div class="topbar">
-    <div class="topbar-title-wrap">
-      <div class="topbar-title">
-        <h1 id="dashTitle" title="ดับเบิลคลิกเพื่อตั้งค่า Google Sheet">[TS-MC] Monitoring and Tracking DeviceSale transactions</h1>
-        <span class="live-chip">LIVE</span>
+    <div class="topbar-title">
+      <span class="dot" id="liveDot"></span>
+      <div>
+        <h1 id="dashTitle" title="ดับเบิลคลิกเพื่อตั้งค่า Google Sheet">Operations &amp; Sales Monitoring Dashboard</h1>
+        <div class="sub" id="statusText">ยังไม่ได้เชื่อมต่อ Google Sheet</div>
       </div>
-      <div class="sub" id="rangeLabel">DISCONNECT</div>
     </div>
-    <div class="topbar-right">
-      <div class="live-wrap">
-        <span id="lastUpdated"><span class="status-dot" id="statusDot"></span><span id="statusText">Data not yet loaded.</span></span>
-      </div>
-      <button class="btn hidden-cfg" id="btnConfig">SETTING</button>
-      <button class="btn primary" id="btnRefresh">REFRESH</button>
+    <div class="top-actions">
+      <button class="btn" id="btnConfig">ตั้งค่า</button>
+      <button class="btn btn-primary" id="btnRefresh">รีเฟรชตอนนี้</button>
     </div>
   </div>
   <div class="refresh-track"><div class="refresh-bar" id="refreshBar"></div></div>
   <div class="config" id="configPanel">
-    <div class="field">
-      <label>DATA ID</label>
+    <div class="f-group">
+      <label>GOOGLE SHEET ID</label>
       <input id="inputSheetId" placeholder="1AbCDeFGhijklmnop_xxxxxxxxxxxx" />
     </div>
-    <div class="field">
-      <label>COLLECTION</label>
-      <input id="inputSheetName" placeholder="Order" value="Order" />
+    <div class="f-group">
+      <label>ชื่อแท็บข้อมูลหลัก (Order)</label>
+      <input id="inputSheetName" placeholder="Order" value="Order" style="min-width:160px;" />
     </div>
-    <button class="btn primary" id="btnLoad">LOAD DATA</button>
-    <div class="field">
-      <label>SECRET KEY</label>
-      <input id="inputSecretKey" type="password" placeholder="FILL SECRET KEY (Optional)" autocomplete="off" />
+    <button class="btn btn-primary" id="btnLoad">โหลดข้อมูล</button>
+    <div class="note">
+      ต้องแชร์ Google Sheet เป็น "ทุกคนที่มีลิงก์ดูได้" เนื่องจากดึงข้อมูลผ่าน Google Visualization API (gviz)
+      แบบ client-side ทั้งหมด ไม่มีการส่ง Sheet ID หรือข้อมูลไปยังเซิร์ฟเวอร์อื่น — ต้องมีแท็บ
+      <code>LocationMaster</code> (locationCode / locationName) และ <code>Log</code> (RunAt / FileName / Status / TotalRecords / InsertedSuccess / InsertedFailed) อยู่ในไฟล์เดียวกัน
     </div>
-    <button class="btn" id="btnApplyKey">SUBMIT</button>
   </div>
 </div>
 
-<div class="wrap">
-  <div id="banner"></div>
-  <div id="dashboard" style="display:none;"></div>
-  <div id="placeholder" class="empty" style="padding:80px 0; font-size:13.5px;">
-    FILL THE DATA ID FOR Load Data.
-  </div>
-</div>
+<main>
+  <div class="banner" id="banner"></div>
 
-<div class="img-preview" id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
-<div class="track-tooltip" id="trackTooltip"></div>
-<div class="hover-tip" id="hoverTip"></div>
+  <div class="loader-wrap" id="emptyState">
+    <h2>ยังไม่ได้เชื่อมต่อข้อมูล</h2>
+    <p>กดปุ่ม "ตั้งค่า" ด้านบน แล้วกรอก Google Sheet ID ของสมุดงานที่มีแท็บ Order / LocationMaster / Log
+       ระบบจะดึงข้อมูลสดและรีเฟรชอัตโนมัติทุก 10 วินาที</p>
+  </div>
+
+  <div id="dashboard" class="hidden">
+
+    <div class="filters">
+      <div class="f-group">
+        <label>วันที่เริ่มต้น</label>
+        <input type="date" id="fDateFrom" />
+      </div>
+      <div class="f-group">
+        <label>วันที่สิ้นสุด</label>
+        <input type="date" id="fDateTo" />
+      </div>
+      <div class="f-group">
+        <label>สาขา (Location)</label>
+        <select id="fLocation"><option value="">ทั้งหมด</option></select>
+      </div>
+      <div class="f-group">
+        <label>ประเภทออเดอร์ (orderType)</label>
+        <select id="fOrderType"><option value="">ทั้งหมด</option></select>
+      </div>
+      <div class="f-group">
+        <label>สถานะ (status)</label>
+        <select id="fStatus"><option value="">ทั้งหมด</option></select>
+      </div>
+      <button class="btn f-reset" id="btnResetFilters">ล้างตัวกรอง</button>
+      <div class="f-count" id="filterCount"></div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi" style="--accent-color:var(--em)">
+        <div class="k-label">ยอดขายรวม (Total Revenue)</div>
+        <div class="k-value num" id="kpiRevenue">฿0</div>
+        <div class="k-sub" id="kpiRevenueSub">คำนวณจากออเดอร์สถานะ COMPLETE (ราคา − ส่วนลด)</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--blue)">
+        <div class="k-label">จำนวนธุรกรรมทั้งหมด (Total Transactions)</div>
+        <div class="k-value num" id="kpiTxn">0</div>
+        <div class="k-sub" id="kpiTxnSub">แถวข้อมูลจากแท็บ Order ที่มี TIMESTAMP</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--amber)">
+        <div class="k-label">อัตราความสำเร็จ (Success Rate)</div>
+        <div class="k-value num" id="kpiSuccess">0%</div>
+        <div class="k-sub" id="kpiSuccessSub">COMPLETE ÷ ออเดอร์ที่มีสถานะ</div>
+      </div>
+      <div class="kpi" style="--accent-color:var(--slate)">
+        <div class="k-label">สถานะการรันไฟล์ Log ล่าสุด</div>
+        <div class="k-value" id="kpiLog">—</div>
+        <div class="k-sub" id="kpiLogSub">—</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="panel">
+        <h3>ยอดขาย/จำนวนออเดอร์แยกตามรุ่นสินค้า</h3>
+        <div class="panel-sub">Top 10 · orders.device.commercialName</div>
+        <div class="chart-wrap" style="height:320px;">
+          <canvas id="chartDevice" role="img" aria-label="กราฟแท่งแสดงจำนวนออเดอร์แยกตามรุ่นสินค้า 10 อันดับแรก"></canvas>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>แนวโน้ม Transaction ตามช่วงเวลา</h3>
+        <div class="panel-sub">จำนวนธุรกรรมต่อวัน · TIMESTAMP</div>
+        <div class="chart-wrap" style="height:320px;">
+          <canvas id="chartTrend" role="img" aria-label="กราฟเส้นแสดงแนวโน้มจำนวนธุรกรรมรายวัน"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-panel">
+      <div class="table-head">
+        <h3>รายการธุรกรรม (Monitoring &amp; Tracking)</h3>
+        <div class="search-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="tableSearch" placeholder="ค้นหา transactionId, สาขา, รุ่นสินค้า..." />
+        </div>
+      </div>
+      <div class="legend-row">
+        <span><span class="legend-dot" style="background:var(--em)"></span>COMPLETE</span>
+        <span><span class="legend-dot" style="background:var(--blue)"></span>READY_TO_PAY</span>
+        <span><span class="legend-dot" style="background:var(--amber)"></span>PENDING / WAITING_PAYMENT</span>
+        <span><span class="legend-dot" style="background:var(--red)"></span>DELETE</span>
+        <span><span class="legend-dot" style="background:var(--slate)"></span>ไม่มีออเดอร์ (สแกนอย่างเดียว)</span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>TIMESTAMP</th>
+              <th>transactionId</th>
+              <th>สาขา</th>
+              <th>orderType</th>
+              <th>รุ่นสินค้า</th>
+              <th style="text-align:right">ราคาสุทธิ</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+      <div class="table-foot">
+        <div id="tableSummary"></div>
+        <div class="pager" id="pager"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
 
 <script>
 /* ===================== CONFIG / STATE ===================== */
-const LS_KEY = 'orderDashboardConfig';
+const LS_KEY = 'opsSalesDashboardConfig';
 const AUTO_REFRESH_MS = 10000;
-let charts = {};
-let dashboardBuilt = false;
-let refreshTimer = null;
-let isLoading = false;
-let lastMetrics = null;
+const LOCATION_SHEET_NAME = 'LocationMaster';
+const LOG_SHEET_NAME = 'Log';
 
-const STOCK_PALETTE = ['#B4863E','#C9703F','#5B7A8C','#5C7A54','#8C8074'];
+/* Header names must match the columns written by the backend into the Google Sheet — same
+   dot-notation headers as the Order tab in Transaction_IPhone18.xlsx. Matched by name (not
+   fixed column position) so re-ordering or inserting columns in the Sheet never breaks this. */
+const ORDER_HEADERS = {
+  ts: 'TIMESTAMP',
+  transactionId: 'transactionId',
+  locationSource: 'locationSource',
+  orderId: 'orders.orderId',
+  orderType: 'orders.orderType',
+  status: 'orders.status',
+  commercialName: 'orders.device.commercialName',
+  priceIncAmt: 'orders.device.priceIncAmt',
+  priceDiscountAmt: 'orders.device.priceDiscountAmt'
+};
+const LOG_HEADERS = {
+  runAt: 'RunAt', fileName: 'FileName', status: 'Status',
+  totalRecords: 'TotalRecords', insertedSuccess: 'InsertedSuccess', insertedFailed: 'InsertedFailed'
+};
+const LOC_HEADERS = { code: 'locationCode', name: 'locationName' };
 
-const TOOLTIP_STYLE = {
-  backgroundColor:'#1F1A16',
-  titleColor:'#EFE7DA',
-  bodyColor:'#C9BEAF',
-  borderColor:'#3A2F27',
-  borderWidth:1,
-  cornerRadius:5,
-  padding:8,
-  boxWidth:8,
-  boxHeight:8,
-  boxPadding:4,
-  usePointStyle:true,
-  displayColors:true,
-  titleFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11.5, weight:'700' },
-  bodyFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11 }
+const STATUS_BADGE = {
+  'COMPLETE': {cls:'badge-complete', label:'COMPLETE'},
+  'READY_TO_PAY': {cls:'badge-ready', label:'READY_TO_PAY'},
+  'PENDING': {cls:'badge-pending', label:'PENDING'},
+  'WAITING_PAYMENT': {cls:'badge-waiting', label:'WAITING_PAYMENT'},
+  'DELETE': {cls:'badge-fail', label:'DELETE'}
 };
 
+let state = {
+  rawOrders: [],
+  locationMap: {},
+  locationMasterLoadedFor: null,
+  logRows: [],
+  filtered: [],
+  page: 1,
+  pageSize: 25,
+  search: ''
+};
+let chartDevice = null, chartTrend = null;
+let refreshTimer = null;
+let isLoading = false;
+let dashboardBuilt = false;
+
+/* ===================== CONFIG (localStorage + URL, never sent to a server) ===================== */
 function getConfig(){
   const params = new URLSearchParams(location.search);
   const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
   return {
     sheetId: params.get('sheetId') || saved.sheetId || '',
-    sheetName: params.get('sheetName') || saved.sheetName || 'Order',
-    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up
-    // in browser history / shared links / server logs — only ever from localStorage.
-    secretKey: saved.secretKey || ''
+    sheetName: params.get('sheetName') || saved.sheetName || 'Order'
   };
 }
 function saveConfig(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
-/* ===================== COLUMN MAP ===================== */
-const COL = {
-  ts: 'TIMESTAMP',
-  transactionId: 'transactionId',
-  orderId: 'orders.orderId',
-  orderType: 'orders.orderType',
-  state: 'orders.status',
-  commercialName: 'orders.device.commercialName',
-  campaignName: 'orders.device.campaignName',
-  preBookingNo: 'orders.device.preBookingNo',
-  serviceCareTitle: 'orders.serviceCare.title',
-  subStockDestination: 'orders.subStockDestination',
-  menu: 'orders.menu'
-};
-
-const COL_OPTIONAL = {
-  locationSource: 'locationSource',
-  imageUrl: 'orders.device.imageUrl',
-  // Fields below only power the "Tracking Order" card. Kept optional so the
-  // rest of the dashboard still works fine on an older Sheet that hasn't
-  // added these columns yet — the table just shows '-' for whatever is missing.
-  userId: 'userId',
-  custFirstName: 'customer.firstName',
-  custLastName: 'customer.lastName',
-  custMobileNo: 'customer.cusMobileNo',
-  orderState: 'orders.state', // NOTE: distinct from orders.status ("state" above) — this is the
-                               // granular workflow step (DEVICE_SELECTED / PAYMENT_PAID / ...)
-  brand: 'orders.device.brand',
-  model: 'orders.device.model',
-  matCode: 'orders.device.matCode',
-  priceIncAmt: 'orders.device.priceIncAmt',
-  priceDiscountAmt: 'orders.device.priceDiscountAmt',
-  resOrderNo: 'orders.reserve.orderNo',
-  resLocationName: 'orders.reserve.locationName',
-  resType: 'orders.reserve.type',
-  resShippingType: 'orders.reserve.shippingType',
-  resShippingSLA: 'orders.reserve.shippingSLA'
-};
-const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
-
-/* ===================== DECRYPTION (mirrors Code.gs encryptText_ / decryptText_) =====================
-   customer.firstName / customer.lastName / customer.cusMobileNo are stored in the Sheet as
-   base64( 8-byte random IV ++ XOR(plaintext, keystream) ), where the keystream is built from
-   repeated HMAC-SHA256(secretKey, ivHex + '|' + counter) blocks. Decrypting here needs the same
-   Secret Key that Code.gs's setupEncryptionKey() saved to Script Properties — entered once in
-   the config panel above and kept only in this browser's localStorage; it is never sent anywhere. */
-let hmacKeyCache = null;        // { secretKey, cryptoKeyPromise } — one-slot cache
-const decryptCache = new Map(); // `${secretKey}::${cipherB64}` -> Promise<string>
-
-function base64ToBytes(b64){
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-function bytesToHex(bytes){
-  let s = '';
-  for (let i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0');
-  return s;
-}
-function getHmacKey_(secretKey){
-  if (hmacKeyCache && hmacKeyCache.secretKey === secretKey) return hmacKeyCache.cryptoKeyPromise;
-  const p = crypto.subtle.importKey('raw', new TextEncoder().encode(secretKey), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  hmacKeyCache = { secretKey, cryptoKeyPromise: p };
-  return p;
-}
-async function hmacSha256Bytes_(secretKey, message){
-  const key = await getHmacKey_(secretKey);
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(message));
-  return new Uint8Array(sig);
-}
-async function generateKeystream_(secretKey, ivHex, length){
-  const keystream = new Uint8Array(length);
-  let filled = 0, counter = 0;
-  while (filled < length){
-    const block = await hmacSha256Bytes_(secretKey, ivHex + '|' + counter);
-    for (let i = 0; i < block.length && filled < length; i++, filled++) keystream[filled] = block[i];
-    counter++;
-  }
-  return keystream;
-}
-async function decryptText_(cipherB64, secretKey){
-  if (!cipherB64) return '';
-  const combined = base64ToBytes(cipherB64);
-  if (combined.length <= 8) return '';
-  const ivBytes = combined.slice(0, 8);
-  const cipherBytes = combined.slice(8);
-  const ivHex = bytesToHex(ivBytes);
-  const keystream = await generateKeystream_(secretKey, ivHex, cipherBytes.length);
-  const plainBytes = new Uint8Array(cipherBytes.length);
-  for (let i = 0; i < cipherBytes.length; i++) plainBytes[i] = cipherBytes[i] ^ keystream[i];
-  return new TextDecoder('utf-8').decode(plainBytes);
-}
-// Cached wrapper — the same ciphertext + key always decrypts to the same plaintext, so repeated
-// renders (10s auto-refresh, slider/filter changes) don't redo the HMAC work for rows already
-// decrypted this session. Returns the sentinel '__DECRYPT_FAILED__' instead of throwing.
-function decryptCached(cipherB64, secretKey){
-  if (!cipherB64 || !secretKey) return Promise.resolve('');
-  const cacheKey = secretKey + '::' + cipherB64;
-  if (!decryptCache.has(cacheKey)){
-    decryptCache.set(cacheKey, decryptText_(cipherB64, secretKey).catch(() => '__DECRYPT_FAILED__'));
-  }
-  return decryptCache.get(cacheKey);
-}
-function clearDecryptCache(){ decryptCache.clear(); hmacKeyCache = null; }
-function getSecretKey(){
-  const el = document.getElementById('inputSecretKey');
-  return el ? el.value.trim() : '';
-}
-
-/* ===================== FETCH (Google Visualization / gviz) ===================== */
+/* ===================== FETCH (Google Visualization / gviz) =====================
+   Works with any Sheet shared as "Anyone with the link — Viewer". No API key needed. */
 async function fetchSheet(sheetId, sheetName){
   const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&headers=1&_=${Date.now()}`;
   const res = await fetch(url);
   const text = await res.text();
   const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);?\s*$/);
-  if (!m) {
-    throw new Error('อ่านข้อมูลจาก COLLECTION ไม่สำเร็จ (ตรวจสอบว่า DATA ID / ชื่อ COLLECTION)');
-  }
+  if (!m) throw new Error(`อ่านแท็บ "${sheetName}" ไม่สำเร็จ (ตรวจสอบว่า Sheet ID ถูกต้อง และแชร์เป็น "ทุกคนที่มีลิงก์ดูได้")`);
   const json = JSON.parse(m[1]);
-  if (json.status === 'error') {
+  if (json.status === 'error'){
     const detail = (json.errors && json.errors[0] && json.errors[0].detailed_message) || 'unknown error';
-    throw new Error('COLLECTION ส่ง ERROR กลับมา: ' + detail);
+    throw new Error(`Google Sheet ส่ง error กลับมาสำหรับแท็บ "${sheetName}": ${detail}`);
   }
   const cols = json.table.cols.map(c => (c.label || c.id || '').trim());
   const rows = json.table.rows.map(r => (r.c || []).map(cell => cell ? cell.v : null));
   return { cols, rows };
-}
-
-/* ===================== LOCATION MASTER (locationSource code -> ชื่อสาขา) =====================
-   Separate tab in the same spreadsheet ("LocationMaster", columns locationCode / locationName).
-   Optional: if the tab or columns are missing, we just fall back to showing the raw
-   locationSource code everywhere — this must never break the main dashboard load. Loaded once
-   per sheetId (not on every 10s auto-refresh poll) since branch master data rarely changes;
-   the explicit "โหลดข้อมูล" button forces a re-fetch in case it was just edited. */
-const LOCATION_MASTER_SHEET_NAME = 'LocationMaster';
-let locationNameMap = {};          // locationCode (string) -> locationName
-let locationMasterLoadedFor = null; // sheetId this map was last (successfully or not) loaded for
-async function loadLocationMasterIfNeeded(sheetId, force){
-  if (!force && locationMasterLoadedFor === sheetId) return;
-  try {
-    const {cols, rows} = await fetchSheet(sheetId, LOCATION_MASTER_SHEET_NAME);
-    const codeIdx = cols.indexOf('locationCode');
-    const nameIdx = cols.indexOf('locationName');
-    if (codeIdx === -1 || nameIdx === -1){
-      throw new Error(`ไม่พบคอลัมน์ locationCode/locationName ใน "${LOCATION_MASTER_SHEET_NAME}"`);
-    }
-    const map = {};
-    rows.forEach(r => {
-      const code = r[codeIdx] == null ? '' : String(r[codeIdx]).trim();
-      const name = r[nameIdx] == null ? '' : String(r[nameIdx]).trim();
-      if (code && name) map[code] = name; // last row wins if a code appears more than once
-    });
-    locationNameMap = map;
-  } catch(err){
-    // Missing tab / columns / transient fetch error: keep dashboard working, just log it.
-    // (Don't wipe a previously-loaded map on a transient failure of a forced re-fetch.)
-    console.warn('โหลด LocationMaster ไม่สำเร็จ (จะแสดง locationSource แบบรหัสดิบแทน):', err.message);
-    if (locationMasterLoadedFor !== sheetId) locationNameMap = {};
-  } finally {
-    locationMasterLoadedFor = sheetId;
-  }
-}
-// Resolve a locationSource code to "code - branch name"; falls back to the raw code alone
-// when there's no match (unmapped code, or LocationMaster failed/hasn't loaded).
-function locationDisplayName(code){
-  if (isBlank(code)) return code;
-  const name = locationNameMap[code];
-  return name ? `${code} - ${name}` : code;
 }
 
 function parseGvizDate(v){
@@ -670,1258 +428,106 @@ function parseGvizDate(v){
   const d = new Date(v);
   return isNaN(d.getTime()) ? null : d;
 }
-
-function buildRows(cols, rawRows){
+function buildIndexMap(cols, headerMap){
   const idx = {};
-  for (const k in COL) idx[k] = cols.indexOf(COL[k]);
-  const missing = Object.keys(COL).filter(k => idx[k] === -1);
-  if (missing.length){
-    throw new Error('ไม่พบคอลัมน์ต่อไปนี้ใน COLLECTION: ' + missing.map(k => COL[k]).join(', ') +
-      ' — ตรวจสอบว่าหัวคอลัมน์ตรงกับที่ BACKEND เขียนไว้');
-  }
-  for (const k in COL_OPTIONAL) idx[k] = cols.indexOf(COL_OPTIONAL[k]);
-  const str = v => (v === null || v === undefined) ? '' : String(v).trim();
-  const num = v => {
-    if (v === null || v === undefined || v === '') return 0;
-    const n = parseFloat(String(v).replace(/,/g,''));
-    return isNaN(n) ? 0 : n;
-  };
-  const get = (r, key) => idx[key] === -1 ? undefined : r[idx[key]];
-  return rawRows.map(r => ({
-    ts: parseGvizDate(r[idx.ts]),
-    transactionId: str(r[idx.transactionId]),
-    orderId: str(r[idx.orderId]),
-    orderType: str(r[idx.orderType]),
-    state: str(r[idx.state]),
-    commercialName: str(r[idx.commercialName]),
-    campaignName: str(r[idx.campaignName]),
-    preBookingNo: str(r[idx.preBookingNo]),
-    serviceCareTitle: str(r[idx.serviceCareTitle]),
-    subStockDestination: str(r[idx.subStockDestination]),
-    menu: str(r[idx.menu]),
-    locationSource: str(get(r,'locationSource')),
-    imageUrl: str(get(r,'imageUrl')),
-    userId: str(get(r,'userId')),
-    custFirstName: str(get(r,'custFirstName')),
-    custLastName: str(get(r,'custLastName')),
-    custMobileNo: str(get(r,'custMobileNo')),
-    orderState: str(get(r,'orderState')),
-    brand: str(get(r,'brand')),
-    model: str(get(r,'model')),
-    matCode: str(get(r,'matCode')),
-    priceIncAmt: num(get(r,'priceIncAmt')),
-    priceDiscountAmt: num(get(r,'priceDiscountAmt')),
-    resOrderNo: str(get(r,'resOrderNo')),
-    resLocationName: str(get(r,'resLocationName')),
-    resType: str(get(r,'resType')),
-    resShippingType: str(get(r,'resShippingType')),
-    resShippingSLA: str(get(r,'resShippingSLA'))
-  })).filter(r => r.orderId);
+  for (const k in headerMap) idx[k] = cols.indexOf(headerMap[k]);
+  return idx;
 }
-
-/* ===================== HELPERS ===================== */
-const isBlank = v => !v || v === '-';
-const grp = ot => /AIS/i.test(ot) ? 'AIS' : 'PARTNER';
-function decodeObjectIdMs(oid){
-  if (!oid || oid.length < 8) return null;
-  const hex8 = oid.substring(0, 8);
-  if (!/^[0-9a-fA-F]{8}$/.test(hex8)) return null;
-  return parseInt(hex8, 16) * 1000;
+function numOf(v){
+  if (v === null || v === undefined || v === '') return 0;
+  const n = parseFloat(String(v).replace(/,/g,''));
+  return isNaN(n) ? 0 : n;
 }
-function topN(rows, field, n){
-  const m = {};
-  rows.forEach(r => { const k = r[field]; m[k] = (m[k] || 0) + 1; });
-  return Object.entries(m).map(([name,count]) => ({name,count})).sort((a,b)=>b.count-a.count).slice(0, n);
-}
-function fmtPct(p){ return (Math.round(p*10)/10).toFixed(1) + '%'; }
+function strOf(v){ return (v === null || v === undefined) ? null : String(v).trim() || null; }
 
-// Rounds a set of counts that share a common `total` into percentages (1 decimal place) using
-// the largest-remainder method, instead of rounding each one independently. Independent
-// rounding is why, e.g., three tiles showing 33.3% / 33.3% / 33.3% visually add up to 99.9%
-// instead of 100% — this instead rounds every value down first, then hands the leftover
-// tenths-of-a-percent to whichever entries had the largest fractional remainder, so the
-// displayed values always add up to exactly round(sum(counts)/total*1000)/10 (100.0% when
-// `counts` fully covers `total`; less than that if `counts` is a partial breakdown of `total`,
-// which is correct rather than padded). Returns an array of numbers (not strings) in the same
-// order as `counts`, ready to pass into fmtPct().
-function distributePct(counts, total){
-  if (!total) return counts.map(() => 0);
-  const raw = counts.map(c => (c / total) * 1000); // tenths-of-a-percent, so rounding to whole units still gives 1-decimal precision
-  const floors = raw.map(Math.floor);
-  const used = floors.reduce((a,b) => a+b, 0);
-  const target = Math.round(raw.reduce((a,b) => a+b, 0));
-  const remainder = Math.max(0, Math.min(counts.length, target - used));
-  const order = raw.map((v,i) => ({i, frac: v - floors[i]})).sort((a,b) => b.frac - a.frac);
-  for (let k = 0; k < remainder; k++) floors[order[k].i]++;
-  return floors.map(v => v / 10);
-}
-function fmtNum(n){ return n.toLocaleString('en-US'); }
-function esc(s){
-  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function bucketDate(d, mode){
-  if (mode === 'hour') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
-  if (mode === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-function hourLabel(d, mode){
-  const pad = n => String(n).padStart(2,'0');
-  if (mode === 'hour') return pad(d.getHours()) + ':00';
-  if (mode === 'month') return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
-  return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
-}
-
-function softUpdate(el, html){
-  if (!el) return;
-  if (el.innerHTML !== html) {
-    requestAnimationFrame(() => { el.innerHTML = html; });
-  }
-}
-
-function animateNumber(el, to){
-  if (!el) return;
-  const from = parseInt((el.textContent || '0').replace(/,/g,''), 10) || 0;
-  if (!dashboardBuilt || from === to){ el.textContent = fmtNum(to); return; }
-  const dur = 500, start = performance.now();
-  function step(t){
-    const p = Math.min(1, (t - start) / dur);
-    const eased = 1 - Math.pow(1 - p, 3);
-    el.textContent = fmtNum(Math.round(from + (to - from) * eased));
-    if (p < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
-}
-
-function drawRing(canvasEl, pct, color){
-  if (!canvasEl || !canvasEl.getContext) return;
-  const ctx = canvasEl.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const size = 64;
-  canvasEl.width = size * dpr; canvasEl.height = size * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const cx = size/2, cy = size/2, r = size/2 - 6;
-  const target = Math.max(0, Math.min(100, pct));
-  const from = canvasEl.dataset.pct ? parseFloat(canvasEl.dataset.pct) : 0;
-  canvasEl.dataset.pct = target;
-  const dur = 650, start = performance.now();
-  function frame(t){
-    const p = Math.min(1, (t - start) / dur);
-    const eased = 1 - Math.pow(1 - p, 3);
-    const cur = from + (target - from) * eased;
-    ctx.clearRect(0, 0, size, size);
-    ctx.lineWidth = 6; ctx.lineCap = 'round';
-    ctx.strokeStyle = '#3A2F27';
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
-    ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
-    ctx.stroke();
-    ctx.fillStyle = '#EFE7DA';
-    ctx.font = '700 10px "IBM Plex Sans Thai",-apple-system,sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(cur.toFixed(1) + '%', cx, cy);
-    if (p < 1) requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-}
-
-/* ===================== METRICS ===================== */
-function computeMetrics(rows){
-  const stateRows = rows.filter(r => r.state);
-  const grandTotal = stateRows.length;
-  const stateCounts = {}; STATES.forEach(s => stateCounts[s] = 0);
-  stateRows.forEach(r => { if (stateCounts[r.state] === undefined) stateCounts[r.state] = 0; stateCounts[r.state]++; });
-  const completeCount = stateCounts.COMPLETE || 0;
-  // COMPLETE + the "other statuses" tiles are all fractions of the same grandTotal and are
-  // shown together (ring + tiles) as one breakdown, so they're distributed as one group —
-  // otherwise COMPLETE's ring % and the four tiles' %'s could independently round to a sum
-  // just off of 100%.
-  const otherStates = STATES.filter(s => s !== 'COMPLETE');
-  const statusPctAll = distributePct([completeCount, ...otherStates.map(s => stateCounts[s]||0)], grandTotal);
-  const completePct = statusPctAll[0];
-  const statusTiles = otherStates.map((s, idx) => ({
-    state: s, count: stateCounts[s] || 0, pct: statusPctAll[idx+1]
-  }));
-
-  const completeRows = rows.filter(r => r.state === 'COMPLETE');
-  const prebookRows = completeRows.filter(r => !isBlank(r.preBookingNo));
-
-  const otRows = completeRows.filter(r => r.orderType);
-  const otCounts = {AIS:0, PARTNER:0};
-  otRows.forEach(r => otCounts[grp(r.orderType)]++);
-  const otTotal = otCounts.AIS + otCounts.PARTNER;
-  const prebookByGrp = {AIS:0, PARTNER:0};
-  prebookRows.forEach(r => { if (r.orderType) prebookByGrp[grp(r.orderType)]++; });
-  const prebookTotal = prebookRows.length;
-  const nonPrebookByGrp = {
-    AIS: otCounts.AIS - prebookByGrp.AIS,
-    PARTNER: otCounts.PARTNER - prebookByGrp.PARTNER
-  };
-  // AIS vs PARTNER share is one group out of otTotal (sums to 100%). Within each group, its
-  // Pre-Booking / non-Pre-Booking split is distributed against that SAME otTotal denominator
-  // (not against the group's own count) so "non-Pre % + Pre % " always reconstructs exactly
-  // that group's own % — no independent-rounding drift between the two numbers.
-  const [otPctAIS, otPctPartner] = distributePct([otCounts.AIS, otCounts.PARTNER], otTotal);
-  const otPct = {AIS: otPctAIS, PARTNER: otPctPartner};
-  const [prePctAIS, nonPrePctAIS] = distributePct([prebookByGrp.AIS, nonPrebookByGrp.AIS], otTotal);
-  const [prePctPartner, nonPrePctPartner] = distributePct([prebookByGrp.PARTNER, nonPrebookByGrp.PARTNER], otTotal);
-  const prebookPctByGrp = {AIS: prePctAIS, PARTNER: prePctPartner};
-  const nonPrebookPctByGrp = {AIS: nonPrePctAIS, PARTNER: nonPrePctPartner};
-
-  // Overall Complete vs Pre-Booking (hero card) — same net-out-Pre-Booking treatment: how many
-  // of the completed orders have no Pre-Booking number vs how many do, each with its own %.
-  const nonPrebookTotal = completeCount - prebookTotal;
-  const [prebookPctOfComplete, nonPrebookPctOfComplete] = distributePct([prebookTotal, nonPrebookTotal], completeCount);
-
-  // Sub stock destination
-  const stockRows = completeRows.filter(r => !isBlank(r.subStockDestination));
-  const stockMap = {};
-  stockRows.forEach(r => stockMap[r.subStockDestination] = (stockMap[r.subStockDestination]||0)+1);
-  let stockArr = Object.entries(stockMap).map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count);
-  if (stockArr.length > 4){
-    const top4 = stockArr.slice(0,4);
-    const other = stockArr.slice(4).reduce((s,x)=>s+x.count,0);
-    stockArr = [...top4, {name:'OTHER', count: other}];
-  }
-  const stockTotal = stockRows.length;
-  const stockPctArr = distributePct(stockArr.map(s => s.count), stockTotal);
-  stockArr = stockArr.map((s,i) => ({...s, pct: stockPctArr[i]}));
-
-  // Order Omni & Shipping — "Order Omni" = completed order that has a reserve/omni order
-  // number (orders.reserve.orderNo), same field orderOmniCellHtml() in the Tracking Order
-  // table checks to decide whether to show a value or '-'.
-  const omniRows = completeRows.filter(r => !isBlank(r.resOrderNo));
-  const omniTotal = omniRows.length;
-  const nonOmniTotal = completeCount - omniTotal;
-  const [omniPctOfComplete, nonOmniPctOfComplete] = distributePct([omniTotal, nonOmniTotal], completeCount);
-  const shipMap = {};
-  omniRows.forEach(r => {
-    const label = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ') || 'ไม่ระบุ';
-    shipMap[label] = (shipMap[label] || 0) + 1;
-  });
-  // Every Omni row lands in exactly one bucket (falls back to 'ไม่ระบุ' if both shipping
-  // fields are blank), so shipTotal === omniTotal and the %'s always sum to 100% of Omni orders.
-  let shipArr = Object.entries(shipMap).map(([name,count]) => ({name,count})).sort((a,b) => b.count - a.count);
-  const shipTotal = omniTotal;
-  const shipPctArr = distributePct(shipArr.map(s => s.count), shipTotal);
-  shipArr = shipArr.map((s,i) => ({...s, pct: shipPctArr[i]}));
-
-  // Order by menu
-  const menuCounts = {};
-  completeRows.forEach(r => { const m = r.menu || 'Unknown'; menuCounts[m] = (menuCounts[m]||0)+1; });
-  const menuPrebook = {};
-  prebookRows.forEach(r => { const m = r.menu || 'Unknown'; menuPrebook[m] = (menuPrebook[m]||0)+1; });
-  const menuArr = Object.entries(menuCounts).map(([menu,orderCount]) => {
-    const prebookCount = menuPrebook[menu] || 0;
-    const nonPrebookCount = orderCount - prebookCount;
-    const [prebookPct, nonPrebookPct] = distributePct([prebookCount, nonPrebookCount], orderCount);
-    return { menu, orderCount, prebookCount, nonPrebookCount, prebookPct, nonPrebookPct };
-  }).sort((a,b) => b.orderCount - a.orderCount);
-
-  // Hourly volume bucketing
-  const tsRows = completeRows.filter(r => r.ts);
-  let mode = 'hour', buckets = [];
-  if (tsRows.length){
-    const times = tsRows.map(r => r.ts.getTime());
-    const rangeHours = (Math.max(...times) - Math.min(...times)) / 3600000;
-    mode = rangeHours <= 24 ? 'hour' : (rangeHours > 24*30 ? 'month' : 'day');
-    const volMap = {};
-    tsRows.forEach(r => {
-      const b = bucketDate(r.ts, mode);
-      const key = b.getTime();
-      volMap[key] = volMap[key] || {date: b, AIS: 0, PARTNER: 0};
-      volMap[key][grp(r.orderType || '')]++;
+/* ===================== LOCATION MASTER (cached per Sheet ID) ===================== */
+async function loadLocationMasterIfNeeded(sheetId, force){
+  if (!force && state.locationMasterLoadedFor === sheetId) return;
+  try{
+    const {cols, rows} = await fetchSheet(sheetId, LOCATION_SHEET_NAME);
+    const idx = buildIndexMap(cols, LOC_HEADERS);
+    if (idx.code === -1 || idx.name === -1){
+      throw new Error(`ไม่พบคอลัมน์ locationCode/locationName ใน "${LOCATION_SHEET_NAME}"`);
+    }
+    const map = {};
+    rows.forEach(r => {
+      const code = strOf(r[idx.code]), name = strOf(r[idx.name]);
+      if (code && name) map[code] = name;
     });
-    buckets = Object.values(volMap).sort((a,b) => a.date - b.date);
+    state.locationMap = map;
+    state.locationMasterLoadedFor = sheetId;
+  }catch(err){
+    console.warn('โหลด LocationMaster ไม่สำเร็จ (จะแสดงรหัสสาขาดิบแทน):', err.message);
+    if (state.locationMasterLoadedFor !== sheetId) state.locationMap = {};
   }
-  const volTotal = tsRows.length;
+}
 
-  // Duration overview
-  const durRows = [];
-  completeRows.forEach(r => {
-    if (!r.ts) return;
-    const createdMs = decodeObjectIdMs(r.orderId);
-    if (createdMs == null) return;
-    const durationMs = r.ts.getTime() - createdMs;
-    if (durationMs < 0) return;
-    const durationMin = durationMs / 60000;
-    const tier = durationMs < 600000 ? 'green' : (durationMs < 1800000 ? 'yellow' : 'red');
-    durRows.push({...r, durationMs, durationMin, tier});
-  });
-  const durTotal = durRows.length;
-  const tierCounts = {green:0, yellow:0, red:0};
-  durRows.forEach(r => tierCounts[r.tier]++);
-  const [greenPct, yellowPct, redPct] = distributePct([tierCounts.green, tierCounts.yellow, tierCounts.red], durTotal);
-  const tierPct = {green: greenPct, yellow: yellowPct, red: redPct};
-  const byOT = {};
-  durRows.forEach(r => { if (!r.orderType) return; (byOT[r.orderType] = byOT[r.orderType] || []).push(r.durationMin); });
-  const otDur = Object.entries(byOT).map(([orderType, arr]) => {
-    const sorted = [...arr].sort((a,b)=>a-b);
-    const avg = arr.reduce((s,x)=>s+x,0) / arr.length;
-    const p90idx = Math.min(Math.ceil(0.9*sorted.length)-1, sorted.length-1);
-    return { orderType, avg, p90: sorted[p90idx], cnt: arr.length };
-  }).sort((a,b) => b.cnt - a.cnt).slice(0, 8);
+/* ===================== LOG (latest run status) ===================== */
+async function loadLog(sheetId){
+  try{
+    const {cols, rows} = await fetchSheet(sheetId, LOG_SHEET_NAME);
+    const idx = buildIndexMap(cols, LOG_HEADERS);
+    const parsed = rows
+      .filter(r => r[idx.runAt] != null)
+      .map(r => ({
+        runAt: parseGvizDate(r[idx.runAt]),
+        fileName: strOf(idx.fileName === -1 ? null : r[idx.fileName]),
+        status: strOf(idx.status === -1 ? null : r[idx.status]),
+        totalRecords: idx.totalRecords === -1 ? null : numOf(r[idx.totalRecords]),
+        insertedSuccess: idx.insertedSuccess === -1 ? null : numOf(r[idx.insertedSuccess]),
+        insertedFailed: idx.insertedFailed === -1 ? null : numOf(r[idx.insertedFailed])
+      }))
+      .sort((a,b) => b.runAt - a.runAt);
+    state.logRows = parsed;
+  }catch(err){
+    console.warn('โหลด Log ไม่สำเร็จ:', err.message);
+    state.logRows = [];
+  }
+}
 
-  const slowest = durRows.filter(r => r.tier === 'red')
-    .sort((a,b) => b.durationMs - a.durationMs).slice(0, 8)
+/* ===================== ORDER ===================== */
+function buildOrderRows(cols, rows){
+  const idx = buildIndexMap(cols, ORDER_HEADERS);
+  if (idx.ts === -1 || idx.status === -1){
+    throw new Error(`ไม่พบคอลัมน์ "${ORDER_HEADERS.ts}" หรือ "${ORDER_HEADERS.status}" ในแท็บข้อมูล — ตรวจสอบชื่อแท็บและหัวคอลัมน์`);
+  }
+  return rows
+    .filter(r => r[idx.ts] != null)
     .map(r => ({
-      id: r.transactionId || r.orderId,
-      orderType: r.orderType || '-',
-      durLabel: r.durationMin >= 60
-        ? Math.floor(r.durationMin/60) + 'h ' + Math.floor(r.durationMin%60) + 'm'
-        : Math.floor(r.durationMin) + 'm'
+      ts: parseGvizDate(r[idx.ts]),
+      transactionId: strOf(idx.transactionId === -1 ? null : r[idx.transactionId]),
+      locationSource: strOf(idx.locationSource === -1 ? null : r[idx.locationSource]),
+      orderType: strOf(idx.orderType === -1 ? null : r[idx.orderType]),
+      status: strOf(idx.status === -1 ? null : r[idx.status]),
+      commercialName: strOf(idx.commercialName === -1 ? null : r[idx.commercialName]),
+      priceIncAmt: idx.priceIncAmt === -1 ? 0 : numOf(r[idx.priceIncAmt]),
+      priceDiscountAmt: idx.priceDiscountAmt === -1 ? 0 : numOf(r[idx.priceDiscountAmt])
     }));
-
-  let durBuckets = [];
-  if (durRows.length){
-    const dMap = {};
-    durRows.forEach(r => {
-      const b = bucketDate(r.ts, mode);
-      const key = b.getTime();
-      dMap[key] = dMap[key] || {date: b, sum: 0, n: 0};
-      dMap[key].sum += r.durationMin; dMap[key].n++;
-    });
-    durBuckets = Object.values(dMap).sort((a,b) => a.date - b.date)
-      .map(x => ({date: x.date, avg: x.sum / x.n}));
-  }
-
-  // Top selling device / accessory
-  const validName = n => n && n !== '-' && n !== 'Invalid' && n.length < 100;
-  const devRows = completeRows.filter(r => r.menu !== 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
-  const accRows = completeRows.filter(r => r.menu === 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
-  const deviceTop = topN(devRows, 'commercialName', 30);
-  const accessoryTop = topN(accRows, 'commercialName', 30);
-  const deviceItems = new Set(devRows.map(r => r.commercialName)).size;
-  const accessoryItems = new Set(accRows.map(r => r.commercialName)).size;
-  const deviceOrders = devRows.length;
-  const accessoryOrders = accRows.length;
-
-  // Top campaigns / service care
-  const campRows = completeRows.filter(r => !isBlank(r.campaignName));
-  const svcRows = completeRows.filter(r => !isBlank(r.serviceCareTitle));
-  const campTop = topN(campRows, 'campaignName', 30);
-  const svcTop = topN(svcRows, 'serviceCareTitle', 30);
-  const campItems = new Set(campRows.map(r => r.campaignName)).size;
-  const svcItems = new Set(svcRows.map(r => r.serviceCareTitle)).size;
-  const campOrders = campRows.length;
-  const svcOrders = svcRows.length;
-
-  // Branch / location source
-  const locRows = completeRows.filter(r => !isBlank(r.locationSource));
-  const locMap = {};
-  locRows.forEach(r => {
-    const a = locMap[r.locationSource] || (locMap[r.locationSource] = {count:0, stockMap:{}});
-    a.count++;
-    if (!isBlank(r.subStockDestination)) a.stockMap[r.subStockDestination] = (a.stockMap[r.subStockDestination]||0) + 1;
-  });
-  const locTop = Object.entries(locMap).map(([code,v]) => {
-    let topStock = null, topStockCount = 0;
-    Object.entries(v.stockMap).forEach(([s,c]) => { if (c > topStockCount){ topStock = s; topStockCount = c; } });
-    return { code, name: locationDisplayName(code), count: v.count, topStock, topStockPct: v.count ? topStockCount/v.count*100 : 0 };
-  }).sort((a,b) => b.count - a.count).slice(0, 10);
-  const locTotal = locRows.length;
-  const locItems = Object.keys(locMap).length;
-
-  // Image lookup map
-  const buildImgMap = rowsSrc => {
-    const m = {};
-    rowsSrc.forEach(r => { if (!m[r.commercialName] && !isBlank(r.imageUrl)) m[r.commercialName] = r.imageUrl; });
-    return m;
-  };
-  const deviceImgMap = buildImgMap(devRows);
-  const accessoryImgMap = buildImgMap(accRows);
-
-  // ---- Tracking Order (row-level table, every status — not just COMPLETE) ----
-  // Sorted latest-first by TIMESTAMP, same as the source Vega table. No longer capped
-  // (previously capped at 500 latest rows) — a cap here meant the search box could never
-  // find a transaction older than the cap, since it filtered inside an already-truncated
-  // array. The "SHOW" slider below still limits how many rows are actually rendered/decrypted
-  // at once (client-side, after search), so the visible table stays small by default even
-  // though the full history is now searchable.
-  const trackGrandTotal = rows.filter(r => r.orderId).length;
-  const trackAll = rows.filter(r => r.orderId)
-    .slice()
-    .sort((a,b) => (b.ts ? b.ts.getTime() : 0) - (a.ts ? a.ts.getTime() : 0))
-    .map(r => {
-      const createdMs = decodeObjectIdMs(r.orderId);
-      const durationMs = (r.ts && createdMs != null) ? (r.ts.getTime() - createdMs) : null;
-      return { ...r, createdMs, durationMs: (durationMs != null && durationMs >= 0) ? durationMs : null };
-    });
-  const trackTotal = trackAll.length;
-
-  return {
-    grandTotal, completeCount, completePct, statusTiles,
-    otCounts, otTotal, otPct, prebookByGrp, prebookTotal, nonPrebookByGrp,
-    prebookPctByGrp, nonPrebookPctByGrp, nonPrebookTotal, prebookPctOfComplete, nonPrebookPctOfComplete,
-    stockArr, stockTotal,
-    omniTotal, nonOmniTotal, omniPctOfComplete, nonOmniPctOfComplete, shipArr, shipTotal,
-    menuArr,
-    mode, buckets, volTotal,
-    durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
-    deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
-    campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
-    locTop, locTotal, locItems,
-    deviceImgMap, accessoryImgMap,
-    trackAll, trackTotal, trackGrandTotal
-  };
 }
 
-/* ===================== SKELETON (built once) ===================== */
-function buildSkeleton(){
-  const dash = document.getElementById('dashboard');
-  dash.innerHTML = `
-    <div class="hero">
-      <div class="hero-sticker">COMPLETED</div>
-      <div class="hero-left">
-        <div class="hero-ring"><canvas id="ringComplete" width="64" height="64"></canvas></div>
-        <div class="hero-nums">
-          <div class="big" id="val-complete">0</div>
-          <div class="lbl">TOTAL ORDER COMPLETED</div>
-          <div class="of-total" id="tag-grandtotal"></div>
-          <div class="of-total prebook-badge" id="tag-completeprebook"></div>
-        </div>
-      </div>
-      <div class="hero-right">
-        <h3>Other statuses</h3>
-        <div class="tiles" id="tiles-status"></div>
-      </div>
-    </div>
-
-    <div class="grid-70-30">
-      <div class="col-70">
-        <div class="card rank-card">
-          <h2>Top Selling &amp; Marketing Performance</h2>
-          <div class="rank-subcards">
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Top Selling Device &amp; Accessory</h3><span class="tag">by completed orders</span></div>
-              <div class="rank-section">
-                <div>
-                  <div class="rank-col-header"><span class="lbl" id="hdr-device-items">Device</span><span class="cnt" id="cnt-device"></span></div>
-                  <div class="rank-list soft" id="body-device-list"></div>
-                </div>
-                <div>
-                  <div class="rank-col-header"><span class="lbl" id="hdr-accessory-items">Accessory</span><span class="cnt" id="cnt-accessory"></span></div>
-                  <div class="rank-list soft" id="body-accessory-list"></div>
-                </div>
-              </div>
-              <div class="rank-slider-row">
-                <span class="rank-slider-lbl">SHOW</span>
-                <input type="range" min="5" max="30" step="5" value="10" id="sliderDevice">
-                <span class="rank-slider-val" id="sliderDeviceVal">10</span>
-              </div>
-            </div>
-
-            <div class="rank-subcard alt">
-              <div class="rank-subcard-head"><h3>Top Campaigns &amp; Service Care</h3><span class="tag">by completed orders</span></div>
-              <div class="rank-section">
-                <div>
-                  <div class="rank-col-header"><span class="lbl" id="hdr-camp-items">Campaign</span><span class="cnt" id="cnt-camp"></span></div>
-                  <div class="rank-list soft" id="body-camp-list"></div>
-                </div>
-                <div>
-                  <div class="rank-col-header"><span class="lbl" id="hdr-svc-items">Service Care</span><span class="cnt" id="cnt-svc"></span></div>
-                  <div class="rank-list soft" id="body-svc-list"></div>
-                </div>
-              </div>
-              <div class="rank-slider-row">
-                <span class="rank-slider-lbl">SHOW</span>
-                <input type="range" min="5" max="30" step="5" value="10" id="sliderCampaign">
-                <span class="rank-slider-val" id="sliderCampaignVal">10</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-30">
-        <div class="card">
-          <h2>Order by Menu <span class="tag">Pre-Booking subset</span></h2>
-          <div class="card-body soft" id="body-menu"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-asym">
-      <div class="col-narrow">
-        <div class="card">
-          <h2>Order Source &amp; Stock Destination</h2>
-          <div class="rank-subcards subcards-stack">
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>AIS Shop vs Partner</h3><span class="tag" id="tag-prebooktotal"></span></div>
-              <div class="card-body soft" id="body-aispartner"></div>
-            </div>
-            <div class="rank-subcard alt">
-              <div class="rank-subcard-head"><h3>Sub Stock Destination</h3></div>
-              <div class="stock-donut-wrap">
-                <div class="chart-wrap donut"><canvas id="chartStock"></canvas></div>
-                <div class="stock-legend soft" id="body-substock"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-wide">
-        <div class="card">
-          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
-          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-        </div>
-        <div class="card">
-          <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
-          <div class="rank-subcards subcards-duo">
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Order Omni</h3></div>
-              <div class="card-body soft" id="body-omni"></div>
-            </div>
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
-              <div class="rank-list soft" id="body-shipping"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid-duo-equal">
-      <div class="card">
-        <h2>Duration Performance</h2>
-        <div class="rank-subcards subcards-stack">
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Duration Overview</h3><span class="tag" id="tag-durtotal"></span></div>
-            <div class="tier-grid soft" id="tiles-tier"></div>
-          </div>
-          <div class="rank-subcard alt">
-            <div class="rank-subcard-head"><h3>Avg / P90 Duration by Order Type</h3></div>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th>Order Type</th><th>Avg</th><th>P90</th><th>Orders</th></tr></thead>
-                <tbody id="body-avgp90"></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Slowest Orders</h3><span class="tag">&gt;= 30m</span></div>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th>Order / Transaction ID</th><th>Order Type</th><th>Time</th></tr></thead>
-                <tbody id="body-slowest"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Branch &amp; Stock Flow <span class="tag" id="tag-loctotal"></span></h2>
-        <div class="rank-subcards subcards-stack">
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Top Branches by Completed Orders</h3></div>
-            <div class="rank-list soft" id="body-branch-list"></div>
-          </div>
-          <div class="rank-subcard alt">
-            <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
-            <div class="table-scroll">
-              <table>
-                <thead><tr><th>Branch / Source</th><th>Orders</th><th>Top Stock</th></tr></thead>
-                <tbody id="body-branch-stock"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Tracking Order <span class="tag" id="tag-tracktotal"></span></h2>
-      <div class="track-toolbar">
-        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / Order Type / รุ่นเครื่อง...">
-        <div class="track-slider-row">
-          <span class="rank-slider-lbl">SHOW</span>
-          <input type="range" min="25" max="500" step="25" value="50" id="sliderTrack">
-          <span class="rank-slider-val" id="sliderTrackVal">50</span>
-        </div>
-      </div>
-      <div class="table-scroll track-table-scroll">
-        <table class="track-table">
-          <thead>
-            <tr>
-              <th class="col-info"></th>
-              <th class="col-no">No.</th>
-              <th>Timestamp</th>
-              <th>Transaction ID</th>
-              <th>Pre-Booking No</th>
-              <th>User ID</th>
-              <th>Customer Name</th>
-              <th>Order Type</th>
-              <th>Order Status</th>
-              <th>Order State</th>
-              <th>Duration</th>
-              <th class="col-commname">Commercial Name</th>
-              <th class="col-orderomni">Order Omni</th>
-            </tr>
-          </thead>
-          <tbody id="body-track"></tbody>
-        </table>
-      </div>
-    </div>
-  `;
-
-  dashboardBuilt = true;
+/* ===================== Helpers ===================== */
+function locationName(code){
+  if (!code) return 'ไม่ระบุ';
+  return state.locationMap[code] || code;
 }
-
-/* ===================== TRACKING ORDER (row-level table) ===================== */
-const trackRowKey = r => (r.transactionId || '') + '|' + (r.orderId || '');
-let openTrackKey = null;      // key of the row whose pinned "info" tooltip is open, if any
-let trackRenderToken = 0;     // guards a stale async render from overwriting a newer one
-
-// firstName is shown in full; lastName keeps only its first character and masks the rest
-// with 'x' — same masking rule as the source Vega table. Both are decrypted client-side
-// first (see DECRYPTION section above); the Sheet itself only ever stores ciphertext.
-function customerNameMasked(first, last){
-  const f = (first || '').trim();
-  let l = (last || '').trim();
-  if (l.length > 1) l = l[0] + 'x'.repeat(l.length - 1);
-  const combined = (f + ' ' + l).trim();
-  return combined || '-';
+function netPrice(r){ return r.priceIncAmt - r.priceDiscountAmt; }
+function fmtBaht(n){ return '฿' + Math.round(n).toLocaleString('th-TH'); }
+function toDateStr(d){
+  if (!(d instanceof Date) || isNaN(d)) return '';
+  const p = (n) => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
 }
-
-const STATUS_BADGE = {
-  COMPLETE: ['var(--green-bg)','#A9C79E'],
-  WAITING_PAYMENT: ['var(--gold-bg)','#D9B679'],
-  READY_TO_PAY: ['var(--slate-bg)','#9DBECE'],
-  PENDING: ['var(--stone-bg)','#C9BBA6'],
-  DELETE: ['var(--accent-bg)','#E8A79C']
-};
-function statusBadgeHtml(state){
-  const [bg,fg] = STATUS_BADGE[state] || ['var(--border-soft)','var(--text-dim)'];
-  return `<span class="badge" style="background:${bg};color:${fg}">${esc(state || '-')}</span>`;
+function fmtDateTime(d){
+  if (!(d instanceof Date) || isNaN(d)) return '-';
+  const p = (n) => String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-// Order "state" tiers (granular workflow step, e.g. DEVICE_SELECTED,
-// PAYMENT_PAID) — same three groups & colors as the source Vega table.
-const ORDER_STATE_GREEN = new Set(['PAYMENT_PAID','PRE_PROVISION_COMPLETED','PERSO_COMPLETED','CONTRACT_COMPLETED','SIM_REGISTRATION_COMPLETED','BILLING_COMPLETED']);
-const ORDER_STATE_BLUE = new Set(['ORDER_REQUESTED','KYC_VERIFIED','SIM_IDENTIFIED','APPLEWATCH_VERIFIED','MOBILENO_VERIFIED','NEWCA_VERIFIED','EFORM_SIGNED','IDCARD_IDENTIFIED','VERIFY_PASSPORT','REPI_VERIFY_MOBILE','MOBILE_IDENTIFIED','PROFILE_VERIFIED']);
-const ORDER_STATE_ORANGE = new Set(['ACCESSORY_SELECTED','CART_PREPARED','CART_SELECTED','PAYMENT_SELECTED','PAYMENT_SUMMARIZED','CARE_SELECTED','SHARE_PACKAGE_SELECTED','NUMBER_SELECTED','PACKAGE_SELECTED','ORDER_SUMMARIZED','SIMTYPE_SELECTED','DEVICE_SELECTED','EXTRADOC_UPLOADED','BILL_SELECTED']);
-function orderStateBadgeHtml(state){
-  if (isBlank(state)) return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
-  let bg = 'var(--border-soft)', fg = 'var(--text-dim)';
-  if (ORDER_STATE_GREEN.has(state)) { bg = 'var(--green-bg)'; fg = '#A9C79E'; }
-  else if (ORDER_STATE_BLUE.has(state)) { bg = 'var(--slate-bg)'; fg = '#9DBECE'; }
-  else if (ORDER_STATE_ORANGE.has(state)) { bg = 'var(--gold-bg)'; fg = '#D9B679'; }
-  return `<span class="badge" style="background:${bg};color:${fg}">${esc(state)}</span>`;
-}
-
-function durationLabel(ms){
-  const totalMin = Math.floor(ms / 60000);
-  const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60), m = totalMin % 60;
-  const parts = [];
-  if (d > 0) parts.push(d + 'd');
-  if (h > 0) parts.push(h + 'h');
-  parts.push(m + 'm');
-  // Under 1 minute total, "0m" alone hides the real elapsed time (could be 0s or 59s) — show
-  // seconds too in that case (e.g. "0m 2s") instead of a flat, uninformative "0m".
-  if (d === 0 && h === 0 && m === 0){
-    const s = Math.floor((ms % 60000) / 1000);
-    parts.push(s + 's');
-  }
-  return parts.join(' ');
-}
-function durationBadgeHtml(durationMs, createdMs){
-  if (durationMs == null){
-    return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
-  }
-  const bg = durationMs < 600000 ? 'var(--green-bg)' : durationMs < 1800000 ? 'var(--gold-bg)' : 'var(--accent-bg)';
-  const fg = durationMs < 600000 ? '#A9C79E' : durationMs < 1800000 ? '#D9B679' : '#E8A79C';
-  const startLabel = createdMs != null ? new Date(createdMs).toLocaleString('th-TH') : '-';
-  const totalSec = Math.floor(durationMs / 1000);
-  const fullLabel = `${Math.floor(totalSec/3600)}h ${Math.floor((totalSec%3600)/60)}m ${totalSec%60}s`;
-  const tip = ['เริ่มสร้าง: ' + startLabel, 'ระยะเวลา: ' + fullLabel].join('\n');
-  return `<span class="badge" style="background:${bg};color:${fg}" data-tip="${esc(tip)}">${esc(durationLabel(durationMs))}</span>`;
-}
-
-function commercialNameCellHtml(r){
-  if (isBlank(r.commercialName)) return '<span class="empty" style="padding:0;">-</span>';
-  const tip = [
-    !isBlank(r.brand) ? 'Brand: ' + r.brand : null,
-    !isBlank(r.model) ? 'Model: ' + r.model : null,
-    !isBlank(r.matCode) ? 'Mat Code: ' + r.matCode : null,
-    r.priceIncAmt ? 'Price: ' + fmtNum(r.priceIncAmt) : null,
-    r.priceDiscountAmt ? 'Discount: ' + fmtNum(r.priceDiscountAmt) : null
-  ].filter(Boolean).join('\n');
-  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.commercialName)}</span>`;
-}
-
-function orderOmniCellHtml(r){
-  if (isBlank(r.resOrderNo)) return '<span class="empty" style="padding:0;">-</span>';
-  const shipping = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ');
-  const tip = [
-    !isBlank(r.resLocationName) ? 'Location: ' + r.resLocationName : null,
-    !isBlank(r.resType) ? 'Type: ' + r.resType : null,
-    shipping ? 'Shipping: ' + shipping : null
-  ].filter(Boolean).join('\n');
-  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
-}
-
-// Content for the pinned "info" tooltip on a Tracking Order row: full decrypted customer
-// name + mobile number (unlike the masked table cell), the product image when available,
-// and the rest of the order detail fields. Decryption runs client-side with the Secret Key
-// from the config panel — the Sheet only ever stores ciphertext for these fields, so anyone
-// viewing the Sheet (or this page without the key) never sees more than ciphertext/mask.
-async function buildTrackTooltipHtml(r){
-  const secretKey = getSecretKey();
-  let piiHtml;
-  if (!secretKey){
-    piiHtml = `<div class="tt-lock">🔒 กรอก Secret Key ในแผงตั้งค่า (ดับเบิลคลิกหัวข้อ "Order Dashboard") เพื่อดูชื่อ-เบอร์โทรเต็ม</div>`;
-  } else {
-    const [first, last, mobile] = await Promise.all([
-      decryptCached(r.custFirstName, secretKey),
-      decryptCached(r.custLastName, secretKey),
-      decryptCached(r.custMobileNo, secretKey)
-    ]);
-    if ([first, last, mobile].includes('__DECRYPT_FAILED__')){
-      piiHtml = `<div class="tt-lock">⚠️ ถอดรหัสไม่สำเร็จ — ตรวจสอบว่า Secret Key ตรงกับที่ตั้งไว้ใน Code.gs</div>`;
-    } else {
-      const fullName = (first + ' ' + last).trim() || '-';
-      piiHtml = `<div class="tt-pii">
-        <div class="dl">Customer Name</div><div class="dv">${esc(fullName)}</div>
-        <div class="dl" style="margin-top:4px;">Mobile No.</div><div class="dv">${esc(mobile || '-')}</div>
-      </div>`;
-    }
-  }
-
-  const imgHtml = !isBlank(r.imageUrl)
-    ? `<img class="tt-img" src="${esc(r.imageUrl)}" alt="${esc(r.commercialName || '')}" onerror="this.remove()">`
-    : '';
-
-  const fields = [
-    ['Menu', r.menu],
-    ['Order Source', locationDisplayName(r.locationSource)],
-    ['Service Care', r.serviceCareTitle],
-    ['Stock Destination', r.subStockDestination],
-    ['Campaign', r.campaignName],
-    ['Reserve Location', r.resLocationName],
-    ['Reserve Type', r.resType],
-    ['Shipping', [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ')]
-  ];
-  const detailHtml = fields.map(([l,v]) => `<div><div class="dl">${esc(l)}</div><div class="dv">${isBlank(v) ? '-' : esc(v)}</div></div>`).join('');
-
-  return `<button type="button" class="tt-close" title="ปิด">&times;</button>
-    ${imgHtml}
-    <div class="tt-title">${esc(r.commercialName || r.transactionId || '-')}</div>
-    ${piiHtml}
-    <div class="track-detail-grid">${detailHtml}</div>`;
-}
-
-// Generic hover tooltip: shows the text from any [data-tip] element's attribute in a small
-// themed card (#hoverTip) instead of the browser's plain native title="" bubble. Delegated on
-// document since most [data-tip] elements (table cells, rank rows, bar labels) are re-rendered
-// on every refresh. Independent of the pinned #trackTooltip above (that one is click-to-open
-// and stays put; this one is hover-only and always follows the pointer's target).
-function positionHoverTip(box, anchorRect){
-  const pad = 6;
-  const w = box.offsetWidth || 160, h = box.offsetHeight || 24;
-  let x = anchorRect.left + (anchorRect.width - w) / 2;
-  let y = anchorRect.top - h - pad;
-  if (y < 8) y = anchorRect.bottom + pad; // flip below if it would overflow the top
-  if (x < 8) x = 8;
-  if (x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
-  box.style.left = Math.round(Math.max(8, x)) + 'px';
-  box.style.top = Math.round(y) + 'px';
-}
-
-function initHoverTips(){
-  const box = document.getElementById('hoverTip');
-  if (!box) return;
-  let activeEl = null;
-  const show = (el) => {
-    const text = el.getAttribute('data-tip');
-    if (!text) return;
-    activeEl = el;
-    box.textContent = text;
-    box.classList.add('show');
-    positionHoverTip(box, el.getBoundingClientRect());
-  };
-  const hide = () => { activeEl = null; box.classList.remove('show'); };
-  document.addEventListener('mouseover', (e) => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el && el !== activeEl) show(el);
-  });
-  document.addEventListener('mouseout', (e) => {
-    if (!activeEl) return;
-    const stillInside = e.relatedTarget && activeEl.contains(e.relatedTarget);
-    if (!stillInside) hide();
-  });
-  document.addEventListener('focusin', (e) => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el) show(el);
-  });
-  document.addEventListener('focusout', (e) => {
-    const el = e.target.closest && e.target.closest('[data-tip]');
-    if (el) hide();
-  });
-  window.addEventListener('scroll', hide, true);
-  window.addEventListener('resize', hide);
-}
-
-function closeTrackTooltip(){
-  openTrackKey = null;
-  const box = document.getElementById('trackTooltip');
-  if (box){ box.classList.remove('show'); box.innerHTML = ''; }
-  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
-}
-
-function positionTrackTooltip(box, anchorRect){
-  const pad = 8;
-  const w = box.offsetWidth || 280, h = box.offsetHeight || 160;
-  let x = anchorRect.right + pad;
-  let y = anchorRect.top;
-  if (x + w > window.innerWidth - 8) x = anchorRect.left - w - pad;
-  if (x < 8) x = Math.min(Math.max(8, anchorRect.left), Math.max(8, window.innerWidth - w - 8));
-  if (y + h > window.innerHeight - 8) y = Math.max(8, window.innerHeight - h - 8);
-  box.style.left = Math.round(Math.max(8, x)) + 'px';
-  box.style.top = Math.round(Math.max(8, y)) + 'px';
-}
-
-// Opens (or, if already open on the same row, closes) the pinned info tooltip. Pinned means
-// it stays put until the close button, Escape, an outside click, or a scroll dismisses it —
-// unlike the hover-only image preview above.
-async function openTrackTooltip(key, btnEl){
-  if (openTrackKey === key){ closeTrackTooltip(); return; }
-  const row = (lastMetrics && lastMetrics.trackAll || []).find(r => trackRowKey(r) === key);
-  const box = document.getElementById('trackTooltip');
-  if (!row || !box) return;
-  document.querySelectorAll('.info-btn.open').forEach(b => b.classList.remove('open'));
-  if (btnEl) btnEl.classList.add('open');
-  openTrackKey = key;
-  box.innerHTML = '<div class="tt-lock">กำลังโหลด...</div>';
-  box.classList.add('show');
-  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
-  const html = await buildTrackTooltipHtml(row);
-  if (openTrackKey !== key) return; // closed, or another row opened, while this was decrypting
-  box.innerHTML = html;
-  if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
-  // The product image loads asynchronously and can grow the box's height after we've already
-  // positioned it above — without this, `top` stays put while the box grows, pushing the
-  // bottom-most fields (Reserve Type / Shipping) off-screen on the very first open. Reopening
-  // used to "fix" it only because the image was by then warm in the browser cache and happened
-  // to be ready before/around this point. Reposition again once the image actually settles
-  // (loaded or failed) instead of relying on that timing.
-  const img = box.querySelector('.tt-img');
-  if (img && btnEl){
-    if (img.complete){
-      positionTrackTooltip(box, btnEl.getBoundingClientRect());
-    } else {
-      const reposition = () => { if (openTrackKey === key) positionTrackTooltip(box, btnEl.getBoundingClientRect()); };
-      img.addEventListener('load', reposition, {once:true});
-      img.addEventListener('error', reposition, {once:true});
-    }
-  }
-}
-
-async function renderTrackingOrders(){
-  if (!lastMetrics) return;
-  const slider = document.getElementById('sliderTrack');
-  const filterInput = document.getElementById('trackFilter');
-  if (!slider) return;
-  // The slider's ceiling now tracks the real row count instead of a fixed 500, so "SHOW" can
-  // go all the way up to every order in the sheet. Only touch `max` when it actually needs to
-  // change, so this doesn't fight the user mid-drag on every 10s auto-refresh.
-  const sliderMax = Math.max(25, lastMetrics.trackTotal);
-  if (parseInt(slider.max, 10) !== sliderMax) slider.max = String(sliderMax);
-  const n = parseInt(slider.value, 10);
-  document.getElementById('sliderTrackVal').textContent = n;
-  document.getElementById('tag-tracktotal').textContent = `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
-
-  const q = ((filterInput && filterInput.value) || '').trim().toLowerCase();
-  let list = lastMetrics.trackAll;
-  if (q){
-    list = list.filter(r =>
-      (r.transactionId||'').toLowerCase().includes(q) ||
-      (r.userId||'').toLowerCase().includes(q) ||
-      (r.custFirstName||'').toLowerCase().includes(q) ||
-      (r.custLastName||'').toLowerCase().includes(q) ||
-      (r.orderType||'').toLowerCase().includes(q) ||
-      (r.commercialName||'').toLowerCase().includes(q)
-    );
-  }
-  list = list.slice(0, n);
-
-  // Close the pinned tooltip if its row fell out of the current filtered/sliced view.
-  if (openTrackKey && !list.some(r => trackRowKey(r) === openTrackKey)) closeTrackTooltip();
-
-  // Decrypt just enough to build the masked "Customer Name" cell for every visible row
-  // (full name/mobile are only ever decrypted for the one row shown in the pinned tooltip).
-  const myToken = ++trackRenderToken;
-  const secretKey = getSecretKey();
-  const maskedByKey = {};
-  if (secretKey){
-    await Promise.all(list.map(async r => {
-      const [first, last] = await Promise.all([
-        decryptCached(r.custFirstName, secretKey),
-        decryptCached(r.custLastName, secretKey)
-      ]);
-      maskedByKey[trackRowKey(r)] = (first === '__DECRYPT_FAILED__' || last === '__DECRYPT_FAILED__')
-        ? '⚠️ ถอดรหัสไม่สำเร็จ'
-        : customerNameMasked(first, last);
-    }));
-  }
-  if (myToken !== trackRenderToken) return; // a newer render call superseded this one
-
-  const rowsHtml = list.map((r,i) => {
-    const key = trackRowKey(r);
-    const isOpen = openTrackKey === key;
-    const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
-    const custName = secretKey ? (maskedByKey[key] || '-') : '🔒';
-    const custAttr = secretKey ? '' : ' class="cust-name-cell" data-tip="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
-    return `<tr>
-      <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
-      <td class="col-no">${i+1}</td>
-      <td>${esc(tsLabel)}</td>
-      <td class="mono">${esc(r.transactionId || '-')}</td>
-      <td>${isBlank(r.preBookingNo) ? '<span class="empty" style="padding:0;">-</span>' : esc(r.preBookingNo)}</td>
-      <td class="mono">${esc(r.userId || '-')}</td>
-      <td${custAttr}>${esc(custName)}</td>
-      <td>${esc(r.orderType || '-')}</td>
-      <td>${statusBadgeHtml(r.state)}</td>
-      <td>${orderStateBadgeHtml(r.orderState)}</td>
-      <td>${durationBadgeHtml(r.durationMs, r.createdMs)}</td>
-      <td class="col-commname">${commercialNameCellHtml(r)}</td>
-      <td class="col-orderomni">${orderOmniCellHtml(r)}</td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="13" class="empty">ไม่พบข้อมูล</td></tr>`;
-
-  document.getElementById('body-track').innerHTML = rowsHtml;
-}
-
-/* ===================== RENDER / UPDATE ===================== */
-function rankRows(items, count, color, imgMap){
-  const shown = items.slice(0, count);
-  const max = Math.max(1, ...shown.map(i => i.count));
-  return shown.map(i => {
-    const pct = max ? i.count/max*100 : 0;
-    const img = imgMap && imgMap[i.name];
-    const imgAttr = img ? ` data-img="${esc(img)}"` : '';
-    const nameCls = img ? 'rank-name has-img' : 'rank-name';
-    return `<div class="rank-row"${imgAttr}>
-      <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
-      <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
-      <div class="rank-count">${fmtNum(i.count)}</div>
-    </div>`;
-  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
-}
-
-function renderDeviceAccessory(){
-  if (!lastMetrics) return;
-  const slider = document.getElementById('sliderDevice');
-  if (!slider) return;
-  const n = parseInt(slider.value, 10);
-  document.getElementById('sliderDeviceVal').textContent = n;
-  document.getElementById('body-device-list').innerHTML = rankRows(lastMetrics.deviceTop, n, 'var(--gold)', lastMetrics.deviceImgMap);
-  document.getElementById('body-accessory-list').innerHTML = rankRows(lastMetrics.accessoryTop, n, 'var(--stone)', lastMetrics.accessoryImgMap);
-}
-function renderCampaignService(){
-  if (!lastMetrics) return;
-  const slider = document.getElementById('sliderCampaign');
-  if (!slider) return;
-  const n = parseInt(slider.value, 10);
-  document.getElementById('sliderCampaignVal').textContent = n;
-  document.getElementById('body-camp-list').innerHTML = rankRows(lastMetrics.campTop, n, 'var(--gold)');
-  document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--stone)');
-}
-
-function updateDashboard(rows){
-  const M = computeMetrics(rows);
-  if (!dashboardBuilt) buildSkeleton();
-
-  // Total order completed
-  document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
-  document.getElementById('tag-completeprebook').innerHTML =
-    `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
-    `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
-  animateNumber(document.getElementById('val-complete'), M.completeCount);
-  drawRing(document.getElementById('ringComplete'), M.completePct, '#A23A2E');
-  const statusColors = {
-    WAITING_PAYMENT: ['var(--gold-bg)','#D9B679'],
-    READY_TO_PAY: ['var(--slate-bg)','#9DBECE'],
-    PENDING: ['var(--stone-bg)','#C9BBA6'],
-    DELETE: ['var(--accent-bg)','#E8A79C']
-  };
-  const tilesHtml = M.statusTiles.map(t => {
-    const [bg,fg] = statusColors[t.state] || ['var(--border-soft)','var(--text)'];
-    return `<div class="tile" style="background:${bg};color:${fg};">
-      <div class="n">${fmtNum(t.count)}</div>
-      <div class="p">${fmtPct(t.pct)}</div>
-      <div class="l">${t.state.replace(/_/g,' ')}</div>
-    </div>`;
-  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
-  softUpdate(document.getElementById('tiles-status'), tilesHtml);
-
-  // AIS Shop vs Partner
-  document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
-  const grpRow = (name, color, count, pct, preCount, prePct, nonPrebookCount, nonPrePct) => {
-    return `<div class="grp-row">
-      <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
-      <div class="grp-nums">
-        <div class="n">${fmtNum(count)}</div>
-        <div class="p">${fmtPct(pct)}</div>
-        <div class="pre-badge">Non Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
-        <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
-      </div>
-    </div>`;
-  };
-  softUpdate(document.getElementById('body-aispartner'),
-    grpRow('AIS','var(--gold)', M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
-    grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
-
-  // Sub stock destination
-  const stockHtml = M.stockArr.map((s,i) => {
-    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    return `<div class="legend-row">
-      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
-      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
-    </div>`;
-  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
-  softUpdate(document.getElementById('body-substock'), stockHtml);
-  updateStockChart(M);
-
-  // Order Omni & Shipping
-  document.getElementById('tag-omnitotal').textContent = `${fmtNum(M.omniTotal)} orders`;
-  const omniHtml = `<div class="grp-row" style="border-bottom:none;padding-bottom:0;">
-    <div class="grp-name"><span class="dot" style="background:var(--gold)"></span>Order Omni</div>
-    <div class="grp-nums">
-      <div class="n">${fmtNum(M.omniTotal)}</div>
-      <div class="p">${fmtPct(M.omniPctOfComplete)}</div>
-      <div class="pre-badge">ไม่ใช่ Order Omni: <b>${fmtNum(M.nonOmniTotal)}</b> (${fmtPct(M.nonOmniPctOfComplete)})</div>
-      <div class="pre-badge">Order Omni: <b>${fmtNum(M.omniTotal)}</b> (${fmtPct(M.omniPctOfComplete)})</div>
-    </div>
-  </div>`;
-  softUpdate(document.getElementById('body-omni'), M.omniTotal || M.nonOmniTotal ? omniHtml : '<div class="empty">ไม่มีข้อมูล</div>');
-  const shippingHtml = M.shipArr.map((s,i) => {
-    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    return `<div class="legend-row">
-      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
-      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
-    </div>`;
-  }).join('') || '<div class="empty">ไม่มี Order Omni</div>';
-  softUpdate(document.getElementById('body-shipping'), shippingHtml);
-
-  // Duration overview tiers
-  document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
-  const tierDefs = [
-    {key:'green', label:'FAST < 10m', fg:'#A9C79E', bg:'var(--green-bg)'},
-    {key:'yellow', label:'MED 10-30m', fg:'#D9B679', bg:'var(--gold-bg)'},
-    {key:'red', label:'SLOW >= 30m', fg:'#E8A79C', bg:'var(--accent-bg)'}
-  ];
-  const tierHtml = tierDefs.map(t => {
-    const c = M.tierCounts[t.key] || 0;
-    const pct = M.tierPct[t.key] || 0;
-    return `<div class="tier-box" style="background:${t.bg};color:${t.fg}">
-      <div class="n">${fmtNum(c)}</div>
-      <div class="l">${t.label}</div>
-      <div class="p">${fmtPct(pct)}</div>
-    </div>`;
-  }).join('');
-  softUpdate(document.getElementById('tiles-tier'), M.durTotal ? tierHtml : '<div class="empty">ไม่มีข้อมูล</div>');
-
-  // Order by menu
-  const maxMenu = Math.max(1, ...M.menuArr.map(m => m.orderCount));
-  const menuHtml = M.menuArr.map((m,i) => {
-    const fillPct = m.orderCount / maxMenu * 100;
-    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    const preLabel = `Non Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
-    return `<div class="bar-row">
-      <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
-      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
-      <div class="menu-sub">${preLabel}</div>
-    </div>`;
-  }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
-  softUpdate(document.getElementById('body-menu'), menuHtml);
-
-  // Order volume chart
-  document.getElementById('tag-voltotal').textContent = `Total: ${fmtNum(M.volTotal)}`;
-  updateCharts(M);
-
-  // Avg/P90 duration
-  const otRowsHtml = M.otDur.map(o => `<tr>
-    <td>${esc(o.orderType)}</td>
-    <td>${o.avg.toFixed(1)}m</td>
-    <td>${(o.p90||0).toFixed(1)}m</td>
-    <td>${fmtNum(o.cnt)}</td>
-  </tr>`).join('') || `<tr><td colspan="4" class="empty">ไม่มีข้อมูล</td></tr>`;
-  softUpdate(document.getElementById('body-avgp90'), otRowsHtml);
-
-  // Top selling device & accessory
-  lastMetrics = M;
-  document.getElementById('hdr-device-items').textContent = `Device — ${fmtNum(M.deviceItems)} items`;
-  document.getElementById('cnt-device').textContent = fmtNum(M.deviceOrders);
-  document.getElementById('hdr-accessory-items').textContent = `Accessory — ${fmtNum(M.accessoryItems)} items`;
-  document.getElementById('cnt-accessory').textContent = fmtNum(M.accessoryOrders);
-  document.getElementById('hdr-camp-items').textContent = `Campaign — ${fmtNum(M.campItems)} campaigns`;
-  document.getElementById('cnt-camp').textContent = fmtNum(M.campOrders);
-  document.getElementById('hdr-svc-items').textContent = `Service Care — ${fmtNum(M.svcItems)} types`;
-  document.getElementById('cnt-svc').textContent = fmtNum(M.svcOrders);
-  renderDeviceAccessory();
-  renderCampaignService();
-  renderTrackingOrders();
-
-  // Slowest orders
-  const slowHtml = M.slowest.map(s => `<tr>
-    <td class="mono">${esc(s.id)}</td>
-    <td>${esc(s.orderType)}</td>
-    <td class="red-txt">${esc(s.durLabel)}</td>
-  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
-  softUpdate(document.getElementById('body-slowest'), slowHtml);
-
-  // Branch & stock flow
-  document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
-  softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
-  const branchStockHtml = M.locTop.map(b => `<tr>
-    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
-    <td>${fmtNum(b.count)}</td>
-    <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
-  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
-  softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
-
-  document.getElementById('dashboard').style.display = 'flex';
-  document.getElementById('placeholder').style.display = 'none';
-
-  const rangeEl = document.getElementById('rangeLabel');
-  if (rows.length){
-    const tsAll = rows.map(r=>r.ts).filter(Boolean);
-    if (tsAll.length){
-      const min = new Date(Math.min(...tsAll)), max = new Date(Math.max(...tsAll));
-      rangeEl.textContent = `ข้อมูลตั้งแต่ ${min.toLocaleString('th-TH')} ถึง ${max.toLocaleString('th-TH')} • ${fmtNum(rows.length)} rows`;
-    }
-  }
-}
-
-function chartFallback(canvasEl, msg){
-  if (!canvasEl) return;
-  const div = document.createElement('div');
-  div.className = 'empty';
-  div.style.paddingTop = '40px';
-  div.textContent = msg;
-  canvasEl.replaceWith(div);
-}
-
-function updateCharts(M){
-  if (typeof Chart === 'undefined'){
-    chartFallback(document.getElementById('chartVolume'), 'โหลดไลบรารีกราฟ (Chart.js) ไม่สำเร็จ');
-    return;
-  }
-
-  const labels = M.buckets.map(b => hourLabel(b.date, M.mode));
-  const aisData = M.buckets.map(b => b.AIS);
-  const partnerData = M.buckets.map(b => b.PARTNER);
-  const ctx1 = document.getElementById('chartVolume');
-  if (ctx1){
-    if (!charts.volume){
-      charts.volume = new Chart(ctx1, {
-        type: 'bar',
-        data: { labels, datasets: [
-          {label:'AIS', data: aisData, backgroundColor:'#B4863E', stack:'s', borderRadius:3, maxBarThickness:42},
-          {label:'PARTNER', data: partnerData, backgroundColor:'#786A5A', stack:'s', borderRadius:3, maxBarThickness:42}
-        ]},
-        options: {
-          responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
-          scales:{
-            x:{stacked:true, grid:{display:false}, ticks:{color:'#8C8074', font:{size:9.5}}},
-            y:{stacked:true, beginAtZero:true, grid:{color:'#2B241F'}, ticks:{color:'#8C8074', font:{size:9.5}}}
-          },
-          plugins:{
-            legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#C9BEAF'}},
-            tooltip:{
-              ...TOOLTIP_STYLE,
-              callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
-            }
-          }
-        }
-      });
-    } else {
-      charts.volume.data.labels = labels;
-      charts.volume.data.datasets[0].data = aisData;
-      charts.volume.data.datasets[1].data = partnerData;
-      charts.volume.update();
-    }
-  }
-}
-
-function updateStockChart(M){
-  if (typeof Chart === 'undefined'){
-    chartFallback(document.getElementById('chartStock'), 'โหลดไลบรารีกราฟไม่สำเร็จ');
-    return;
-  }
-  const ctx = document.getElementById('chartStock');
-  if (!ctx) return;
-  const labels = M.stockArr.map(s => s.name);
-  const data = M.stockArr.map(s => s.count);
-  const colors = labels.map((_,i) => STOCK_PALETTE[i % STOCK_PALETTE.length]);
-  if (!charts.stock){
-    charts.stock = new Chart(ctx, {
-      type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#1F1A16', borderWidth: 2 }] },
-      options: {
-        responsive:true, maintainAspectRatio:false, cutout:'66%',
-        animation:{duration:450, easing:'easeOutQuart'},
-        plugins:{
-          legend:{display:false},
-          tooltip:{
-            ...TOOLTIP_STYLE,
-            callbacks:{ label: c => {
-              const item = lastMetrics && lastMetrics.stockArr && lastMetrics.stockArr[c.dataIndex];
-              const pct = item ? item.pct : 0;
-              return `${c.label}: ${fmtNum(c.parsed)} (${fmtPct(pct)})`;
-            } }
-          }
-        }
-      }
-    });
-  } else {
-    charts.stock.data.labels = labels;
-    charts.stock.data.datasets[0].data = data;
-    charts.stock.data.datasets[0].backgroundColor = colors;
-    charts.stock.update();
-  }
-}
-
-/* ===================== IMAGE HOVER PREVIEW ===================== */
-function showImgPreview(url){
-  const box = document.getElementById('imgPreview');
-  const img = document.getElementById('imgPreviewImg');
-  if (!box || !img || !url) return;
-  img.src = url;
-  box.style.display = 'block';
-}
-function positionImgPreview(evt){
-  const box = document.getElementById('imgPreview');
-  if (!box || box.style.display !== 'block') return;
-  const pad = 14, boxW = 144, boxH = 144;
-  let x = evt.clientX + pad, y = evt.clientY + pad;
-  if (x + boxW > window.innerWidth) x = evt.clientX - boxW - pad;
-  if (y + boxH > window.innerHeight) y = evt.clientY - boxH - pad;
-  box.style.left = Math.max(4, x) + 'px';
-  box.style.top = Math.max(4, y) + 'px';
-}
-function hideImgPreview(){
-  const box = document.getElementById('imgPreview');
-  if (box) box.style.display = 'none';
-}
-function bindImgPreviewEvents(){
-  document.addEventListener('mouseover', e => {
-    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
-    if (row) showImgPreview(row.dataset.img);
-  });
-  document.addEventListener('mousemove', positionImgPreview);
-  document.addEventListener('mouseout', e => {
-    const row = e.target.closest && e.target.closest('.rank-row[data-img]');
-    if (row && (!e.relatedTarget || !row.contains(e.relatedTarget))) hideImgPreview();
-  });
-}
-
-/* ===================== ERROR / STATUS UI ===================== */
+/* ===================== STATUS / BANNER / AUTO-REFRESH UI ===================== */
 function setStatus(mode, text){
-  const dot = document.getElementById('statusDot');
-  dot.className = 'status-dot' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : ' ok');
+  const dot = document.getElementById('liveDot');
+  dot.className = 'dot' + (mode === 'error' ? ' err' : mode === 'loading' ? ' loading' : ' ok');
   document.getElementById('statusText').textContent = text;
 }
 function showBanner(msg){
@@ -1930,11 +536,8 @@ function showBanner(msg){
   b.classList.add('show');
 }
 function hideBanner(){ document.getElementById('banner').classList.remove('show'); }
-
-/* ===================== AUTO REFRESH ===================== */
 function resetRefreshBar(){
   const bar = document.getElementById('refreshBar');
-  if (!bar) return;
   bar.style.transition = 'none';
   bar.style.width = '0%';
   void bar.offsetWidth;
@@ -1952,122 +555,243 @@ async function loadData(isAuto){
   const cfg = getConfig();
   if (!cfg.sheetId){
     document.getElementById('configPanel').classList.add('open');
-    setStatus('error', 'ยังไม่ได้ตั้งค่า Sheet ID');
+    setStatus('error', 'ยังไม่ได้ตั้งค่า Google Sheet ID');
     return;
   }
   if (isLoading) return;
   isLoading = true;
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
-  try {
+  try{
     await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
+    await loadLog(cfg.sheetId);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
-    const parsed = buildRows(cols, rows);
-    updateDashboard(parsed);
+    state.rawOrders = buildOrderRows(cols, rows);
+
+    if (!dashboardBuilt){
+      buildFilterOptions();
+      document.getElementById('emptyState').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      dashboardBuilt = true;
+    } else if (!isAuto){
+      buildFilterOptions();
+    }
+    applyFilters();
     hideBanner();
     setStatus('ok', 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH'));
-  } catch(err){
+  }catch(err){
     console.error(err);
     setStatus('error', 'โหลดข้อมูลไม่สำเร็จ');
-    if (!isAuto || !dashboardBuilt) showBanner('<strong>โหลดข้อมูลไม่สำเร็จ:</strong> ' + err.message);
-  } finally {
+    if (!isAuto || !dashboardBuilt) showBanner('<strong>โหลดข้อมูลไม่สำเร็จ:</strong> ' + escapeHtml(err.message));
+  }finally{
     isLoading = false;
   }
 }
 
-/* ===================== INIT / EVENTS ===================== */
+/* ===================== Filters ===================== */
+function buildFilterOptions(){
+  const locations = new Set(), orderTypes = new Set(), statuses = new Set();
+  state.rawOrders.forEach(r => {
+    locations.add(locationName(r.locationSource));
+    if (r.orderType) orderTypes.add(r.orderType);
+    if (r.status) statuses.add(r.status);
+  });
+  fillSelect('fLocation', [...locations].sort((a,b)=>a.localeCompare(b,'th')));
+  fillSelect('fOrderType', [...orderTypes].sort());
+  fillSelect('fStatus', [...statuses].sort());
+}
+function fillSelect(id, values){
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = '<option value="">ทั้งหมด</option>' + values.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+  if (values.includes(current)) sel.value = current;
+}
+
+['fDateFrom','fDateTo','fLocation','fOrderType','fStatus'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => { state.page = 1; applyFilters(); });
+});
+document.getElementById('btnResetFilters').addEventListener('click', () => {
+  ['fDateFrom','fDateTo','fLocation','fOrderType','fStatus'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('tableSearch').value = '';
+  state.search = '';
+  state.page = 1;
+  applyFilters();
+});
+document.getElementById('tableSearch').addEventListener('input', (e) => {
+  state.search = e.target.value.trim().toLowerCase();
+  state.page = 1;
+  renderTable();
+});
+
+function applyFilters(){
+  const from = document.getElementById('fDateFrom').value;
+  const to = document.getElementById('fDateTo').value;
+  const loc = document.getElementById('fLocation').value;
+  const otype = document.getElementById('fOrderType').value;
+  const stat = document.getElementById('fStatus').value;
+
+  state.filtered = state.rawOrders.filter(r => {
+    const dstr = toDateStr(r.ts);
+    if (from && dstr < from) return false;
+    if (to && dstr > to) return false;
+    if (loc && locationName(r.locationSource) !== loc) return false;
+    if (otype && r.orderType !== otype) return false;
+    if (stat && r.status !== stat) return false;
+    return true;
+  });
+
+  document.getElementById('filterCount').textContent =
+    `แสดง ${state.filtered.length.toLocaleString()} / ${state.rawOrders.length.toLocaleString()} แถว`;
+
+  renderKPIs();
+  renderCharts();
+  renderTable();
+}
+
+/* ===================== KPIs ===================== */
+function renderKPIs(){
+  const rows = state.filtered;
+  const complete = rows.filter(r => r.status === 'COMPLETE');
+  const withStatus = rows.filter(r => r.status != null);
+
+  const revenue = complete.reduce((sum, r) => sum + netPrice(r), 0);
+  document.getElementById('kpiRevenue').textContent = fmtBaht(revenue);
+  document.getElementById('kpiRevenueSub').textContent = `จาก ${complete.length.toLocaleString()} ออเดอร์ COMPLETE`;
+
+  document.getElementById('kpiTxn').textContent = rows.length.toLocaleString();
+  document.getElementById('kpiTxnSub').textContent = `${withStatus.length.toLocaleString()} แถวมีสถานะออเดอร์`;
+
+  const rate = withStatus.length ? (complete.length / withStatus.length * 100) : 0;
+  document.getElementById('kpiSuccess').textContent = rate.toFixed(1) + '%';
+  const cls = rate >= 70 ? 'good' : (rate >= 40 ? 'warn' : 'bad');
+  document.getElementById('kpiSuccessSub').innerHTML =
+    `<span class="${cls}">${complete.length.toLocaleString()} สำเร็จ</span> จาก ${withStatus.length.toLocaleString()} ออเดอร์ที่มีสถานะ`;
+
+  const lastLog = state.logRows[0];
+  const logVal = document.getElementById('kpiLog');
+  const logSub = document.getElementById('kpiLogSub');
+  if (lastLog){
+    const ok = lastLog.status === 'Success';
+    logVal.innerHTML = `<span style="color:${ok ? 'var(--em)' : 'var(--red)'}">${escapeHtml(lastLog.status || '-')}</span>`;
+    logSub.textContent = `${fmtDateTime(lastLog.runAt)} · ${lastLog.insertedSuccess ?? 0}/${lastLog.totalRecords ?? 0} รายการ`;
+  }else{
+    logVal.textContent = '—';
+    logSub.textContent = 'ไม่พบข้อมูลในแท็บ Log';
+  }
+}
+
+/* ===================== Charts ===================== */
+function renderCharts(){
+  const rows = state.filtered;
+
+  const deviceCount = {};
+  rows.forEach(r => { if (r.commercialName) deviceCount[r.commercialName] = (deviceCount[r.commercialName] || 0) + 1; });
+  const topDevices = Object.entries(deviceCount).sort((a,b) => b[1]-a[1]).slice(0,10);
+
+  const ctxD = document.getElementById('chartDevice');
+  if (chartDevice) chartDevice.destroy();
+  chartDevice = new Chart(ctxD, {
+    type: 'bar',
+    data: { labels: topDevices.map(d => d[0]), datasets: [{ label:'จำนวนออเดอร์', data: topDevices.map(d => d[1]), backgroundColor:'#10B981', borderRadius:4, maxBarThickness:22 }] },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>c.parsed.x.toLocaleString()+' ออเดอร์' } } },
+      scales:{ x:{ grid:{color:'#2E3B52'}, ticks:{color:'#9FADC2', font:{size:11}} }, y:{ grid:{display:false}, ticks:{color:'#E7ECF3', font:{size:11}} } }
+    }
+  });
+
+  const dayCount = {};
+  rows.forEach(r => { const d = toDateStr(r.ts); if (d) dayCount[d] = (dayCount[d] || 0) + 1; });
+  const days = Object.keys(dayCount).sort();
+
+  const ctxT = document.getElementById('chartTrend');
+  if (chartTrend) chartTrend.destroy();
+  chartTrend = new Chart(ctxT, {
+    type: 'line',
+    data: { labels: days, datasets: [{ label:'จำนวนธุรกรรม', data: days.map(d => dayCount[d]), borderColor:'#10B981', backgroundColor:'rgba(16,185,129,.1)', fill:true, tension:.25, pointRadius:3, pointBackgroundColor:'#10B981', borderWidth:2 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>c.parsed.y.toLocaleString()+' ธุรกรรม' } } },
+      scales:{ x:{ grid:{display:false}, ticks:{color:'#9FADC2', font:{size:10}, maxRotation:45} }, y:{ grid:{color:'#2E3B52'}, ticks:{color:'#9FADC2', font:{size:11}}, beginAtZero:true } }
+    }
+  });
+}
+
+/* ===================== Table ===================== */
+function statusBadge(status){
+  const meta = STATUS_BADGE[status] || {cls:'badge-none', label: status || 'ไม่มีออเดอร์'};
+  return `<span class="badge ${meta.cls}">${escapeHtml(meta.label)}</span>`;
+}
+function tableRows(){
+  let rows = state.filtered;
+  if (state.search){
+    const q = state.search;
+    rows = rows.filter(r => [r.transactionId, locationName(r.locationSource), r.commercialName, r.orderType, r.status]
+      .filter(Boolean).join(' ').toLowerCase().includes(q));
+  }
+  return rows;
+}
+function renderTable(){
+  const rows = tableRows();
+  const totalPages = Math.max(1, Math.ceil(rows.length / state.pageSize));
+  if (state.page > totalPages) state.page = totalPages;
+  const start = (state.page - 1) * state.pageSize;
+  const pageRows = rows.slice(start, start + state.pageSize);
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = pageRows.length ? pageRows.map(r => `
+      <tr>
+        <td class="mono">${fmtDateTime(r.ts)}</td>
+        <td class="mono">${escapeHtml(r.transactionId || '-')}</td>
+        <td>${escapeHtml(locationName(r.locationSource))}</td>
+        <td>${escapeHtml(r.orderType || '-')}</td>
+        <td class="wrap">${escapeHtml(r.commercialName || '-')}</td>
+        <td style="text-align:right" class="num">${r.status ? fmtBaht(netPrice(r)) : '-'}</td>
+        <td>${statusBadge(r.status)}</td>
+      </tr>`).join('') : `<tr class="empty-row"><td colspan="7">ไม่พบรายการที่ตรงกับเงื่อนไข</td></tr>`;
+
+  document.getElementById('tableSummary').textContent =
+    rows.length ? `${(start+1).toLocaleString()}–${Math.min(start+state.pageSize, rows.length).toLocaleString()} จาก ${rows.length.toLocaleString()} รายการ` : '0 รายการ';
+  renderPager(totalPages);
+}
+function renderPager(totalPages){
+  const pager = document.getElementById('pager');
+  const cur = state.page;
+  let html = `<button ${cur===1?'disabled':''} data-p="${cur-1}">‹</button>`;
+  const pages = new Set([1, totalPages, cur, cur-1, cur+1].filter(p => p>=1 && p<=totalPages));
+  let last = 0;
+  [...pages].sort((a,b)=>a-b).forEach(p => {
+    if (last && p - last > 1) html += `<span style="padding:5px 4px;color:var(--muted)">…</span>`;
+    html += `<button class="${p===cur?'active':''}" data-p="${p}">${p}</button>`;
+    last = p;
+  });
+  html += `<button ${cur===totalPages?'disabled':''} data-p="${cur+1}">›</button>`;
+  pager.innerHTML = html;
+  pager.querySelectorAll('button[data-p]').forEach(b => b.addEventListener('click', () => { state.page = parseInt(b.dataset.p,10); renderTable(); }));
+}
+
+/* ===================== INIT ===================== */
 (function init(){
   const cfg = getConfig();
   document.getElementById('inputSheetId').value = cfg.sheetId;
   document.getElementById('inputSheetName').value = cfg.sheetName;
-  document.getElementById('inputSecretKey').value = cfg.secretKey;
-  bindImgPreviewEvents();
 
-  const applySecretKey = () => {
-    const secretKey = document.getElementById('inputSecretKey').value.trim();
-    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    saveConfig({ ...saved, secretKey });
-    clearDecryptCache();
-    closeTrackTooltip();
-    renderTrackingOrders();
-  };
-  document.getElementById('btnApplyKey').addEventListener('click', applySecretKey);
-  document.getElementById('inputSecretKey').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') applySecretKey();
-  });
-
-  document.getElementById('dashTitle').addEventListener('dblclick', () => {
-    document.getElementById('configPanel').classList.toggle('open');
-  });
-  document.getElementById('btnConfig').addEventListener('click', () => {
-    document.getElementById('configPanel').classList.toggle('open');
-  });
+  document.getElementById('dashTitle').addEventListener('dblclick', () => document.getElementById('configPanel').classList.toggle('open'));
+  document.getElementById('btnConfig').addEventListener('click', () => document.getElementById('configPanel').classList.toggle('open'));
   document.getElementById('btnRefresh').addEventListener('click', () => { resetRefreshBar(); loadData(false); });
-
-  const bindRankSliders = () => {
-    const sliderDevice = document.getElementById('sliderDevice');
-    const sliderCampaign = document.getElementById('sliderCampaign');
-    const sliderTrack = document.getElementById('sliderTrack');
-    const trackFilter = document.getElementById('trackFilter');
-    if (sliderDevice && !sliderDevice.dataset.bound) {
-      sliderDevice.addEventListener('input', renderDeviceAccessory);
-      sliderDevice.dataset.bound = '1';
-    }
-    if (sliderCampaign && !sliderCampaign.dataset.bound) {
-      sliderCampaign.addEventListener('input', renderCampaignService);
-      sliderCampaign.dataset.bound = '1';
-    }
-    if (sliderTrack && !sliderTrack.dataset.bound) {
-      sliderTrack.addEventListener('input', renderTrackingOrders);
-      sliderTrack.dataset.bound = '1';
-    }
-    if (trackFilter && !trackFilter.dataset.bound) {
-      trackFilter.addEventListener('input', renderTrackingOrders);
-      trackFilter.dataset.bound = '1';
-    }
-  };
-
-  // "i" buttons in the Tracking Order table are recreated on every render, so this is
-  // delegated on document instead of bound per-button. Clicking one opens/closes a pinned
-  // tooltip (see openTrackTooltip) rather than expanding an inline row.
-  document.addEventListener('click', (e) => {
-    const closeBtn = e.target.closest && e.target.closest('.tt-close');
-    if (closeBtn){ closeTrackTooltip(); return; }
-    const btn = e.target.closest && e.target.closest('[data-track-toggle]');
-    if (btn){ openTrackTooltip(btn.getAttribute('data-track-toggle'), btn); return; }
-    if (openTrackKey && !(e.target.closest && e.target.closest('#trackTooltip'))) closeTrackTooltip();
-  });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrackTooltip(); });
-  window.addEventListener('scroll', () => { if (openTrackKey) closeTrackTooltip(); }, true);
-  window.addEventListener('resize', () => { if (openTrackKey) closeTrackTooltip(); });
-
-  initHoverTips();
-
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
-    const secretKey = document.getElementById('inputSecretKey').value.trim();
-    if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
-    saveConfig({sheetId, sheetName, secretKey});
+    if (!sheetId){ showBanner('กรุณากรอก Google Sheet ID'); return; }
+    saveConfig({sheetId, sheetName});
     document.getElementById('configPanel').classList.remove('open');
+    state.locationMasterLoadedFor = null;
+    dashboardBuilt = false;
     loadData(false);
     startAutoRefresh();
   });
 
-  if (cfg.sheetId) { loadData(false); startAutoRefresh(); }
+  if (cfg.sheetId){ loadData(false); startAutoRefresh(); }
   else document.getElementById('configPanel').classList.add('open');
-
-  const sliderBinderTimer = setInterval(() => {
-    const sliderDevice = document.getElementById('sliderDevice');
-    const sliderCampaign = document.getElementById('sliderCampaign');
-    const sliderTrack = document.getElementById('sliderTrack');
-    const trackFilter = document.getElementById('trackFilter');
-    if (sliderDevice || sliderCampaign || sliderTrack || trackFilter) {
-      bindRankSliders();
-      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound && sliderTrack?.dataset.bound && trackFilter?.dataset.bound) {
-        clearInterval(sliderBinderTimer);
-      }
-    }
-  }, 50);
 })();
 </script>
 </body>
