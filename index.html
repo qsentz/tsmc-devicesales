@@ -248,7 +248,17 @@
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
   .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
+  /* Two explicit rows on desktop: row 1 pairs the narrow "Order Source" card with the
+     "Order Volume" chart card so they stretch to match each other's height exactly; the
+     "Order Omni & Shipping" card sits in row 2 under the chart, on its own, so the narrow
+     column is no longer stretched to the combined height of both right-hand cards (which
+     used to leave a mismatched empty gap inside the narrow card). */
+  @media(min-width:900px){
+    .grid-asym{grid-template-columns:34% 1fr; grid-template-rows:auto auto;}
+    .grid-asym > .col-narrow{grid-column:1; grid-row:1;}
+    .grid-asym > .gar-volume{grid-column:2; grid-row:1;}
+    .grid-asym > .gar-omni{grid-column:2; grid-row:2;}
+  }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow .card:last-child{flex:1 1 auto;}
   .col-narrow .card:last-child .stock-donut-wrap{flex:1 1 auto;}
@@ -736,6 +746,52 @@ function parseGvizDate(v){
   return isNaN(d.getTime()) ? null : d;
 }
 
+/* ===================== YEAR-OVER-YEAR COMPARE DATA =====================
+   Separate tab in the same spreadsheet ("Compare_data", columns Date / Count) holding a
+   manually-entered summary of last year's daily order totals (e.g. the first few days of
+   the equivalent period), used to draw the Year-over-Year comparison chart. Optional, same
+   fail-soft pattern as LocationMaster above: a missing tab or bad columns never breaks the
+   main dashboard — the comparison card just stays hidden. Loaded once per sheetId (not on
+   every 10s auto-refresh poll); the explicit "โหลดข้อมูล" button forces a re-fetch. */
+const COMPARE_SHEET_NAME = 'Compare_data';
+let compareData = [];          // [{date: Date, count: Number}], sorted ascending by date
+let compareDataLoadedFor = null;
+// Compare_data's "Date" column is plain text like "19/09/2025" (day/month/year), not a
+// gviz date cell, so this tries that format first and falls back to parseGvizDate for a
+// real date cell or an ISO-style string.
+function parseCompareDate(v){
+  if (v == null) return null;
+  if (typeof v === 'string'){
+    const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  }
+  return parseGvizDate(v);
+}
+async function loadCompareDataIfNeeded(sheetId, force){
+  if (!force && compareDataLoadedFor === sheetId) return;
+  try {
+    const {cols, rows} = await fetchSheet(sheetId, COMPARE_SHEET_NAME);
+    const dateIdx = cols.indexOf('Date');
+    const countIdx = cols.indexOf('Count');
+    if (dateIdx === -1 || countIdx === -1){
+      throw new Error(`ไม่พบคอลัมน์ Date/Count ใน "${COMPARE_SHEET_NAME}"`);
+    }
+    const list = [];
+    rows.forEach(r => {
+      const d = parseCompareDate(r[dateIdx]);
+      const c = Number(r[countIdx]);
+      if (d && !isNaN(c)) list.push({date: d, count: c});
+    });
+    list.sort((a,b) => a.date - b.date);
+    compareData = list;
+  } catch(err){
+    console.warn('โหลด Compare_data ไม่สำเร็จ (การ์ดเปรียบเทียบปีที่แล้วจะไม่แสดง):', err.message);
+    if (compareDataLoadedFor !== sheetId) compareData = [];
+  } finally {
+    compareDataLoadedFor = sheetId;
+  }
+}
+
 function buildRows(cols, rawRows){
   const idx = {};
   for (const k in COL) idx[k] = cols.indexOf(COL[k]);
@@ -825,15 +881,22 @@ function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function bucketDate(d, mode){
-  if (mode === 'hour') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
+  // 'min10' buckets timestamps into 10-minute slots (e.g. 09:00, 09:10, 09:20 ...) instead
+  // of whole hours, giving the Order Volume chart finer x-axis granularity when the data
+  // spans a single day.
+  if (mode === 'min10') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), Math.floor(d.getMinutes()/10)*10);
   if (mode === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 function hourLabel(d, mode){
   const pad = n => String(n).padStart(2,'0');
-  if (mode === 'hour') return pad(d.getHours()) + ':00';
+  if (mode === 'min10') return pad(d.getHours()) + ':' + pad(d.getMinutes());
   if (mode === 'month') return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
   return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
+}
+// 'YYYY-MM-DD' key for a Date, in local time (used to match same calendar day across sources).
+function dayKey(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function softUpdate(el, html){
@@ -987,11 +1050,11 @@ function computeMetrics(rows){
 
   // Hourly volume bucketing
   const tsRows = completeRows.filter(r => r.ts);
-  let mode = 'hour', buckets = [];
+  let mode = 'min10', buckets = [];
   if (tsRows.length){
     const times = tsRows.map(r => r.ts.getTime());
     const rangeHours = (Math.max(...times) - Math.min(...times)) / 3600000;
-    mode = rangeHours <= 24 ? 'hour' : (rangeHours > 24*30 ? 'month' : 'day');
+    mode = rangeHours <= 24 ? 'min10' : (rangeHours > 24*30 ? 'month' : 'day');
     const volMap = {};
     tsRows.forEach(r => {
       const b = bucketDate(r.ts, mode);
@@ -1002,6 +1065,16 @@ function computeMetrics(rows){
     buckets = Object.values(volMap).sort((a,b) => a.date - b.date);
   }
   const volTotal = tsRows.length;
+
+  // Day-level totals (independent of `mode`/bucket granularity above), keyed 'YYYY-MM-DD'.
+  // Used to line up "this year" counts against the Compare_data sheet's "last year" totals
+  // for the Year-over-Year comparison chart, regardless of whether the main chart above is
+  // currently bucketing by 10-minute, day, or month.
+  const dayCounts = {};
+  tsRows.forEach(r => {
+    const k = dayKey(r.ts);
+    dayCounts[k] = (dayCounts[k] || 0) + 1;
+  });
 
   // Duration overview
   const durRows = [];
@@ -1123,7 +1196,7 @@ function computeMetrics(rows){
     stockArr, stockTotal,
     omniTotal, nonOmniTotal, omniPctOfComplete, nonOmniPctOfComplete, shipArr, shipTotal,
     menuArr,
-    mode, buckets, volTotal,
+    mode, buckets, volTotal, dayCounts,
     durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
     campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
@@ -1264,28 +1337,31 @@ function buildSkeleton(){
         </div>
       </div>
 
-      <div class="col-wide">
-        <div class="card">
-          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
-          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-        </div>
-        <div class="card">
-          <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
-          <div class="rank-subcards subcards-duo">
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Order Omni</h3></div>
-              <div class="omni-ring-wrap">
-                <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
-                <div class="card-body soft" id="body-omni"></div>
-              </div>
+      <div class="card gar-volume">
+        <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
+        <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+      </div>
+      <div class="card gar-omni">
+        <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
+        <div class="rank-subcards subcards-duo">
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Order Omni</h3></div>
+            <div class="omni-ring-wrap">
+              <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
+              <div class="card-body soft" id="body-omni"></div>
             </div>
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
-              <div class="card-body soft" id="body-shipping"></div>
-            </div>
+          </div>
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
+            <div class="card-body soft" id="body-shipping"></div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card" id="compareCard" style="display:none;">
+      <h2>Year-over-Year — เทียบยอดปีนี้ vs ปีที่แล้ว <span class="tag" id="tag-comparetotal"></span></h2>
+      <div class="chart-wrap"><canvas id="chartCompare"></canvas></div>
     </div>
 
     <div class="grid-duo-equal">
@@ -1966,6 +2042,67 @@ function updateCharts(M){
       charts.volume.update();
     }
   }
+
+  updateCompareChart(M);
+}
+
+/* Year-over-Year comparison chart: this year's per-day order count (from the main sheet,
+   M.dayCounts) plotted against last year's per-day totals from the Compare_data sheet
+   (global `compareData`). Matches each Compare_data date to "the same day/month, one year
+   later" to find this year's count for that day. The whole card stays hidden whenever
+   Compare_data hasn't been (successfully) loaded, so this never shows an empty chart. */
+function updateCompareChart(M){
+  const card = document.getElementById('compareCard');
+  if (!card) return;
+  if (typeof Chart === 'undefined' || !compareData.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+
+  const pad = n => String(n).padStart(2,'0');
+  const labels = compareData.map(c => pad(c.date.getDate()) + '/' + pad(c.date.getMonth()+1));
+  const lastYearData = compareData.map(c => c.count);
+  const thisYearData = compareData.map(c => {
+    const thisYearDate = new Date(c.date.getFullYear() + 1, c.date.getMonth(), c.date.getDate());
+    return M.dayCounts[dayKey(thisYearDate)] || 0;
+  });
+
+  const thisYearTotal = thisYearData.reduce((a,b) => a+b, 0);
+  const lastYearTotal = lastYearData.reduce((a,b) => a+b, 0);
+  const tagEl = document.getElementById('tag-comparetotal');
+  if (tagEl) tagEl.textContent = `${fmtNum(thisYearTotal)} vs ${fmtNum(lastYearTotal)}`;
+
+  const ctx = document.getElementById('chartCompare');
+  if (!ctx) return;
+  if (!charts.compare){
+    charts.compare = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [
+        {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:42},
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#6C7A93', borderRadius:3, maxBarThickness:42}
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+        scales:{
+          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
+          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}}
+        },
+        plugins:{
+          legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
+          tooltip:{
+            ...TOOLTIP_STYLE,
+            callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
+          }
+        }
+      }
+    });
+  } else {
+    charts.compare.data.labels = labels;
+    charts.compare.data.datasets[0].data = thisYearData;
+    charts.compare.data.datasets[1].data = lastYearData;
+    charts.compare.update();
+  }
 }
 
 function updateStockChart(M){
@@ -2082,6 +2219,7 @@ async function loadData(isAuto){
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
     await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
+    await loadCompareDataIfNeeded(cfg.sheetId, !isAuto);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
     const parsed = buildRows(cols, rows);
     updateDashboard(parsed);
