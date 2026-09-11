@@ -247,21 +247,15 @@
   .col-70, .col-30{display:flex; flex-direction:column; min-width:0;}
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
-  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  /* Two explicit rows on desktop: row 1 pairs the narrow "Order Source" card with the
-     "Order Volume" chart card so they stretch to match each other's height exactly; the
-     "Order Omni & Shipping" card sits in row 2 under the chart, on its own, so the narrow
-     column is no longer stretched to the combined height of both right-hand cards (which
-     used to leave a mismatched empty gap inside the narrow card). */
-  @media(min-width:900px){
-    .grid-asym{grid-template-columns:34% 1fr; grid-template-rows:auto auto;}
-    .grid-asym > .col-narrow{grid-column:1; grid-row:1;}
-    .grid-asym > .gar-volume{grid-column:2; grid-row:1;}
-    .grid-asym > .gar-omni{grid-column:2; grid-row:2;}
-  }
+  .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:start;}
+  /* align-items:start (not stretch): "Order Source & Stock Destination" keeps its own
+     natural height instead of being force-stretched to match the combined height of
+     "Order Volume" + "Order Omni & Shipping" stacked below it — that stretching used to
+     inflate the donut card with mismatched empty space. The two right-hand cards just
+     stack tightly with their own natural heights (the Volume chart's height comes from
+     .chart-wrap's fixed height, so it stays compact and Omni sits right under it). */
+  @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
-  .col-narrow .card:last-child{flex:1 1 auto;}
-  .col-narrow .card:last-child .stock-donut-wrap{flex:1 1 auto;}
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
@@ -1341,23 +1335,25 @@ function buildSkeleton(){
         </div>
       </div>
 
-      <div class="card gar-volume">
-        <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
-        <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-      </div>
-      <div class="card gar-omni">
-        <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
-        <div class="rank-subcards subcards-duo">
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Order Omni</h3></div>
-            <div class="omni-ring-wrap">
-              <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
-              <div class="card-body soft" id="body-omni"></div>
+      <div class="col-wide">
+        <div class="card">
+          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
+          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
+          <div class="rank-subcards subcards-duo">
+            <div class="rank-subcard">
+              <div class="rank-subcard-head"><h3>Order Omni</h3></div>
+              <div class="omni-ring-wrap">
+                <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
+                <div class="card-body soft" id="body-omni"></div>
+              </div>
             </div>
-          </div>
-          <div class="rank-subcard">
-            <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
-            <div class="card-body soft" id="body-shipping"></div>
+            <div class="rank-subcard">
+              <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
+              <div class="card-body soft" id="body-shipping"></div>
+            </div>
           </div>
         </div>
       </div>
