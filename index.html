@@ -243,12 +243,14 @@
   }
 
   /* Year-over-Year compare card: sits as a narrow column next to the hero (COMPLETE) card
-     instead of its own full-width row. Kept deliberately narrow — this is a quick "is this
-     year ahead or behind" glance, not a chart meant to be read in detail. When Compare_data
-     isn't available, updateCompareChart() adds .no-compare to #heroRow so the hero simply
-     takes the full width instead of leaving a blank gap where the card would have been. */
+     instead of its own full-width row — COMPLETED at 80% width, Year-over-Year at 20%, the
+     same proportional concept as .grid-70-30 (Top Selling & Marketing / Order by Menu) below,
+     so COMPLETED reads as the primary card and Year-over-Year as its smaller supporting card.
+     When Compare_data isn't available, updateCompareChart() adds .no-compare to #heroRow so
+     the hero simply takes the full width instead of leaving a blank gap where the card would
+     have been. */
   .hero-row{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .hero-row{grid-template-columns:1fr 260px;} }
+  @media(min-width:900px){ .hero-row{grid-template-columns:80% 1fr;} }
   .hero-row.no-compare{grid-template-columns:1fr;}
   .compare-card-narrow{display:flex; flex-direction:column;}
   .compare-chart-wrap{height:auto; flex:1 1 auto; min-height:130px;}
@@ -260,23 +262,23 @@
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
   .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  /* align-items:stretch: the narrow "Order Source & Stock Destination" column matches the
-     combined height of "Order Volume" + "Order Omni & Shipping" stacked next to it, so the
-     two columns' bottom edges line up. `.col-narrow > .card{flex:1 1 auto}` below lets the
-     card itself grow into that extra height; `.subcards-fill-eq` (further down) then splits
-     that grown height evenly between the "AIS Shop vs Partner" and "Sub Stock Destination"
-     subcards, so the card's bottom edge lands exactly at the Order Omni row's bottom edge
-     with no leftover blank strip, and the two subcards stay equal height with each other. */
+  /* Four cards share one height here: "Order Volume — Hourly Order Count" is the reference —
+     its height comes straight from CSS (.chart-wrap's fixed height) and is never overridden.
+     "Order Omni & Shipping" is pinned in JS (syncSummaryCardHeights()) to that same reference
+     height. "Order Source & Stock Destination" is then pinned to the reference height + gap +
+     Omni's height, i.e. exactly as tall as "Order Volume" and "Order Omni & Shipping" stacked
+     together; `.subcards-fill-eq` below splits that height evenly between its two internal
+     subcards ("AIS Shop vs Partner" and "Sub Stock Destination"), so every one of the four
+     cards ends up the same height as the Order Volume reference (Order Source only slightly
+     over, by half the 12px gap, once split — unavoidable when two sub-panels of a taller card
+     are compared to a single reference card). Pixel values come from measuring the actual
+     rendered cards (not a hardcoded guess), so this keeps working as card content changes.
+     Only applied at desktop widths where the two columns sit side by side; below 900px this
+     CSS grid collapses to a single stacked column and syncSummaryCardHeights() skips the
+     height overrides entirely so cards just size to their own content. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow > .card{flex:1 1 auto;}
-  /* Force an exact height on the "Order Source & Stock Destination" card so its bottom
-     edge lines up with the bottom of "Order Omni & Shipping" in the wide column. Stretch
-     alone was leaving a blank strip below this card, so we pin it to a known value instead.
-     Only applied at desktop widths where the two columns sit side by side. */
-  @media(min-width:900px){
-    .col-narrow > .card.fixed-height-540{flex:0 0 540px; height:540px;}
-  }
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
@@ -484,6 +486,15 @@
      card instead of the browser's plain OS tooltip. Triggered via [data-tip] + #hoverTip,
      wired up once in initHoverTips(). */
   [data-tip]{cursor:help;}
+  /* A few table cells (e.g. the Branch & Stock Flow name column) still use a plain native
+     title="" tooltip rather than the custom [data-tip] one above — same hover cue for those. */
+  td[title]{cursor:help;}
+
+  /* Chart.js canvases: cursor is switched between this default and "help" by each chart's own
+     onHover option whenever the pointer is over a hoverable data point/bar/slice, i.e.
+     whenever a tooltip is available — same visual cue as [data-tip] above, applied to
+     canvas-drawn charts instead of DOM elements. */
+  .chart-wrap canvas{cursor:default;}
   .hover-tip{
     position:fixed; z-index:1200; display:none; max-width:240px;
     background:var(--surface); border:1px solid var(--gold); border-radius:5px;
@@ -778,8 +789,10 @@ function parseGvizDate(v){
    manually-entered summary of last year's daily order totals (e.g. the first few days of
    the equivalent period), used to draw the Year-over-Year comparison chart. Optional, same
    fail-soft pattern as LocationMaster above: a missing tab or bad columns never breaks the
-   main dashboard — the comparison card just stays hidden. Loaded once per sheetId (not on
-   every 10s auto-refresh poll); the explicit "โหลดข้อมูล" button forces a re-fetch. */
+   main dashboard — the comparison card just stays hidden. Re-fetched on every load (initial,
+   manual "LOAD DATA"/REFRESH click, and every 10s auto-refresh poll alike — see the `true` at
+   the loadData() call site) so a newly appended row shows up automatically, the same way the
+   main Order sheet's data already does, without needing a manual browser refresh. */
 const COMPARE_SHEET_NAME = 'Compare_data';
 let compareData = [];          // [{date: Date, count: Number}], sorted ascending by date
 let compareDataLoadedFor = null;
@@ -1353,7 +1366,7 @@ function buildSkeleton(){
 
     <div class="grid-asym">
       <div class="col-narrow">
-        <div class="card fixed-height-540">
+        <div class="card" id="cardOrderSource">
           <h2>Order Source &amp; Stock Destination</h2>
           <div class="rank-subcards subcards-stack subcards-fill-eq">
             <div class="rank-subcard">
@@ -1372,11 +1385,11 @@ function buildSkeleton(){
       </div>
 
       <div class="col-wide">
-        <div class="card">
+        <div class="card" id="cardVolume">
           <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
           <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
         </div>
-        <div class="card">
+        <div class="card" id="cardOmni">
           <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
           <div class="rank-subcards subcards-duo">
             <div class="rank-subcard">
@@ -2013,6 +2026,7 @@ function updateDashboard(rows){
 
   document.getElementById('dashboard').style.display = 'flex';
   document.getElementById('placeholder').style.display = 'none';
+  syncSummaryCardHeights();
 
   const rangeEl = document.getElementById('rangeLabel');
   if (rows.length){
@@ -2059,6 +2073,15 @@ function updateCharts(M){
         ]},
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+          // mode:'index', intersect:false: the tooltip (and hover) target the whole x
+          // position (hour bucket) rather than requiring the pointer to land exactly on a
+          // bar or line-point. This is what makes every dataset at that hour — AIS, PARTNER,
+          // and the Cumulative line — show together in one tooltip, and it's also what fixes
+          // the Cumulative line blocking the bars: since hit-testing no longer depends on
+          // which element is drawn on top at that pixel, the line stays visually in front
+          // (so its trend is still easy to read) without shadowing the bars underneath it.
+          interaction:{mode:'index', intersect:false},
+          onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
           scales:{
             x:{stacked:true, grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
             y:{stacked:true, beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
@@ -2068,6 +2091,7 @@ function updateCharts(M){
             legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
             tooltip:{
               ...TOOLTIP_STYLE,
+              mode:'index', intersect:false,
               callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
             }
           }
@@ -2137,12 +2161,19 @@ function updateCompareChart(M){
   if (!charts.compare){
     charts.compare = new Chart(ctx, {
       type: 'bar',
+      // Cyan (this year) vs. amber (last year) — far apart on the color wheel, unlike the
+      // previous cyan-vs-gray pairing, so the two series stay easy to tell apart at a glance.
       data: { labels, datasets: [
         {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:28},
-        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#6C7A93', borderRadius:3, maxBarThickness:28}
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#F5B841', borderRadius:3, maxBarThickness:28}
       ]},
       options: {
         responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+        // mode:'index', intersect:false: hovering anywhere over a "Day N" column shows both
+        // this-year and last-year bars for that day in one tooltip, instead of only whichever
+        // single bar the pointer happens to be directly over.
+        interaction:{mode:'index', intersect:false},
+        onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
         scales:{
           x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9}}},
           y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9}}}
@@ -2151,12 +2182,24 @@ function updateCompareChart(M){
           legend:{position:'top', labels:{boxWidth:8, font:{size:9.5}, color:'#BAC6DC'}},
           tooltip:{
             ...TOOLTIP_STYLE,
+            mode:'index', intersect:false,
             callbacks:{
               title: items => {
                 const i = items[0].dataIndex;
                 return `${labels[i]} (ปีนี้ ${thisYearDates[i]} / ปีที่แล้ว ${lastYearDates[i]})`;
               },
-              label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}`
+              label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}`,
+              // Difference + % difference between the two series for this day, shown below
+              // the two per-series lines above so the comparison reads at a glance without
+              // the person having to do the subtraction themselves.
+              afterBody: items => {
+                const i = items[0].dataIndex;
+                const ty = thisYearData[i], ly = lastYearData[i];
+                const diff = ty - ly;
+                const sign = diff > 0 ? '+' : (diff < 0 ? '' : '±');
+                const pct = ly ? (diff / ly * 100) : (ty ? 100 : 0);
+                return ['', `ผลต่าง: ${sign}${fmtNum(diff)} (${sign}${pct.toFixed(1)}%)`];
+              }
             }
           }
         }
@@ -2187,6 +2230,7 @@ function updateStockChart(M){
       options: {
         responsive:true, maintainAspectRatio:false, cutout:'66%',
         animation:{duration:450, easing:'easeOutQuart'},
+        onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
         plugins:{
           legend:{display:false},
           tooltip:{
@@ -2206,6 +2250,37 @@ function updateStockChart(M){
     charts.stock.data.datasets[0].backgroundColor = colors;
     charts.stock.update();
   }
+}
+
+/* Standardizes the height of the four "Order Source & Stock Destination" / "Order Volume" /
+   "Order Omni & Shipping" cards (see the .grid-asym CSS comment for the full picture). Order
+   Volume is the reference and is never touched — its height is fixed by CSS alone — everything
+   else is measured and pinned to match it. Skipped below the 900px breakpoint, where .grid-asym
+   collapses to a single stacked column and forcing these heights would just leave blank space. */
+function syncSummaryCardHeights(){
+  const volumeCard = document.getElementById('cardVolume');
+  const omniCard = document.getElementById('cardOmni');
+  const sourceCard = document.getElementById('cardOrderSource');
+  if (!volumeCard || !omniCard || !sourceCard) return;
+  // Clear any previous override first so shrinking content (e.g. fewer shipping types) is
+  // measured correctly too, instead of being padded out by a stale, now-too-tall min-height.
+  omniCard.style.minHeight = '';
+  sourceCard.style.minHeight = '';
+  if (window.innerWidth < 900) return;
+  // Double rAF: wait for the browser to finish the layout pass triggered by clearing the
+  // min-heights above (and by Chart.js's own canvas resize) before measuring, so the values
+  // read below reflect the settled layout rather than a mid-reflow snapshot.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const refHeight = volumeCard.offsetHeight;
+      if (!refHeight) return;
+      omniCard.style.minHeight = refHeight + 'px';
+      requestAnimationFrame(() => {
+        const gap = 12; // matches .col-wide{gap:12px}
+        sourceCard.style.minHeight = (refHeight + gap + omniCard.offsetHeight) + 'px';
+      });
+    });
+  });
 }
 
 /* ===================== IMAGE HOVER PREVIEW ===================== */
@@ -2284,7 +2359,11 @@ async function loadData(isAuto){
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
     await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
-    await loadCompareDataIfNeeded(cfg.sheetId, !isAuto);
+    // Always force a fresh fetch (not just "once per sheetId" — see loadCompareDataIfNeeded's
+    // own comment) so a newly appended row in Compare_data shows up on the next auto-refresh
+    // poll too, the same way the main Order sheet already does, instead of needing a manual
+    // browser refresh or a "LOAD DATA" click to pick it up.
+    await loadCompareDataIfNeeded(cfg.sheetId, true);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
     const parsed = buildRows(cols, rows);
     updateDashboard(parsed);
@@ -2364,6 +2443,15 @@ async function loadData(isAuto){
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrackTooltip(); });
   window.addEventListener('scroll', () => { if (openTrackKey) closeTrackTooltip(); }, true);
   window.addEventListener('resize', () => { if (openTrackKey) closeTrackTooltip(); });
+
+  // Re-sync the four summary card heights on resize (crossing the 900px breakpoint, or a
+  // width change that alters how much a card's own content wraps/grows), debounced so a drag-
+  // resize doesn't re-measure on every single pixel.
+  let cardHeightResizeTimer = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(cardHeightResizeTimer);
+    cardHeightResizeTimer = setTimeout(syncSummaryCardHeights, 120);
+  });
 
   initHoverTips();
 
