@@ -369,6 +369,31 @@
   .track-tooltip .tt-lock{font-size:10px; color:var(--muted); line-height:1.5; margin-bottom:8px;}
   .track-tooltip .track-detail-grid{grid-template-columns:1fr; gap:5px;}
 
+  /* ---------- Tracking Order: Commercial Name / Order Omni no longer stretch the column ----------
+     Long values used to widen <td> via white-space:nowrap, pushing later columns (Order Omni) off
+     screen. The cell now clips to a fixed max-width with an ellipsis; the full value moves to the
+     custom hover tooltip below instead of the (plain, cramped-looking) native title="" bubble. */
+  .track-table th.col-commname, .track-table td.col-commname{max-width:130px;}
+  .track-table th.col-orderomni, .track-table td.col-orderomni{max-width:110px;}
+  .cust-name-cell{
+    display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis;
+    white-space:nowrap; vertical-align:bottom; border-bottom:1px dashed var(--muted);
+  }
+
+  /* ---------- Generic hover tooltip ----------
+     Replaces native title="" attributes on truncated / supplementary data (Commercial Name,
+     Order Omni, duration badge, top-item names, masked-name lock hint) with a small themed
+     card instead of the browser's plain OS tooltip. Triggered via [data-tip] + #hoverTip,
+     wired up once in initHoverTips(). */
+  [data-tip]{cursor:help;}
+  .hover-tip{
+    position:fixed; z-index:1200; display:none; max-width:240px;
+    background:var(--surface); border:1px solid var(--gold); border-radius:5px;
+    box-shadow:3px 3px 0 rgba(0,0,0,.4); padding:6px 9px; font-size:10.5px;
+    color:var(--text-dim); line-height:1.5; pointer-events:none; word-break:break-word;
+  }
+  .hover-tip.show{display:block; animation:fadeInUp .12s ease both;}
+
 </style>
 </head>
 <body>
@@ -424,6 +449,7 @@
 
 <div class="img-preview" id="imgPreview"><img id="imgPreviewImg" src="" alt=""></div>
 <div class="track-tooltip" id="trackTooltip"></div>
+<div class="hover-tip" id="hoverTip"></div>
 
 <script>
 /* ===================== CONFIG / STATE ===================== */
@@ -1111,8 +1137,8 @@ function buildSkeleton(){
               <th>Order Status</th>
               <th>Order State</th>
               <th>Duration</th>
-              <th>Commercial Name</th>
-              <th>Order Omni</th>
+              <th class="col-commname">Commercial Name</th>
+              <th class="col-orderomni">Order Omni</th>
             </tr>
           </thead>
           <tbody id="body-track"></tbody>
@@ -1184,7 +1210,7 @@ function durationBadgeHtml(durationMs, createdMs){
   const startLabel = createdMs != null ? new Date(createdMs).toLocaleString('th-TH') : '-';
   const totalSec = Math.floor(durationMs / 1000);
   const fullLabel = `${Math.floor(totalSec/3600)}h ${Math.floor((totalSec%3600)/60)}m ${totalSec%60}s`;
-  return `<span class="badge" style="background:${bg};color:${fg}" title="${esc('เริ่มสร้าง: ' + startLabel + ' • ระยะเวลา: ' + fullLabel)}">${esc(durationLabel(durationMs))}</span>`;
+  return `<span class="badge" style="background:${bg};color:${fg}" data-tip="${esc('เริ่มสร้าง: ' + startLabel + ' • ระยะเวลา: ' + fullLabel)}">${esc(durationLabel(durationMs))}</span>`;
 }
 
 function commercialNameCellHtml(r){
@@ -1196,7 +1222,7 @@ function commercialNameCellHtml(r){
     r.priceIncAmt ? 'Price: ' + fmtNum(r.priceIncAmt) : null,
     r.priceDiscountAmt ? 'Discount: ' + fmtNum(r.priceDiscountAmt) : null
   ].filter(Boolean).join(' • ');
-  return `<span class="cust-name-cell" title="${esc(tip)}">${esc(r.commercialName)}</span>`;
+  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.commercialName)}</span>`;
 }
 
 function orderOmniCellHtml(r){
@@ -1207,7 +1233,7 @@ function orderOmniCellHtml(r){
     !isBlank(r.resType) ? 'Type: ' + r.resType : null,
     shipping ? 'Shipping: ' + shipping : null
   ].filter(Boolean).join(' • ');
-  return `<span class="cust-name-cell" title="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
+  return `<span class="cust-name-cell" data-tip="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
 }
 
 // Content for the pinned "info" tooltip on a Tracking Order row: full decrypted customer
@@ -1260,6 +1286,57 @@ async function buildTrackTooltipHtml(r){
     <div class="track-detail-grid">${detailHtml}</div>`;
 }
 
+// Generic hover tooltip: shows the text from any [data-tip] element's attribute in a small
+// themed card (#hoverTip) instead of the browser's plain native title="" bubble. Delegated on
+// document since most [data-tip] elements (table cells, rank rows, bar labels) are re-rendered
+// on every refresh. Independent of the pinned #trackTooltip above (that one is click-to-open
+// and stays put; this one is hover-only and always follows the pointer's target).
+function positionHoverTip(box, anchorRect){
+  const pad = 6;
+  const w = box.offsetWidth || 160, h = box.offsetHeight || 24;
+  let x = anchorRect.left + (anchorRect.width - w) / 2;
+  let y = anchorRect.top - h - pad;
+  if (y < 8) y = anchorRect.bottom + pad; // flip below if it would overflow the top
+  if (x < 8) x = 8;
+  if (x + w > window.innerWidth - 8) x = window.innerWidth - w - 8;
+  box.style.left = Math.round(Math.max(8, x)) + 'px';
+  box.style.top = Math.round(y) + 'px';
+}
+
+function initHoverTips(){
+  const box = document.getElementById('hoverTip');
+  if (!box) return;
+  let activeEl = null;
+  const show = (el) => {
+    const text = el.getAttribute('data-tip');
+    if (!text) return;
+    activeEl = el;
+    box.textContent = text;
+    box.classList.add('show');
+    positionHoverTip(box, el.getBoundingClientRect());
+  };
+  const hide = () => { activeEl = null; box.classList.remove('show'); };
+  document.addEventListener('mouseover', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el && el !== activeEl) show(el);
+  });
+  document.addEventListener('mouseout', (e) => {
+    if (!activeEl) return;
+    const stillInside = e.relatedTarget && activeEl.contains(e.relatedTarget);
+    if (!stillInside) hide();
+  });
+  document.addEventListener('focusin', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) show(el);
+  });
+  document.addEventListener('focusout', (e) => {
+    const el = e.target.closest && e.target.closest('[data-tip]');
+    if (el) hide();
+  });
+  window.addEventListener('scroll', hide, true);
+  window.addEventListener('resize', hide);
+}
+
 function closeTrackTooltip(){
   openTrackKey = null;
   const box = document.getElementById('trackTooltip');
@@ -1297,6 +1374,22 @@ async function openTrackTooltip(key, btnEl){
   if (openTrackKey !== key) return; // closed, or another row opened, while this was decrypting
   box.innerHTML = html;
   if (btnEl) positionTrackTooltip(box, btnEl.getBoundingClientRect());
+  // The product image loads asynchronously and can grow the box's height after we've already
+  // positioned it above — without this, `top` stays put while the box grows, pushing the
+  // bottom-most fields (Reserve Type / Shipping) off-screen on the very first open. Reopening
+  // used to "fix" it only because the image was by then warm in the browser cache and happened
+  // to be ready before/around this point. Reposition again once the image actually settles
+  // (loaded or failed) instead of relying on that timing.
+  const img = box.querySelector('.tt-img');
+  if (img && btnEl){
+    if (img.complete){
+      positionTrackTooltip(box, btnEl.getBoundingClientRect());
+    } else {
+      const reposition = () => { if (openTrackKey === key) positionTrackTooltip(box, btnEl.getBoundingClientRect()); };
+      img.addEventListener('load', reposition, {once:true});
+      img.addEventListener('error', reposition, {once:true});
+    }
+  }
 }
 
 async function renderTrackingOrders(){
@@ -1351,7 +1444,7 @@ async function renderTrackingOrders(){
     const isOpen = openTrackKey === key;
     const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
     const custName = secretKey ? (maskedByKey[key] || '-') : '🔒';
-    const custTitle = secretKey ? '' : ' title="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
+    const custAttr = secretKey ? '' : ' class="cust-name-cell" data-tip="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
     return `<tr>
       <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
       <td class="col-no">${i+1}</td>
@@ -1359,13 +1452,13 @@ async function renderTrackingOrders(){
       <td class="mono">${esc(r.transactionId || '-')}</td>
       <td>${isBlank(r.preBookingNo) ? '<span class="empty" style="padding:0;">-</span>' : esc(r.preBookingNo)}</td>
       <td class="mono">${esc(r.userId || '-')}</td>
-      <td${custTitle}>${esc(custName)}</td>
+      <td${custAttr}>${esc(custName)}</td>
       <td>${esc(r.orderType || '-')}</td>
       <td>${statusBadgeHtml(r.state)}</td>
       <td>${orderStateBadgeHtml(r.orderState)}</td>
       <td>${durationBadgeHtml(r.durationMs, r.createdMs)}</td>
-      <td>${commercialNameCellHtml(r)}</td>
-      <td>${orderOmniCellHtml(r)}</td>
+      <td class="col-commname">${commercialNameCellHtml(r)}</td>
+      <td class="col-orderomni">${orderOmniCellHtml(r)}</td>
     </tr>`;
   }).join('') || `<tr><td colspan="13" class="empty">ไม่พบข้อมูล</td></tr>`;
 
@@ -1383,7 +1476,7 @@ function rankRows(items, count, color, imgMap){
     const nameCls = img ? 'rank-name has-img' : 'rank-name';
     return `<div class="rank-row"${imgAttr}>
       <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
-      <div class="${nameCls}" title="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
       <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
@@ -1493,7 +1586,7 @@ function updateDashboard(rows){
       ? `Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`
       : 'ไม่มี Pre-Booking';
     return `<div class="bar-row">
-      <div class="top"><span class="name" title="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
+      <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
       <div class="menu-sub">${preLabel}</div>
     </div>`;
@@ -1801,6 +1894,8 @@ async function loadData(isAuto){
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTrackTooltip(); });
   window.addEventListener('scroll', () => { if (openTrackKey) closeTrackTooltip(); }, true);
   window.addEventListener('resize', () => { if (openTrackKey) closeTrackTooltip(); });
+
+  initHoverTips();
 
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
