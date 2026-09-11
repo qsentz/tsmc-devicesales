@@ -242,6 +242,17 @@
     .hero-right{border-left:none; padding-left:0; border-top:1px solid var(--border); padding-top:10px;}
   }
 
+  /* Year-over-Year compare card: sits as a narrow column next to the hero (COMPLETE) card
+     instead of its own full-width row. Kept deliberately narrow — this is a quick "is this
+     year ahead or behind" glance, not a chart meant to be read in detail. When Compare_data
+     isn't available, updateCompareChart() adds .no-compare to #heroRow so the hero simply
+     takes the full width instead of leaving a blank gap where the card would have been. */
+  .hero-row{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
+  @media(min-width:900px){ .hero-row{grid-template-columns:1fr 260px;} }
+  .hero-row.no-compare{grid-template-columns:1fr;}
+  .compare-card-narrow{display:flex; flex-direction:column;}
+  .compare-chart-wrap{height:auto; flex:1 1 auto; min-height:130px;}
+
   /* ---------- Grid layout columns ---------- */
   .grid-70-30{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-70-30{grid-template-columns:80% 1fr;} }
@@ -1262,6 +1273,7 @@ function buildSkeleton(){
     <section class="dash-section" id="summarySection">
       <button type="button" class="fs-btn" onclick="toggleFullscreen('summarySection')" title="ขยายเต็มจอ">⛶</button>
       <div class="section-label">Summary</div>
+    <div class="hero-row" id="heroRow">
     <div class="hero">
       <div class="hero-sticker">COMPLETED</div>
       <div class="hero-left">
@@ -1277,6 +1289,12 @@ function buildSkeleton(){
         <h3>Other statuses</h3>
         <div class="tiles" id="tiles-status"></div>
       </div>
+    </div>
+
+    <div class="card compare-card-narrow" id="compareCard" style="display:none;">
+      <h2>Year-over-Year <span class="tag" id="tag-comparetotal"></span></h2>
+      <div class="chart-wrap compare-chart-wrap"><canvas id="chartCompare"></canvas></div>
+    </div>
     </div>
 
     <div class="grid-70-30">
@@ -1375,11 +1393,6 @@ function buildSkeleton(){
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="card" id="compareCard" style="display:none;">
-      <h2>Year-over-Year — เทียบยอดปีนี้ vs ปีที่แล้ว <span class="tag" id="tag-comparetotal"></span></h2>
-      <div class="chart-wrap"><canvas id="chartCompare"></canvas></div>
     </div>
 
     <div class="grid-duo-equal">
@@ -2074,24 +2087,44 @@ function updateCharts(M){
 
 /* Year-over-Year comparison chart: this year's per-day order count (from the main sheet,
    M.dayCounts) plotted against last year's per-day totals from the Compare_data sheet
-   (global `compareData`). Matches each Compare_data date to "the same day/month, one year
-   later" to find this year's count for that day. The whole card stays hidden whenever
-   Compare_data hasn't been (successfully) loaded, so this never shows an empty chart. */
+   (global `compareData`). Aligned by "days since each year's own first day with data" —
+   e.g. if this year's data starts 11/09/2026 and last year's Compare_data starts 19/09/2025,
+   those two dates are both "day 1" and get compared directly, day 2 vs day 2, and so on —
+   rather than matching the same calendar day/month across years (the two periods don't
+   necessarily start on the same date). The whole card (and its column in #heroRow) stays
+   hidden whenever Compare_data hasn't been (successfully) loaded, so this never shows an
+   empty chart or leaves a blank gap next to the hero. */
 function updateCompareChart(M){
   const card = document.getElementById('compareCard');
+  const heroRow = document.getElementById('heroRow');
   if (!card) return;
-  if (typeof Chart === 'undefined' || !compareData.length){
+
+  const thisYearDayKeys = Object.keys(M.dayCounts).sort();
+  if (typeof Chart === 'undefined' || !compareData.length || !thisYearDayKeys.length){
     card.style.display = 'none';
+    if (heroRow) heroRow.classList.add('no-compare');
     return;
   }
   card.style.display = '';
+  if (heroRow) heroRow.classList.remove('no-compare');
+
+  const [ty, tm, td] = thisYearDayKeys[0].split('-').map(Number);
+  const thisYearStart = new Date(ty, tm - 1, td);
 
   const pad = n => String(n).padStart(2,'0');
-  const labels = compareData.map(c => pad(c.date.getDate()) + '/' + pad(c.date.getMonth()+1));
-  const lastYearData = compareData.map(c => c.count);
-  const thisYearData = compareData.map(c => {
-    const thisYearDate = new Date(c.date.getFullYear() + 1, c.date.getMonth(), c.date.getDate());
-    return M.dayCounts[dayKey(thisYearDate)] || 0;
+  const fmtDate = d => pad(d.getDate()) + '/' + pad(d.getMonth()+1);
+  const labels = [];
+  const thisYearData = [];
+  const lastYearData = [];
+  const thisYearDates = [];
+  const lastYearDates = [];
+  compareData.forEach((c, i) => {
+    const tyDate = new Date(thisYearStart.getFullYear(), thisYearStart.getMonth(), thisYearStart.getDate() + i);
+    thisYearData.push(M.dayCounts[dayKey(tyDate)] || 0);
+    lastYearData.push(c.count);
+    thisYearDates.push(fmtDate(tyDate));
+    lastYearDates.push(fmtDate(c.date));
+    labels.push(`Day ${i + 1}`);
   });
 
   const thisYearTotal = thisYearData.reduce((a,b) => a+b, 0);
@@ -2105,20 +2138,26 @@ function updateCompareChart(M){
     charts.compare = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets: [
-        {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:42},
-        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#6C7A93', borderRadius:3, maxBarThickness:42}
+        {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:28},
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#6C7A93', borderRadius:3, maxBarThickness:28}
       ]},
       options: {
         responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
         scales:{
-          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
-          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}}
+          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9}}},
+          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9}}}
         },
         plugins:{
-          legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
+          legend:{position:'top', labels:{boxWidth:8, font:{size:9.5}, color:'#BAC6DC'}},
           tooltip:{
             ...TOOLTIP_STYLE,
-            callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
+            callbacks:{
+              title: items => {
+                const i = items[0].dataIndex;
+                return `${labels[i]} (ปีนี้ ${thisYearDates[i]} / ปีที่แล้ว ${lastYearDates[i]})`;
+              },
+              label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}`
+            }
           }
         }
       }
