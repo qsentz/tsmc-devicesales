@@ -623,6 +623,47 @@ async function fetchSheet(sheetId, sheetName){
   return { cols, rows };
 }
 
+/* ===================== LOCATION MASTER (locationSource code -> ชื่อสาขา) =====================
+   Separate tab in the same spreadsheet ("LocationMaster", columns locationCode / locationName).
+   Optional: if the tab or columns are missing, we just fall back to showing the raw
+   locationSource code everywhere — this must never break the main dashboard load. Loaded once
+   per sheetId (not on every 10s auto-refresh poll) since branch master data rarely changes;
+   the explicit "โหลดข้อมูล" button forces a re-fetch in case it was just edited. */
+const LOCATION_MASTER_SHEET_NAME = 'LocationMaster';
+let locationNameMap = {};          // locationCode (string) -> locationName
+let locationMasterLoadedFor = null; // sheetId this map was last (successfully or not) loaded for
+async function loadLocationMasterIfNeeded(sheetId, force){
+  if (!force && locationMasterLoadedFor === sheetId) return;
+  try {
+    const {cols, rows} = await fetchSheet(sheetId, LOCATION_MASTER_SHEET_NAME);
+    const codeIdx = cols.indexOf('locationCode');
+    const nameIdx = cols.indexOf('locationName');
+    if (codeIdx === -1 || nameIdx === -1){
+      throw new Error(`ไม่พบคอลัมน์ locationCode/locationName ใน sheet "${LOCATION_MASTER_SHEET_NAME}"`);
+    }
+    const map = {};
+    rows.forEach(r => {
+      const code = r[codeIdx] == null ? '' : String(r[codeIdx]).trim();
+      const name = r[nameIdx] == null ? '' : String(r[nameIdx]).trim();
+      if (code && name) map[code] = name; // last row wins if a code appears more than once
+    });
+    locationNameMap = map;
+  } catch(err){
+    // Missing tab / columns / transient fetch error: keep dashboard working, just log it.
+    // (Don't wipe a previously-loaded map on a transient failure of a forced re-fetch.)
+    console.warn('โหลด LocationMaster ไม่สำเร็จ (จะแสดง locationSource แบบรหัสดิบแทน):', err.message);
+    if (locationMasterLoadedFor !== sheetId) locationNameMap = {};
+  } finally {
+    locationMasterLoadedFor = sheetId;
+  }
+}
+// Resolve a locationSource code to its branch name; falls back to the raw code untouched
+// when there's no match (unmapped code, or LocationMaster failed/hasn't loaded).
+function locationDisplayName(code){
+  if (isBlank(code)) return code;
+  return locationNameMap[code] || code;
+}
+
 function parseGvizDate(v){
   if (v == null) return null;
   if (typeof v === 'string' && v.indexOf('Date(') === 0){
@@ -958,10 +999,10 @@ function computeMetrics(rows){
     a.count++;
     if (!isBlank(r.subStockDestination)) a.stockMap[r.subStockDestination] = (a.stockMap[r.subStockDestination]||0) + 1;
   });
-  const locTop = Object.entries(locMap).map(([name,v]) => {
+  const locTop = Object.entries(locMap).map(([code,v]) => {
     let topStock = null, topStockCount = 0;
     Object.entries(v.stockMap).forEach(([s,c]) => { if (c > topStockCount){ topStock = s; topStockCount = c; } });
-    return { name, count: v.count, topStock, topStockPct: v.count ? topStockCount/v.count*100 : 0 };
+    return { code, name: locationDisplayName(code), count: v.count, topStock, topStockPct: v.count ? topStockCount/v.count*100 : 0 };
   }).sort((a,b) => b.count - a.count).slice(0, 10);
   const locTotal = locRows.length;
   const locItems = Object.keys(locMap).length;
@@ -1325,7 +1366,7 @@ async function buildTrackTooltipHtml(r){
 
   const fields = [
     ['Menu', r.menu],
-    ['Order Source', r.locationSource],
+    ['Order Source', locationDisplayName(r.locationSource)],
     ['Service Care', r.serviceCareTitle],
     ['Stock Destination', r.subStockDestination],
     ['Campaign', r.campaignName],
@@ -1566,7 +1607,7 @@ function updateDashboard(rows){
   // Total order completed
   document.getElementById('tag-grandtotal').textContent = `of ${fmtNum(M.grandTotal)} total orders`;
   document.getElementById('tag-completeprebook').innerHTML =
-    `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
+    `<div style="color:var(--muted); font-weight:600;">ไม่รวม Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
   drawRing(document.getElementById('ringComplete'), M.completePct, '#A23A2E');
@@ -1594,7 +1635,7 @@ function updateDashboard(rows){
       <div class="grp-nums">
         <div class="n">${fmtNum(count)}</div>
         <div class="p">${fmtPct(pct)}</div>
-        <div class="pre-badge">Non Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
+        <div class="pre-badge">ไม่รวม Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
         <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
       </div>
     </div>`;
@@ -1637,7 +1678,7 @@ function updateDashboard(rows){
   const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    const preLabel = `Non Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
+    const preLabel = `ไม่รวม Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
     return `<div class="bar-row">
       <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
@@ -1685,7 +1726,7 @@ function updateDashboard(rows){
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
   softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
   const branchStockHtml = M.locTop.map(b => `<tr>
-    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
+    <td class="mono" title="${esc('รหัส: ' + b.code)}">${esc(b.name)}</td>
     <td>${fmtNum(b.count)}</td>
     <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
@@ -1868,6 +1909,7 @@ async function loadData(isAuto){
   isLoading = true;
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
+    await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
     const parsed = buildRows(cols, rows);
     updateDashboard(parsed);
