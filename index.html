@@ -165,6 +165,14 @@
   body.body-fs-lock{overflow:hidden;}
   body.body-fs-lock .topbar-wrap{visibility:hidden;}
 
+  /* Tracking Order fullscreen: previously the table kept its normal (fairly short) max-height
+     even at fullscreen, leaving a lot of empty space below it. In fullscreen the card and its
+     table now stretch to fill the available viewport height, with the table itself scrolling
+     internally instead of the page having dead space under a short table. */
+  #trackingSection.is-fullscreen{overflow:hidden;}
+  #trackingSection.is-fullscreen .card{flex:1 1 auto; min-height:0;}
+  #trackingSection.is-fullscreen .track-table-scroll{flex:1 1 auto; max-height:none;}
+
   @keyframes fadeInUp{
     from{opacity:0; transform:translateY(6px);}
     to{opacity:1; transform:translateY(0);}
@@ -181,7 +189,14 @@
     font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
-  .card h2 .tag{font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;}
+  /* Card-header tags now match the pill/badge look used on sub-card tags (see
+     .rank-subcard-head .tag below) — previously these were plain unstyled text, which made
+     them look inconsistent with tags like "Pre-Booking: 1" elsewhere on the same dashboard. */
+  .card h2 .tag{
+    font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;
+    background:var(--bg-2); padding:1px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;
+    border:1px solid var(--border-soft);
+  }
   .card-body{min-height:0;}
   .soft{transition:opacity .28s ease;}
 
@@ -192,26 +207,29 @@
 
   /* ---------- HERO: Total Order Completed ---------- */
   .hero{
-    position:relative; background:var(--surface); border:1.5px solid var(--accent); border-radius:var(--radius);
-    padding:12px 16px; box-shadow:4px 4px 0 var(--accent-bg);
-    display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:center;
+    position:relative; background:linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
+    border:2px solid var(--accent); border-radius:var(--radius);
+    padding:20px 26px; box-shadow:6px 6px 0 var(--accent-bg);
+    display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center;
     animation:fadeInUp .4s ease both;
   }
   .hero-sticker{
-    position:absolute; top:-9px; left:16px; background:var(--accent); color:#F5F3FF;
-    font-size:9.5px; font-weight:700; padding:2px 8px 1px; border-radius:3px; transform:rotate(-2deg);
-    box-shadow:2px 2px 0 rgba(0,0,0,.4);
+    position:absolute; top:-12px; left:20px; background:var(--accent); color:#F5F3FF;
+    font-size:11px; font-weight:800; padding:3px 11px 2px; border-radius:3px; transform:rotate(-2deg);
+    box-shadow:3px 3px 0 rgba(0,0,0,.4); letter-spacing:.05em;
   }
-  .hero-left{display:flex; align-items:center; gap:14px;}
+  .hero-left{display:flex; align-items:center; gap:20px;}
   .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
   .hero-ring canvas{width:64px; height:64px; display:block;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:42px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:10px; color:var(--accent-bright); margin-top:2px; font-weight:700; letter-spacing:.03em;}
-  .hero-nums .of-total{font-size:10px; color:var(--muted); margin-top:3px;}
+  .hero-ring.hero-ring-lg{width:100px; height:100px;}
+  .hero-ring.hero-ring-lg canvas{width:100px; height:100px;}
+  .hero-nums .big{font-family:var(--font-serif); font-size:64px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
+  .hero-nums .lbl{font-size:12.5px; color:var(--accent-bright); margin-top:5px; font-weight:800; letter-spacing:.04em;}
+  .hero-nums .of-total{font-size:11px; color:var(--muted); margin-top:5px;}
   .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
   .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
-  .hero-right{border-left:1px solid var(--border); padding-left:16px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:11.5px; margin:0 0 6px; font-weight:700; color:var(--text-dim);}
+  .hero-right{border-left:1px solid var(--border); padding-left:22px;}
+  .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 7px; font-weight:700; color:var(--text-dim);}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
   .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft);}
   .tile .n{font-size:14px; font-weight:800;}
@@ -230,7 +248,17 @@
   .col-70 .card, .col-30 .card{flex:1 1 auto;}
 
   .grid-asym{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
-  @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
+  /* Two explicit rows on desktop: row 1 pairs the narrow "Order Source" card with the
+     "Order Volume" chart card so they stretch to match each other's height exactly; the
+     "Order Omni & Shipping" card sits in row 2 under the chart, on its own, so the narrow
+     column is no longer stretched to the combined height of both right-hand cards (which
+     used to leave a mismatched empty gap inside the narrow card). */
+  @media(min-width:900px){
+    .grid-asym{grid-template-columns:34% 1fr; grid-template-rows:auto auto;}
+    .grid-asym > .col-narrow{grid-column:1; grid-row:1;}
+    .grid-asym > .gar-volume{grid-column:2; grid-row:1;}
+    .grid-asym > .gar-omni{grid-column:2; grid-row:2;}
+  }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0;}
   .col-narrow .card:last-child{flex:1 1 auto;}
   .col-narrow .card:last-child .stock-donut-wrap{flex:1 1 auto;}
@@ -248,6 +276,17 @@
   .grp-nums .p{font-size:9.5px; color:var(--muted);}
   .pre-badge{font-size:9px; color:var(--muted); margin-top:2px;}
   .pre-badge b{color:var(--text-dim); font-weight:700;}
+
+  /* AIS Shop vs Partner — split bar chart */
+  .split-bar{display:flex; width:100%; height:16px; border-radius:4px; overflow:hidden; background:var(--border-soft); margin-bottom:4px;}
+  .split-seg{height:100%; min-width:2px; transition:width .5s ease;}
+
+  /* Order Omni — small ring chart beside the numbers */
+  .omni-ring-wrap{display:flex; align-items:center; gap:12px;}
+  .omni-ring-wrap .hero-ring{flex:0 0 auto;}
+  .omni-ring-wrap .card-body{flex:1 1 auto; min-width:0;}
+  .omni-ring-wrap .grp-row{padding:0; border-bottom:none;}
+  @media(max-width:420px){ .omni-ring-wrap{flex-direction:column; align-items:flex-start;} }
 
   /* Sub stock destination */
   .bar-row{margin-bottom:8px;}
@@ -292,10 +331,14 @@
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
-  .rank-row{position:relative; display:flex; align-items:center; justify-content:space-between; gap:6px; padding:3px 6px; border-radius:3px; overflow:hidden;}
-  .rank-bar{position:absolute; left:0; top:0; bottom:0; opacity:.20; border-radius:3px; transition:width .5s ease;}
-  .rank-name{position:relative; z-index:1; font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .rank-count{position:relative; z-index:1; font-size:10.5px; font-weight:800; flex:0 0 auto;}
+  .rank-row{position:relative; display:flex; align-items:center; gap:8px; padding:3px 6px; border-radius:3px; overflow:hidden;}
+  .rank-name{font-size:10.5px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; min-width:0;}
+  /* In-cell horizontal bar chart: a fixed-width track next to the number, filled
+     proportionally to this row's count vs. the largest count in the list — so relative
+     magnitude reads at a glance without having to compare the numbers themselves. */
+  .rank-bar-track{position:relative; flex:0 0 56px; width:56px; height:7px; border-radius:3px; background:var(--border-soft); overflow:hidden;}
+  .rank-bar-fill{position:absolute; left:0; top:0; bottom:0; border-radius:3px; transition:width .5s ease;}
+  .rank-count{font-size:10.5px; font-weight:800; flex:0 0 auto; min-width:34px; text-align:right;}
   .rank-slider-row{display:flex; align-items:center; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid var(--border);}
   .rank-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
@@ -489,7 +532,11 @@ let refreshTimer = null;
 let isLoading = false;
 let lastMetrics = null;
 
-const STOCK_PALETTE = ['#22B8CF','#38C6D9','#7C93F5','#3FBE83','#7C8AA8'];
+// A wider, hue-separated categorical palette (used across Sub Stock Destination, Shipping
+// Breakdown, and Order by Menu) — each color sits far apart on the color wheel (blue, violet,
+// amber, green, pink, orange, red, gray) so adjacent legend entries never look like
+// near-duplicates of each other, even when several categories are shown at once.
+const STOCK_PALETTE = ['#38BDF2','#A78BFA','#FBBF24','#34D399','#F472B6','#FB923C','#EF4444','#94A3B8'];
 
 const TOOLTIP_STYLE = {
   backgroundColor:'#141F35',
@@ -703,6 +750,52 @@ function parseGvizDate(v){
   return isNaN(d.getTime()) ? null : d;
 }
 
+/* ===================== YEAR-OVER-YEAR COMPARE DATA =====================
+   Separate tab in the same spreadsheet ("Compare_data", columns Date / Count) holding a
+   manually-entered summary of last year's daily order totals (e.g. the first few days of
+   the equivalent period), used to draw the Year-over-Year comparison chart. Optional, same
+   fail-soft pattern as LocationMaster above: a missing tab or bad columns never breaks the
+   main dashboard — the comparison card just stays hidden. Loaded once per sheetId (not on
+   every 10s auto-refresh poll); the explicit "โหลดข้อมูล" button forces a re-fetch. */
+const COMPARE_SHEET_NAME = 'Compare_data';
+let compareData = [];          // [{date: Date, count: Number}], sorted ascending by date
+let compareDataLoadedFor = null;
+// Compare_data's "Date" column is plain text like "19/09/2025" (day/month/year), not a
+// gviz date cell, so this tries that format first and falls back to parseGvizDate for a
+// real date cell or an ISO-style string.
+function parseCompareDate(v){
+  if (v == null) return null;
+  if (typeof v === 'string'){
+    const m = v.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (m) return new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+  }
+  return parseGvizDate(v);
+}
+async function loadCompareDataIfNeeded(sheetId, force){
+  if (!force && compareDataLoadedFor === sheetId) return;
+  try {
+    const {cols, rows} = await fetchSheet(sheetId, COMPARE_SHEET_NAME);
+    const dateIdx = cols.indexOf('Date');
+    const countIdx = cols.indexOf('Count');
+    if (dateIdx === -1 || countIdx === -1){
+      throw new Error(`ไม่พบคอลัมน์ Date/Count ใน "${COMPARE_SHEET_NAME}"`);
+    }
+    const list = [];
+    rows.forEach(r => {
+      const d = parseCompareDate(r[dateIdx]);
+      const c = Number(r[countIdx]);
+      if (d && !isNaN(c)) list.push({date: d, count: c});
+    });
+    list.sort((a,b) => a.date - b.date);
+    compareData = list;
+  } catch(err){
+    console.warn('โหลด Compare_data ไม่สำเร็จ (การ์ดเปรียบเทียบปีที่แล้วจะไม่แสดง):', err.message);
+    if (compareDataLoadedFor !== sheetId) compareData = [];
+  } finally {
+    compareDataLoadedFor = sheetId;
+  }
+}
+
 function buildRows(cols, rawRows){
   const idx = {};
   for (const k in COL) idx[k] = cols.indexOf(COL[k]);
@@ -792,15 +885,22 @@ function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function bucketDate(d, mode){
-  if (mode === 'hour') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours());
+  // 'min10' buckets timestamps into 10-minute slots (e.g. 09:00, 09:10, 09:20 ...) instead
+  // of whole hours, giving the Order Volume chart finer x-axis granularity when the data
+  // spans a single day.
+  if (mode === 'min10') return new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), Math.floor(d.getMinutes()/10)*10);
   if (mode === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 function hourLabel(d, mode){
   const pad = n => String(n).padStart(2,'0');
-  if (mode === 'hour') return pad(d.getHours()) + ':00';
+  if (mode === 'min10') return pad(d.getHours()) + ':' + pad(d.getMinutes());
   if (mode === 'month') return d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
   return pad(d.getDate()) + '/' + pad(d.getMonth()+1);
+}
+// 'YYYY-MM-DD' key for a Date, in local time (used to match same calendar day across sources).
+function dayKey(d){
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
 function softUpdate(el, html){
@@ -824,14 +924,16 @@ function animateNumber(el, to){
   requestAnimationFrame(step);
 }
 
-function drawRing(canvasEl, pct, color){
+function drawRing(canvasEl, pct, color, size){
   if (!canvasEl || !canvasEl.getContext) return;
+  size = size || 64;
   const ctx = canvasEl.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
-  const size = 64;
   canvasEl.width = size * dpr; canvasEl.height = size * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const cx = size/2, cy = size/2, r = size/2 - 6;
+  const lineWidth = size >= 90 ? 9 : 6;
+  const fontSize = size >= 90 ? 16 : 10;
+  const cx = size/2, cy = size/2, r = size/2 - lineWidth;
   const target = Math.max(0, Math.min(100, pct));
   const from = canvasEl.dataset.pct ? parseFloat(canvasEl.dataset.pct) : 0;
   canvasEl.dataset.pct = target;
@@ -841,7 +943,7 @@ function drawRing(canvasEl, pct, color){
     const eased = 1 - Math.pow(1 - p, 3);
     const cur = from + (target - from) * eased;
     ctx.clearRect(0, 0, size, size);
-    ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.lineWidth = lineWidth; ctx.lineCap = 'round';
     ctx.strokeStyle = '#2C3F63';
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
     ctx.strokeStyle = color;
@@ -849,7 +951,7 @@ function drawRing(canvasEl, pct, color){
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
     ctx.fillStyle = '#E9EEF9';
-    ctx.font = '700 10px "IBM Plex Sans Thai",-apple-system,sans-serif';
+    ctx.font = `700 ${fontSize}px "IBM Plex Sans Thai",-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(cur.toFixed(1) + '%', cx, cy);
     if (p < 1) requestAnimationFrame(frame);
@@ -952,11 +1054,11 @@ function computeMetrics(rows){
 
   // Hourly volume bucketing
   const tsRows = completeRows.filter(r => r.ts);
-  let mode = 'hour', buckets = [];
+  let mode = 'min10', buckets = [];
   if (tsRows.length){
     const times = tsRows.map(r => r.ts.getTime());
     const rangeHours = (Math.max(...times) - Math.min(...times)) / 3600000;
-    mode = rangeHours <= 24 ? 'hour' : (rangeHours > 24*30 ? 'month' : 'day');
+    mode = rangeHours <= 24 ? 'min10' : (rangeHours > 24*30 ? 'month' : 'day');
     const volMap = {};
     tsRows.forEach(r => {
       const b = bucketDate(r.ts, mode);
@@ -967,6 +1069,16 @@ function computeMetrics(rows){
     buckets = Object.values(volMap).sort((a,b) => a.date - b.date);
   }
   const volTotal = tsRows.length;
+
+  // Day-level totals (independent of `mode`/bucket granularity above), keyed 'YYYY-MM-DD'.
+  // Used to line up "this year" counts against the Compare_data sheet's "last year" totals
+  // for the Year-over-Year comparison chart, regardless of whether the main chart above is
+  // currently bucketing by 10-minute, day, or month.
+  const dayCounts = {};
+  tsRows.forEach(r => {
+    const k = dayKey(r.ts);
+    dayCounts[k] = (dayCounts[k] || 0) + 1;
+  });
 
   // Duration overview
   const durRows = [];
@@ -1088,7 +1200,7 @@ function computeMetrics(rows){
     stockArr, stockTotal,
     omniTotal, nonOmniTotal, omniPctOfComplete, nonOmniPctOfComplete, shipArr, shipTotal,
     menuArr,
-    mode, buckets, volTotal,
+    mode, buckets, volTotal, dayCounts,
     durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
     campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
@@ -1141,7 +1253,7 @@ function buildSkeleton(){
     <div class="hero">
       <div class="hero-sticker">COMPLETED</div>
       <div class="hero-left">
-        <div class="hero-ring"><canvas id="ringComplete" width="64" height="64"></canvas></div>
+        <div class="hero-ring hero-ring-lg"><canvas id="ringComplete" width="100" height="100"></canvas></div>
         <div class="hero-nums">
           <div class="big" id="val-complete">0</div>
           <div class="lbl">TOTAL ORDER COMPLETED</div>
@@ -1216,7 +1328,7 @@ function buildSkeleton(){
           <div class="rank-subcards subcards-stack">
             <div class="rank-subcard">
               <div class="rank-subcard-head"><h3>AIS Shop vs Partner</h3><span class="tag" id="tag-prebooktotal"></span></div>
-              <div class="card-body soft" id="body-aispartner"></div>
+              <div class="aispartner-wrap card-body soft" id="body-aispartner"></div>
             </div>
             <div class="rank-subcard alt">
               <div class="rank-subcard-head"><h3>Sub Stock Destination</h3></div>
@@ -1229,25 +1341,31 @@ function buildSkeleton(){
         </div>
       </div>
 
-      <div class="col-wide">
-        <div class="card">
-          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
-          <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
-        </div>
-        <div class="card">
-          <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
-          <div class="rank-subcards subcards-duo">
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Order Omni</h3></div>
+      <div class="card gar-volume">
+        <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
+        <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+      </div>
+      <div class="card gar-omni">
+        <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
+        <div class="rank-subcards subcards-duo">
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Order Omni</h3></div>
+            <div class="omni-ring-wrap">
+              <div class="hero-ring"><canvas id="ringOmni" width="64" height="64"></canvas></div>
               <div class="card-body soft" id="body-omni"></div>
             </div>
-            <div class="rank-subcard">
-              <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
-              <div class="rank-list soft" id="body-shipping"></div>
-            </div>
+          </div>
+          <div class="rank-subcard">
+            <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
+            <div class="card-body soft" id="body-shipping"></div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="card" id="compareCard" style="display:none;">
+      <h2>Year-over-Year — เทียบยอดปีนี้ vs ปีที่แล้ว <span class="tag" id="tag-comparetotal"></span></h2>
+      <div class="chart-wrap"><canvas id="chartCompare"></canvas></div>
     </div>
 
     <div class="grid-duo-equal">
@@ -1676,8 +1794,8 @@ function rankRows(items, count, color, imgMap){
     const imgAttr = img ? ` data-img="${esc(img)}"` : '';
     const nameCls = img ? 'rank-name has-img' : 'rank-name';
     return `<div class="rank-row"${imgAttr}>
-      <div class="rank-bar" style="width:${pct}%;background:${color}"></div>
       <div class="${nameCls}" data-tip="${esc(i.name)}">${esc(i.name)}</div>
+      <div class="rank-bar-track"><div class="rank-bar-fill" style="width:${pct}%;background:${color}"></div></div>
       <div class="rank-count">${fmtNum(i.count)}</div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
@@ -1712,7 +1830,7 @@ function updateDashboard(rows){
     `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
-  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2');
+  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2', 100);
   const statusColors = {
     WAITING_PAYMENT: ['var(--gold-bg)','#7DE0EE'],
     READY_TO_PAY: ['var(--slate-bg)','#B9C6FA'],
@@ -1729,8 +1847,14 @@ function updateDashboard(rows){
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('tiles-status'), tilesHtml);
 
-  // AIS Shop vs Partner
+  // AIS Shop vs Partner — horizontal split-bar "chart" + compact legend, so the AIS/Partner
+  // share is readable at a glance instead of only as two stacked number blocks.
   document.getElementById('tag-prebooktotal').textContent = `Pre-Booking: ${fmtNum(M.prebookTotal)}`;
+  const AIS_PARTNER_COLORS = { AIS: '#38BDF2', PARTNER: '#FB923C' };
+  const splitBarHtml = `<div class="split-bar">
+      <div class="split-seg" style="width:${M.otPct.AIS}%;background:${AIS_PARTNER_COLORS.AIS}" data-tip="AIS: ${fmtPct(M.otPct.AIS)}"></div>
+      <div class="split-seg" style="width:${M.otPct.PARTNER}%;background:${AIS_PARTNER_COLORS.PARTNER}" data-tip="PARTNER: ${fmtPct(M.otPct.PARTNER)}"></div>
+    </div>`;
   const grpRow = (name, color, count, pct, preCount, prePct, nonPrebookCount, nonPrePct) => {
     return `<div class="grp-row">
       <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
@@ -1743,8 +1867,9 @@ function updateDashboard(rows){
     </div>`;
   };
   softUpdate(document.getElementById('body-aispartner'),
-    grpRow('AIS','var(--gold)', M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
-    grpRow('PARTNER','var(--stone)', M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
+    splitBarHtml +
+    grpRow('AIS', AIS_PARTNER_COLORS.AIS, M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
+    grpRow('PARTNER', AIS_PARTNER_COLORS.PARTNER, M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
 
   // Sub stock destination
   const stockHtml = M.stockArr.map((s,i) => {
@@ -1757,10 +1882,12 @@ function updateDashboard(rows){
   softUpdate(document.getElementById('body-substock'), stockHtml);
   updateStockChart(M);
 
-  // Order Omni & Shipping
+  // Order Omni & Shipping — Omni share as a ring chart (reuses the same drawRing() used for
+  // the hero "Completed" ring), Shipping Breakdown as horizontal bars instead of a bare list.
   document.getElementById('tag-omnitotal').textContent = `${fmtNum(M.omniTotal)} orders`;
+  drawRing(document.getElementById('ringOmni'), M.omniPctOfComplete, '#38BDF2');
   const omniHtml = `<div class="grp-row" style="border-bottom:none;padding-bottom:0;">
-    <div class="grp-name"><span class="dot" style="background:var(--gold)"></span>Order Omni</div>
+    <div class="grp-name"><span class="dot" style="background:#38BDF2"></span>Order Omni</div>
     <div class="grp-nums">
       <div class="n">${fmtNum(M.omniTotal)}</div>
       <div class="p">${fmtPct(M.omniPctOfComplete)}</div>
@@ -1769,11 +1896,13 @@ function updateDashboard(rows){
     </div>
   </div>`;
   softUpdate(document.getElementById('body-omni'), M.omniTotal || M.nonOmniTotal ? omniHtml : '<div class="empty">ไม่มีข้อมูล</div>');
+  const maxShip = Math.max(1, ...M.shipArr.map(s => s.count));
   const shippingHtml = M.shipArr.map((s,i) => {
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    return `<div class="legend-row">
-      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
-      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
+    const fillPct = s.count / maxShip * 100;
+    return `<div class="bar-row">
+      <div class="top"><span class="name" data-tip="${esc(s.name)}">${esc(s.name)}</span><span class="val">${fmtNum(s.count)} (${fmtPct(s.pct)})</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
     </div>`;
   }).join('') || '<div class="empty">ไม่มี Order Omni</div>';
   softUpdate(document.getElementById('body-shipping'), shippingHtml);
@@ -1886,20 +2015,27 @@ function updateCharts(M){
   const labels = M.buckets.map(b => hourLabel(b.date, M.mode));
   const aisData = M.buckets.map(b => b.AIS);
   const partnerData = M.buckets.map(b => b.PARTNER);
+  // Cumulative running total (AIS+PARTNER) across buckets, plotted as a line on a second
+  // right-hand axis so it's easy to see progress toward the day's eventual total at a
+  // glance, on top of the per-bucket bars.
+  let running = 0;
+  const cumulativeData = M.buckets.map(b => (running += (b.AIS + b.PARTNER)));
   const ctx1 = document.getElementById('chartVolume');
   if (ctx1){
     if (!charts.volume){
       charts.volume = new Chart(ctx1, {
         type: 'bar',
         data: { labels, datasets: [
-          {label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42},
-          {label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42}
+          {type:'bar', label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
+          {type:'bar', label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
+          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#F5B841', backgroundColor:'#F5B841', borderWidth:2, pointRadius:2, pointBackgroundColor:'#F5B841', tension:.3, fill:false, yAxisID:'y1', order:0}
         ]},
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
           scales:{
             x:{stacked:true, grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
-            y:{stacked:true, beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}}
+            y:{stacked:true, beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
+            y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, ticks:{color:'#F5B841', font:{size:9.5}}}
           },
           plugins:{
             legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
@@ -1914,8 +2050,70 @@ function updateCharts(M){
       charts.volume.data.labels = labels;
       charts.volume.data.datasets[0].data = aisData;
       charts.volume.data.datasets[1].data = partnerData;
+      charts.volume.data.datasets[2].data = cumulativeData;
       charts.volume.update();
     }
+  }
+
+  updateCompareChart(M);
+}
+
+/* Year-over-Year comparison chart: this year's per-day order count (from the main sheet,
+   M.dayCounts) plotted against last year's per-day totals from the Compare_data sheet
+   (global `compareData`). Matches each Compare_data date to "the same day/month, one year
+   later" to find this year's count for that day. The whole card stays hidden whenever
+   Compare_data hasn't been (successfully) loaded, so this never shows an empty chart. */
+function updateCompareChart(M){
+  const card = document.getElementById('compareCard');
+  if (!card) return;
+  if (typeof Chart === 'undefined' || !compareData.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+
+  const pad = n => String(n).padStart(2,'0');
+  const labels = compareData.map(c => pad(c.date.getDate()) + '/' + pad(c.date.getMonth()+1));
+  const lastYearData = compareData.map(c => c.count);
+  const thisYearData = compareData.map(c => {
+    const thisYearDate = new Date(c.date.getFullYear() + 1, c.date.getMonth(), c.date.getDate());
+    return M.dayCounts[dayKey(thisYearDate)] || 0;
+  });
+
+  const thisYearTotal = thisYearData.reduce((a,b) => a+b, 0);
+  const lastYearTotal = lastYearData.reduce((a,b) => a+b, 0);
+  const tagEl = document.getElementById('tag-comparetotal');
+  if (tagEl) tagEl.textContent = `${fmtNum(thisYearTotal)} vs ${fmtNum(lastYearTotal)}`;
+
+  const ctx = document.getElementById('chartCompare');
+  if (!ctx) return;
+  if (!charts.compare){
+    charts.compare = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [
+        {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:42},
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#6C7A93', borderRadius:3, maxBarThickness:42}
+      ]},
+      options: {
+        responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
+        scales:{
+          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
+          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}}
+        },
+        plugins:{
+          legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
+          tooltip:{
+            ...TOOLTIP_STYLE,
+            callbacks:{ label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}` }
+          }
+        }
+      }
+    });
+  } else {
+    charts.compare.data.labels = labels;
+    charts.compare.data.datasets[0].data = thisYearData;
+    charts.compare.data.datasets[1].data = lastYearData;
+    charts.compare.update();
   }
 }
 
@@ -2033,6 +2231,7 @@ async function loadData(isAuto){
   if (!isAuto) setStatus('loading', 'กำลังโหลดข้อมูล...');
   try {
     await loadLocationMasterIfNeeded(cfg.sheetId, !isAuto);
+    await loadCompareDataIfNeeded(cfg.sheetId, !isAuto);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
     const parsed = buildRows(cols, rows);
     updateDashboard(parsed);
