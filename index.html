@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>[TSMC] - Dashboard device sale and tracking order</title>
+<title>Order Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,7 +42,6 @@
     --font-serif:'Fraunces', 'Noto Serif', serif;
     --font-sans:'IBM Plex Sans Thai','IBM Plex Sans',-apple-system,sans-serif;
   }
-  
   *{box-sizing:border-box;}
   html, body{height:100%; margin:0; padding:0;}
   body{
@@ -270,13 +269,17 @@
   .rank-slider-row input[type=range]{flex:1 1 auto; accent-color:var(--accent);}
   .rank-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:18px; text-align:right;}
 
-  /* Sub-cards layouts */
+  /* Sub-cards stacked layout */
   .subcards-stack{grid-template-columns:1fr;}
+
+  /* Sub-cards equal trio layout */
   .subcards-trio{grid-template-columns:1fr;}
   @media(min-width:900px){ .subcards-trio{grid-template-columns:repeat(3,1fr);} }
   .subcards-trio .rank-subcard{display:flex; flex-direction:column; height:100%;}
   .subcards-trio .table-scroll{flex:1 1 auto; min-height:0; max-height:190px;}
   .subcards-trio .tier-grid{flex:1 1 auto;}
+
+  /* Sub-cards equal duo layout */
   .subcards-duo{grid-template-columns:1fr;}
   @media(min-width:900px){ .subcards-duo{grid-template-columns:1fr 1fr;} }
   .subcards-duo .rank-subcard{display:flex; flex-direction:column; height:100%;}
@@ -306,81 +309,36 @@
   .table-scroll{overflow:auto;}
   .table-scroll.tall{max-height:220px;}
 
-  /* ---------- TRACKING ORDER TABLE STYLES ---------- */
-  .tracking-wrap { 
-    overflow-x: auto; 
-    border: 1px solid var(--border); 
-    border-radius: var(--radius); 
-    background: var(--surface);
-    margin-top: 8px;
+  /* ---------- Tracking Order ---------- */
+  .track-toolbar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; flex-wrap:wrap;}
+  .track-filter-input{
+    font-family:var(--font-sans); border:1.5px solid var(--border); border-radius:4px; padding:5px 10px;
+    font-size:11px; background:var(--surface-alt); color:var(--text); min-width:220px; flex:1 1 220px;
   }
-  .tracking-table { 
-    width: 100%; 
-    min-width: 1300px; /* Ensure horizontal scroll for many columns */
-    white-space: nowrap; 
+  .track-filter-input::placeholder{color:var(--muted);}
+  .track-slider-row{display:flex; align-items:center; gap:6px; flex:0 0 auto;}
+  .track-slider-row .rank-slider-lbl{font-size:9.5px; font-weight:700; color:var(--muted); letter-spacing:.03em;}
+  .track-slider-row input[type=range]{width:110px; accent-color:var(--accent);}
+  .track-slider-row .rank-slider-val{font-size:10.5px; font-weight:800; min-width:26px; text-align:right;}
+  .track-table-scroll{max-height:440px;}
+  .track-table{font-size:10px;}
+  .track-table td, .track-table th{white-space:nowrap;}
+  .track-table th.col-info, .track-table td.col-info{width:22px; padding-left:6px; padding-right:2px;}
+  .track-table th.col-no, .track-table td.col-no{width:26px; color:var(--muted);}
+  .info-btn{
+    width:16px; height:16px; border-radius:50%; border:1.5px solid var(--gold); background:transparent; color:var(--gold);
+    font-size:9px; font-weight:800; font-style:italic; font-family:Georgia,serif; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:1;
   }
-  .tracking-table th { 
-    background: var(--surface-alt); 
-    padding: 10px 12px; 
-    z-index: 2; 
-    border-bottom: 2px solid var(--border);
-    letter-spacing: .02em;
-  }
-  .tracking-table td { 
-    padding: 10px 12px; 
-    font-size: 11px; 
-    border-bottom: 1px solid var(--border-soft);
-  }
-  
-  /* Status Pills */
-  .status-pill {
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: 9.5px;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid transparent;
-    letter-spacing: .03em;
-  }
-  
-  /* Status Pill Color Variations for Dark Theme */
-  .pill-green { background: var(--green-bg); color: #8CBA80; border-color: rgba(140,186,128,0.3); }
-  .pill-yellow { background: var(--gold-bg); color: #E5C38A; border-color: rgba(229,195,138,0.3); }
-  .pill-blue { background: var(--slate-bg); color: #9DBECE; border-color: rgba(157,190,206,0.3); }
-  .pill-gray { background: var(--stone-bg); color: #C9BBA6; border-color: rgba(201,187,166,0.3); }
-  .pill-red { background: var(--accent-bg); color: #E8A79C; border-color: rgba(232,167,156,0.3); }
-
-  /* Duration text colors */
-  .dur-green { color: #8CBA80; font-weight: 700; }
-  .dur-yellow { color: #E5C38A; font-weight: 700; }
-  .dur-red { color: #E8A79C; font-weight: 700; }
-
-  /* Info Icon */
-  .info-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 1.5px solid var(--slate);
-    color: var(--slate);
-    font-weight: 700;
-    font-size: 10px;
-    font-family: var(--font-serif);
-    cursor: help;
-  }
-  .info-icon:hover {
-    background: var(--slate);
-    color: var(--bg);
-  }
-  .truncate-col {
-    max-width: 180px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .info-btn:hover{background:var(--gold-bg);}
+  .info-btn.open{background:var(--gold); color:var(--bg);}
+  .badge{display:inline-block; padding:2px 7px; border-radius:999px; font-size:9px; font-weight:700; white-space:nowrap;}
+  .cust-name-cell{cursor:help; border-bottom:1px dashed var(--muted);}
+  .track-detail-row td{background:var(--bg-2); padding:10px 12px; white-space:normal;}
+  .track-detail-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:6px 16px;}
+  .track-detail-grid .dl{font-size:9px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.02em;}
+  .track-detail-grid .dv{font-size:11px; color:var(--text-dim); margin-top:1px; word-break:break-word;}
+  @media(max-width:640px){ .track-toolbar{flex-direction:column; align-items:stretch;} .track-filter-input{min-width:0;} }
 
 </style>
 </head>
@@ -390,7 +348,7 @@
   <div class="topbar">
     <div class="topbar-title-wrap">
       <div class="topbar-title">
-        <h1 id="dashTitle" title="">[TSMC] - Dashboard device sale and tracking order</h1>
+        <h1 id="dashTitle" title="ดับเบิลคลิกเพื่อตั้งค่า Google Sheet">Order Dashboard</h1>
         <span class="live-chip">LIVE</span>
       </div>
       <div class="sub" id="rangeLabel">ยังไม่ได้เชื่อมต่อข้อมูล</div>
@@ -399,21 +357,25 @@
       <div class="live-wrap">
         <span id="lastUpdated"><span class="status-dot" id="statusDot"></span><span id="statusText">ยังไม่โหลดข้อมูล</span></span>
       </div>
-      <button class="btn hidden-cfg" id="btnConfig">Setting Sheet</button>
-      <button class="btn primary" id="btnRefresh">REFRESH</button>
+      <button class="btn hidden-cfg" id="btnConfig">ตั้งค่า Sheet</button>
+      <button class="btn primary" id="btnRefresh">รีเฟรช</button>
     </div>
   </div>
   <div class="refresh-track"><div class="refresh-bar" id="refreshBar"></div></div>
   <div class="config" id="configPanel">
     <div class="field">
-      <label>DATA ID</label>
+      <label>Google Sheet ID</label>
       <input id="inputSheetId" placeholder="1AbCDeFGhijklmnop_xxxxxxxxxxxx" />
     </div>
     <div class="field">
-      <label>Table</label>
+      <label>Sheet / Tab name</label>
       <input id="inputSheetName" placeholder="Order" value="Order" />
     </div>
     <button class="btn primary" id="btnLoad">โหลดข้อมูล</button>
+    <div class="note">
+      Sheet ID คือส่วนหนึ่งของ URL: <code>docs.google.com/spreadsheets/d/&lt;SHEET_ID&gt;/edit</code><br>
+      ต้องแชร์สิทธิ์ Google Sheet เป็น "ทุกคนที่มีลิงก์ - ดูได้" (Anyone with the link - Viewer) ก่อน หน้านี้ถึงจะดึงข้อมูลได้
+    </div>
   </div>
 </div>
 
@@ -421,7 +383,7 @@
   <div id="banner"></div>
   <div id="dashboard" style="display:none;"></div>
   <div id="placeholder" class="empty" style="padding:80px 0; font-size:13.5px;">
-    กรอก DATA ID เพื่อโหลดข้อมูล
+    กรอก Google Sheet ID แล้วกดโหลดข้อมูล (ดับเบิลคลิกที่หัวข้อ "Order Dashboard" ด้านซ้ายบนเพื่อตั้งค่า)
   </div>
 </div>
 
@@ -436,7 +398,6 @@ let dashboardBuilt = false;
 let refreshTimer = null;
 let isLoading = false;
 let lastMetrics = null;
-let rawDataCache = []; // Cache to store raw rows for the tracking table
 
 const STOCK_PALETTE = ['#B4863E','#C9703F','#5B7A8C','#5C7A54','#8C8074'];
 
@@ -482,14 +443,27 @@ const COL = {
   menu: 'orders.menu'
 };
 
-// Added columns corresponding to the Tracking Order table image
 const COL_OPTIONAL = {
   locationSource: 'locationSource',
   imageUrl: 'orders.device.imageUrl',
-  userId: 'userId',                     // Map or guess User ID column
-  customerName: 'customerName',         // Map or guess Customer Name
-  orderState: 'orders.orderState',      // Distinguishing Order Status vs Order State
-  orderOmni: 'orders.omniId'            // Map for ORDER OMNI
+  // Fields below only power the "Tracking Order" card. Kept optional so the
+  // rest of the dashboard still works fine on an older Sheet that hasn't
+  // added these columns yet — the table just shows '-' for whatever is missing.
+  userId: 'userId',
+  custFirstName: 'customer.firstName',
+  custLastName: 'customer.lastName',
+  orderState: 'orders.state', // NOTE: distinct from orders.status ("state" above) — this is the
+                               // granular workflow step (DEVICE_SELECTED / PAYMENT_PAID / ...)
+  brand: 'orders.device.brand',
+  model: 'orders.device.model',
+  matCode: 'orders.device.matCode',
+  priceIncAmt: 'orders.device.priceIncAmt',
+  priceDiscountAmt: 'orders.device.priceDiscountAmt',
+  resOrderNo: 'orders.reserve.orderNo',
+  resLocationName: 'orders.reserve.locationName',
+  resType: 'orders.reserve.type',
+  resShippingType: 'orders.reserve.shippingType',
+  resShippingSLA: 'orders.reserve.shippingSLA'
 };
 const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
 
@@ -523,13 +497,6 @@ function parseGvizDate(v){
   return isNaN(d.getTime()) ? null : d;
 }
 
-function decodeObjectIdMs(oid){
-  if (!oid || oid.length < 8) return null;
-  const hex8 = oid.substring(0, 8);
-  if (!/^[0-9a-fA-F]{8}$/.test(hex8)) return null;
-  return parseInt(hex8, 16) * 1000;
-}
-
 function buildRows(cols, rawRows){
   const idx = {};
   for (const k in COL) idx[k] = cols.indexOf(COL[k]);
@@ -540,64 +507,52 @@ function buildRows(cols, rawRows){
   }
   for (const k in COL_OPTIONAL) idx[k] = cols.indexOf(COL_OPTIONAL[k]);
   const str = v => (v === null || v === undefined) ? '' : String(v).trim();
+  const num = v => {
+    if (v === null || v === undefined || v === '') return 0;
+    const n = parseFloat(String(v).replace(/,/g,''));
+    return isNaN(n) ? 0 : n;
+  };
   const get = (r, key) => idx[key] === -1 ? undefined : r[idx[key]];
-  
-  return rawRows.map(r => {
-    const ts = parseGvizDate(r[idx.ts]);
-    const orderId = str(r[idx.orderId]);
-    
-    // Calculate precise duration for all rows for the Tracking Table
-    const createdMs = decodeObjectIdMs(orderId);
-    let durationMs = -1;
-    let durationMin = -1;
-    let durTier = '';
-    let durText = '-';
-
-    if (createdMs && ts) {
-        durationMs = ts.getTime() - createdMs;
-        if (durationMs >= 0) {
-            durationMin = durationMs / 60000;
-            durTier = durationMin < 10 ? 'green' : (durationMin < 30 ? 'yellow' : 'red');
-            const m = Math.floor(durationMin);
-            const s = Math.floor((durationMs % 60000) / 1000);
-            durText = m > 60 ? `${Math.floor(m/60)}h ${m%60}m ${s}s` : `${m}m ${s}s`;
-        }
-    }
-
-    return {
-      ts: ts,
-      transactionId: str(r[idx.transactionId]),
-      orderId: orderId,
-      orderType: str(r[idx.orderType]),
-      state: str(r[idx.state]),
-      commercialName: str(r[idx.commercialName]),
-      campaignName: str(r[idx.campaignName]),
-      preBookingNo: str(r[idx.preBookingNo]),
-      serviceCareTitle: str(r[idx.serviceCareTitle]),
-      subStockDestination: str(r[idx.subStockDestination]),
-      menu: str(r[idx.menu]),
-      locationSource: str(get(r,'locationSource')),
-      imageUrl: str(get(r,'imageUrl')),
-      
-      // Additional fields for Tracking Table
-      userId: str(get(r,'userId')),
-      customerName: str(get(r,'customerName')),
-      orderState: str(get(r,'orderState')),
-      orderOmni: str(get(r,'orderOmni')),
-      
-      // Computed duration fields
-      durationMs: durationMs,
-      durationMin: durationMin,
-      durTier: durTier,
-      durText: durText
-    };
-  }).filter(r => r.orderId);
+  return rawRows.map(r => ({
+    ts: parseGvizDate(r[idx.ts]),
+    transactionId: str(r[idx.transactionId]),
+    orderId: str(r[idx.orderId]),
+    orderType: str(r[idx.orderType]),
+    state: str(r[idx.state]),
+    commercialName: str(r[idx.commercialName]),
+    campaignName: str(r[idx.campaignName]),
+    preBookingNo: str(r[idx.preBookingNo]),
+    serviceCareTitle: str(r[idx.serviceCareTitle]),
+    subStockDestination: str(r[idx.subStockDestination]),
+    menu: str(r[idx.menu]),
+    locationSource: str(get(r,'locationSource')),
+    imageUrl: str(get(r,'imageUrl')),
+    userId: str(get(r,'userId')),
+    custFirstName: str(get(r,'custFirstName')),
+    custLastName: str(get(r,'custLastName')),
+    orderState: str(get(r,'orderState')),
+    brand: str(get(r,'brand')),
+    model: str(get(r,'model')),
+    matCode: str(get(r,'matCode')),
+    priceIncAmt: num(get(r,'priceIncAmt')),
+    priceDiscountAmt: num(get(r,'priceDiscountAmt')),
+    resOrderNo: str(get(r,'resOrderNo')),
+    resLocationName: str(get(r,'resLocationName')),
+    resType: str(get(r,'resType')),
+    resShippingType: str(get(r,'resShippingType')),
+    resShippingSLA: str(get(r,'resShippingSLA'))
+  })).filter(r => r.orderId);
 }
 
 /* ===================== HELPERS ===================== */
 const isBlank = v => !v || v === '-';
 const grp = ot => /AIS/i.test(ot) ? 'AIS' : 'PARTNER';
-
+function decodeObjectIdMs(oid){
+  if (!oid || oid.length < 8) return null;
+  const hex8 = oid.substring(0, 8);
+  if (!/^[0-9a-fA-F]{8}$/.test(hex8)) return null;
+  return parseInt(hex8, 16) * 1000;
+}
 function topN(rows, field, n){
   const m = {};
   rows.forEach(r => { const k = r[field]; m[k] = (m[k] || 0) + 1; });
@@ -741,8 +696,18 @@ function computeMetrics(rows){
   }
   const volTotal = tsRows.length;
 
-  // Duration overview (Using pre-calculated durationMin from buildRows)
-  const durRows = completeRows.filter(r => r.durationMs >= 0).map(r => ({...r, tier: r.durTier}));
+  // Duration overview
+  const durRows = [];
+  completeRows.forEach(r => {
+    if (!r.ts) return;
+    const createdMs = decodeObjectIdMs(r.orderId);
+    if (createdMs == null) return;
+    const durationMs = r.ts.getTime() - createdMs;
+    if (durationMs < 0) return;
+    const durationMin = durationMs / 60000;
+    const tier = durationMs < 600000 ? 'green' : (durationMs < 1800000 ? 'yellow' : 'red');
+    durRows.push({...r, durationMs, durationMin, tier});
+  });
   const durTotal = durRows.length;
   const tierCounts = {green:0, yellow:0, red:0};
   durRows.forEach(r => tierCounts[r.tier]++);
@@ -761,7 +726,9 @@ function computeMetrics(rows){
     .map(r => ({
       id: r.transactionId || r.orderId,
       orderType: r.orderType || '-',
-      durLabel: r.durText
+      durLabel: r.durationMin >= 60
+        ? Math.floor(r.durationMin/60) + 'h ' + Math.floor(r.durationMin%60) + 'm'
+        : Math.floor(r.durationMin) + 'm'
     }));
 
   let durBuckets = [];
@@ -823,6 +790,24 @@ function computeMetrics(rows){
   const deviceImgMap = buildImgMap(devRows);
   const accessoryImgMap = buildImgMap(accRows);
 
+  // ---- Tracking Order (row-level table, every status — not just COMPLETE) ----
+  // Sorted latest-first by TIMESTAMP, same as the source Vega table. Capped
+  // at TRACK_CAP so a sheet with tens of thousands of rows doesn't sort/scan
+  // an unbounded array on every 10s auto-refresh; the "SHOW" slider then
+  // slices further, purely client-side, from this already-capped set.
+  const TRACK_CAP = 500;
+  const trackGrandTotal = rows.filter(r => r.orderId).length;
+  const trackAll = rows.filter(r => r.orderId)
+    .slice()
+    .sort((a,b) => (b.ts ? b.ts.getTime() : 0) - (a.ts ? a.ts.getTime() : 0))
+    .slice(0, TRACK_CAP)
+    .map(r => {
+      const createdMs = decodeObjectIdMs(r.orderId);
+      const durationMs = (r.ts && createdMs != null) ? (r.ts.getTime() - createdMs) : null;
+      return { ...r, createdMs, durationMs: (durationMs != null && durationMs >= 0) ? durationMs : null };
+    });
+  const trackTotal = trackAll.length;
+
   return {
     grandTotal, completeCount, statusTiles,
     otCounts, otTotal, prebookByGrp, prebookTotal, nonPrebookByGrp,
@@ -833,7 +818,8 @@ function computeMetrics(rows){
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
     campTop, svcTop, campItems, svcItems, campOrders, svcOrders,
     locTop, locTotal, locItems,
-    deviceImgMap, accessoryImgMap
+    deviceImgMap, accessoryImgMap,
+    trackAll, trackTotal, trackGrandTotal
   };
 }
 
@@ -988,36 +974,199 @@ function buildSkeleton(){
         </div>
       </div>
     </div>
-    
-    <!-- Tracking Order Table -->
-    <div class="card" style="margin-top: 12px; border-color: var(--slate);">
-      <h2>Tracking Order <span class="tag" id="tag-tracking-count"></span></h2>
-      <div class="tracking-wrap table-scroll" style="max-height: 400px;">
-        <table class="tracking-table">
+
+    <div class="card">
+      <h2>Tracking Order <span class="tag" id="tag-tracktotal"></span></h2>
+      <div class="track-toolbar">
+        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / Order Type / รุ่นเครื่อง...">
+        <div class="track-slider-row">
+          <span class="rank-slider-lbl">SHOW</span>
+          <input type="range" min="25" max="500" step="25" value="50" id="sliderTrack">
+          <span class="rank-slider-val" id="sliderTrackVal">50</span>
+        </div>
+      </div>
+      <div class="table-scroll track-table-scroll">
+        <table class="track-table">
           <thead>
             <tr>
-              <th style="width: 40px; text-align: center;">INFO</th>
-              <th style="width: 50px;">No.</th>
-              <th>TIMESTAMP</th>
-              <th>TRANSACTION ID</th>
-              <th>PRE-BOOKING NO</th>
-              <th>USER ID</th>
-              <th>CUSTOMER NAME</th>
-              <th>ORDER TYPE</th>
-              <th>ORDER STATUS</th>
-              <th>ORDER STATE</th>
-              <th>DURATION</th>
-              <th>COMMERCIAL NAME</th>
-              <th>ORDER OMNI</th>
+              <th class="col-info"></th>
+              <th class="col-no">No.</th>
+              <th>Timestamp</th>
+              <th>Transaction ID</th>
+              <th>Pre-Booking No</th>
+              <th>User ID</th>
+              <th>Customer Name</th>
+              <th>Order Type</th>
+              <th>Order Status</th>
+              <th>Order State</th>
+              <th>Duration</th>
+              <th>Commercial Name</th>
+              <th>Order Omni</th>
             </tr>
           </thead>
-          <tbody id="body-tracking"></tbody>
+          <tbody id="body-track"></tbody>
         </table>
       </div>
     </div>
   `;
 
   dashboardBuilt = true;
+}
+
+/* ===================== TRACKING ORDER (row-level table) ===================== */
+let expandedTrackKey = null;
+const trackRowKey = r => (r.transactionId || '') + '|' + (r.orderId || '');
+
+// firstName is shown in full; lastName keeps only its first character and
+// masks the rest with 'x' — same masking rule as the source Vega table.
+function customerNameMasked(first, last){
+  const f = (first || '').trim();
+  let l = (last || '').trim();
+  if (l.length > 1) l = l[0] + 'x'.repeat(l.length - 1);
+  const combined = (f + ' ' + l).trim();
+  return combined || '-';
+}
+
+const STATUS_BADGE = {
+  COMPLETE: ['var(--green-bg)','#A9C79E'],
+  WAITING_PAYMENT: ['var(--gold-bg)','#D9B679'],
+  READY_TO_PAY: ['var(--slate-bg)','#9DBECE'],
+  PENDING: ['var(--stone-bg)','#C9BBA6'],
+  DELETE: ['var(--accent-bg)','#E8A79C']
+};
+function statusBadgeHtml(state){
+  const [bg,fg] = STATUS_BADGE[state] || ['var(--border-soft)','var(--text-dim)'];
+  return `<span class="badge" style="background:${bg};color:${fg}">${esc(state || '-')}</span>`;
+}
+
+// Order "state" tiers (granular workflow step, e.g. DEVICE_SELECTED,
+// PAYMENT_PAID) — same three groups & colors as the source Vega table.
+const ORDER_STATE_GREEN = new Set(['PAYMENT_PAID','PRE_PROVISION_COMPLETED','PERSO_COMPLETED','CONTRACT_COMPLETED','SIM_REGISTRATION_COMPLETED','BILLING_COMPLETED']);
+const ORDER_STATE_BLUE = new Set(['ORDER_REQUESTED','KYC_VERIFIED','SIM_IDENTIFIED','APPLEWATCH_VERIFIED','MOBILENO_VERIFIED','NEWCA_VERIFIED','EFORM_SIGNED','IDCARD_IDENTIFIED','VERIFY_PASSPORT','REPI_VERIFY_MOBILE','MOBILE_IDENTIFIED','PROFILE_VERIFIED']);
+const ORDER_STATE_ORANGE = new Set(['ACCESSORY_SELECTED','CART_PREPARED','CART_SELECTED','PAYMENT_SELECTED','PAYMENT_SUMMARIZED','CARE_SELECTED','SHARE_PACKAGE_SELECTED','NUMBER_SELECTED','PACKAGE_SELECTED','ORDER_SUMMARIZED','SIMTYPE_SELECTED','DEVICE_SELECTED','EXTRADOC_UPLOADED','BILL_SELECTED']);
+function orderStateBadgeHtml(state){
+  if (isBlank(state)) return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
+  let bg = 'var(--border-soft)', fg = 'var(--text-dim)';
+  if (ORDER_STATE_GREEN.has(state)) { bg = 'var(--green-bg)'; fg = '#A9C79E'; }
+  else if (ORDER_STATE_BLUE.has(state)) { bg = 'var(--slate-bg)'; fg = '#9DBECE'; }
+  else if (ORDER_STATE_ORANGE.has(state)) { bg = 'var(--gold-bg)'; fg = '#D9B679'; }
+  return `<span class="badge" style="background:${bg};color:${fg}">${esc(state)}</span>`;
+}
+
+function durationLabel(ms){
+  const totalMin = Math.floor(ms / 60000);
+  const d = Math.floor(totalMin / 1440), h = Math.floor((totalMin % 1440) / 60), m = totalMin % 60;
+  const parts = [];
+  if (d > 0) parts.push(d + 'd');
+  if (h > 0) parts.push(h + 'h');
+  parts.push(m + 'm');
+  return parts.join(' ');
+}
+function durationBadgeHtml(durationMs, createdMs){
+  if (durationMs == null){
+    return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
+  }
+  const bg = durationMs < 600000 ? 'var(--green-bg)' : durationMs < 1800000 ? 'var(--gold-bg)' : 'var(--accent-bg)';
+  const fg = durationMs < 600000 ? '#A9C79E' : durationMs < 1800000 ? '#D9B679' : '#E8A79C';
+  const startLabel = createdMs != null ? new Date(createdMs).toLocaleString('th-TH') : '-';
+  const totalSec = Math.floor(durationMs / 1000);
+  const fullLabel = `${Math.floor(totalSec/3600)}h ${Math.floor((totalSec%3600)/60)}m ${totalSec%60}s`;
+  return `<span class="badge" style="background:${bg};color:${fg}" title="${esc('เริ่มสร้าง: ' + startLabel + ' • ระยะเวลา: ' + fullLabel)}">${esc(durationLabel(durationMs))}</span>`;
+}
+
+function commercialNameCellHtml(r){
+  if (isBlank(r.commercialName)) return '<span class="empty" style="padding:0;">-</span>';
+  const tip = [
+    !isBlank(r.brand) ? 'Brand: ' + r.brand : null,
+    !isBlank(r.model) ? 'Model: ' + r.model : null,
+    !isBlank(r.matCode) ? 'Mat Code: ' + r.matCode : null,
+    r.priceIncAmt ? 'Price: ' + fmtNum(r.priceIncAmt) : null,
+    r.priceDiscountAmt ? 'Discount: ' + fmtNum(r.priceDiscountAmt) : null
+  ].filter(Boolean).join(' • ');
+  return `<span class="cust-name-cell" title="${esc(tip)}">${esc(r.commercialName)}</span>`;
+}
+
+function orderOmniCellHtml(r){
+  if (isBlank(r.resOrderNo)) return '<span class="empty" style="padding:0;">-</span>';
+  const shipping = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ');
+  const tip = [
+    !isBlank(r.resLocationName) ? 'Location: ' + r.resLocationName : null,
+    !isBlank(r.resType) ? 'Type: ' + r.resType : null,
+    shipping ? 'Shipping: ' + shipping : null
+  ].filter(Boolean).join(' • ');
+  return `<span class="cust-name-cell" title="${esc(tip)}">${esc(r.resOrderNo)}</span>`;
+}
+
+// Expanded detail row shown under a "i" click. Deliberately leaves out raw
+// (unmasked) customer name and mobile number — unlike the source Vega popup
+// — since this dashboard is fetched client-side from a Sheet that has to be
+// shared as "anyone with the link can view" for the gviz endpoint to work,
+// so anyone holding that link could otherwise unmask a customer's full name.
+function trackDetailHtml(r){
+  const fields = [
+    ['Menu', r.menu],
+    ['Order Source', r.locationSource],
+    ['Service Care', r.serviceCareTitle],
+    ['Stock Destination', r.subStockDestination],
+    ['Campaign', r.campaignName],
+    ['Reserve Location', r.resLocationName],
+    ['Reserve Type', r.resType],
+    ['Shipping', [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ')]
+  ];
+  const cells = fields.map(([l,v]) => `<div><div class="dl">${esc(l)}</div><div class="dv">${isBlank(v) ? '-' : esc(v)}</div></div>`).join('');
+  return `<tr class="track-detail-row"><td colspan="13"><div class="track-detail-grid">${cells}</div></td></tr>`;
+}
+
+function renderTrackingOrders(){
+  if (!lastMetrics) return;
+  const slider = document.getElementById('sliderTrack');
+  const filterInput = document.getElementById('trackFilter');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
+  document.getElementById('sliderTrackVal').textContent = n;
+  document.getElementById('tag-tracktotal').textContent =
+    lastMetrics.trackGrandTotal > lastMetrics.trackTotal
+      ? `แสดงล่าสุด ${fmtNum(lastMetrics.trackTotal)} จากทั้งหมด ${fmtNum(lastMetrics.trackGrandTotal)}`
+      : `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
+
+  const q = ((filterInput && filterInput.value) || '').trim().toLowerCase();
+  let list = lastMetrics.trackAll;
+  if (q){
+    list = list.filter(r =>
+      (r.transactionId||'').toLowerCase().includes(q) ||
+      (r.userId||'').toLowerCase().includes(q) ||
+      (r.custFirstName||'').toLowerCase().includes(q) ||
+      (r.custLastName||'').toLowerCase().includes(q) ||
+      (r.orderType||'').toLowerCase().includes(q) ||
+      (r.commercialName||'').toLowerCase().includes(q)
+    );
+  }
+  list = list.slice(0, n);
+
+  const rowsHtml = list.map((r,i) => {
+    const key = trackRowKey(r);
+    const isOpen = expandedTrackKey === key;
+    const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
+    const custName = customerNameMasked(r.custFirstName, r.custLastName);
+    const mainRow = `<tr>
+      <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
+      <td class="col-no">${i+1}</td>
+      <td>${esc(tsLabel)}</td>
+      <td class="mono">${esc(r.transactionId || '-')}</td>
+      <td>${isBlank(r.preBookingNo) ? '<span class="empty" style="padding:0;">-</span>' : esc(r.preBookingNo)}</td>
+      <td class="mono">${esc(r.userId || '-')}</td>
+      <td>${esc(custName)}</td>
+      <td>${esc(r.orderType || '-')}</td>
+      <td>${statusBadgeHtml(r.state)}</td>
+      <td>${orderStateBadgeHtml(r.orderState)}</td>
+      <td>${durationBadgeHtml(r.durationMs, r.createdMs)}</td>
+      <td>${commercialNameCellHtml(r)}</td>
+      <td>${orderOmniCellHtml(r)}</td>
+    </tr>`;
+    return isOpen ? mainRow + trackDetailHtml(r) : mainRow;
+  }).join('') || `<tr><td colspan="13" class="empty">ไม่พบข้อมูล</td></tr>`;
+
+  document.getElementById('body-track').innerHTML = rowsHtml;
 }
 
 /* ===================== RENDER / UPDATE ===================== */
@@ -1056,62 +1205,7 @@ function renderCampaignService(){
   document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--stone)');
 }
 
-function getPillClass(statusStr) {
-    const s = String(statusStr).toUpperCase();
-    if (s.includes('COMPLETE') || s.includes('PAID') || s.includes('SUCCESS')) return 'pill-green';
-    if (s.includes('WAITING') || s.includes('PENDING')) return 'pill-yellow';
-    if (s.includes('READY')) return 'pill-blue';
-    if (s.includes('DELETE') || s.includes('FAIL') || s.includes('CANCEL')) return 'pill-red';
-    return 'pill-gray';
-}
-
-function renderTrackingTable(rows) {
-    // Sort rows by timestamp descending (newest first)
-    const sortedRows = [...rows].sort((a, b) => {
-        const timeA = a.ts ? a.ts.getTime() : 0;
-        const timeB = b.ts ? b.ts.getTime() : 0;
-        return timeB - timeA;
-    });
-    
-    // Limit to top 300 to prevent browser lag if data is huge
-    const limit = Math.min(sortedRows.length, 99999);
-    const displayRows = sortedRows.slice(0, limit);
-    
-    const countTag = document.getElementById('tag-tracking-count');
-    if (countTag) {
-        countTag.textContent = rows.length > limit ? `Showing ${limit} of ${fmtNum(rows.length)}` : `Total ${fmtNum(rows.length)}`;
-    }
-
-    const html = displayRows.map((r, i) => {
-        const tsStr = r.ts ? r.ts.toLocaleString('sv-SE').replace(',', '') : '-';
-        const durCls = r.durTier ? `dur-${r.durTier}` : '';
-        const statusPill = getPillClass(r.state);
-        const statePill = getPillClass(r.orderState);
-        
-        return `
-        <tr>
-            <td style="text-align: center;"><span class="info-icon" title="Row details">i</span></td>
-            <td>${i + 1}</td>
-            <td>${esc(tsStr)}</td>
-            <td class="mono">${esc(r.transactionId || r.orderId)}</td>
-            <td>${isBlank(r.preBookingNo) ? '-' : esc(r.preBookingNo)}</td>
-            <td>${isBlank(r.userId) ? '-' : esc(r.userId)}</td>
-            <td class="truncate-col" title="${esc(r.customerName)}">${isBlank(r.customerName) ? '-' : esc(r.customerName)}</td>
-            <td>${esc(r.orderType)}</td>
-            <td><span class="status-pill ${statusPill}">${esc(r.state)}</span></td>
-            <td><span class="status-pill ${statePill}">${esc(r.orderState || '-')}</span></td>
-            <td class="${durCls}">${esc(r.durText)}</td>
-            <td class="truncate-col" title="${esc(r.commercialName)}">${esc(r.commercialName)}</td>
-            <td>${isBlank(r.orderOmni) ? '-' : esc(r.orderOmni)}</td>
-        </tr>
-        `;
-    }).join('') || '<tr><td colspan="13" class="empty">ไม่มีข้อมูล Orders</td></tr>';
-
-    softUpdate(document.getElementById('body-tracking'), html);
-}
-
 function updateDashboard(rows){
-  rawDataCache = rows; // Save for tracking table processing
   const M = computeMetrics(rows);
   if (!dashboardBuilt) buildSkeleton();
 
@@ -1228,6 +1322,7 @@ function updateDashboard(rows){
   document.getElementById('cnt-svc').textContent = fmtNum(M.svcOrders);
   renderDeviceAccessory();
   renderCampaignService();
+  renderTrackingOrders();
 
   // Slowest orders
   const slowHtml = M.slowest.map(s => `<tr>
@@ -1246,9 +1341,6 @@ function updateDashboard(rows){
     <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
   softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
-  
-  // Render new Tracking Order Table
-  renderTrackingTable(rawDataCache);
 
   document.getElementById('dashboard').style.display = 'flex';
   document.getElementById('placeholder').style.display = 'none';
@@ -1459,6 +1551,8 @@ async function loadData(isAuto){
   const bindRankSliders = () => {
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
+    const sliderTrack = document.getElementById('sliderTrack');
+    const trackFilter = document.getElementById('trackFilter');
     if (sliderDevice && !sliderDevice.dataset.bound) {
       sliderDevice.addEventListener('input', renderDeviceAccessory);
       sliderDevice.dataset.bound = '1';
@@ -1467,7 +1561,25 @@ async function loadData(isAuto){
       sliderCampaign.addEventListener('input', renderCampaignService);
       sliderCampaign.dataset.bound = '1';
     }
+    if (sliderTrack && !sliderTrack.dataset.bound) {
+      sliderTrack.addEventListener('input', renderTrackingOrders);
+      sliderTrack.dataset.bound = '1';
+    }
+    if (trackFilter && !trackFilter.dataset.bound) {
+      trackFilter.addEventListener('input', renderTrackingOrders);
+      trackFilter.dataset.bound = '1';
+    }
   };
+
+  // "i" buttons in the Tracking Order table are recreated on every render,
+  // so this is delegated on document instead of bound per-button.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest && e.target.closest('[data-track-toggle]');
+    if (!btn) return;
+    const key = btn.getAttribute('data-track-toggle');
+    expandedTrackKey = (expandedTrackKey === key) ? null : key;
+    renderTrackingOrders();
+  });
 
   document.getElementById('btnLoad').addEventListener('click', () => {
     const sheetId = document.getElementById('inputSheetId').value.trim();
@@ -1485,9 +1597,13 @@ async function loadData(isAuto){
   const sliderBinderTimer = setInterval(() => {
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
-    if (sliderDevice || sliderCampaign) {
+    const sliderTrack = document.getElementById('sliderTrack');
+    const trackFilter = document.getElementById('trackFilter');
+    if (sliderDevice || sliderCampaign || sliderTrack || trackFilter) {
       bindRankSliders();
-      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound) clearInterval(sliderBinderTimer);
+      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound && sliderTrack?.dataset.bound && trackFilter?.dataset.bound) {
+        clearInterval(sliderBinderTimer);
+      }
     }
   }, 50);
 })();
