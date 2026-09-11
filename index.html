@@ -250,8 +250,8 @@
 
   /* Combined ranking card */
   .rank-subcards{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:10px;}
-  .rank-subcard{border:1px solid var(--border); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
-  .rank-subcard.alt{border-top:2px solid var(--gold);}
+  .rank-subcard{border:1px solid var(--border); border-top:2px solid var(--gold); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
+  .rank-subcard.alt{border-top:2px solid var(--gold);} /* kept as a no-op alias: all subcards now share the same top accent */
   .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
   .rank-subcard-head h3{font-family:var(--font-serif); font-size:11.5px; margin:0; font-weight:700; color:var(--text);}
   .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
@@ -892,6 +892,25 @@ function computeMetrics(rows){
   const stockPctArr = distributePct(stockArr.map(s => s.count), stockTotal);
   stockArr = stockArr.map((s,i) => ({...s, pct: stockPctArr[i]}));
 
+  // Order Omni & Shipping — "Order Omni" = completed order that has a reserve/omni order
+  // number (orders.reserve.orderNo), same field orderOmniCellHtml() in the Tracking Order
+  // table checks to decide whether to show a value or '-'.
+  const omniRows = completeRows.filter(r => !isBlank(r.resOrderNo));
+  const omniTotal = omniRows.length;
+  const nonOmniTotal = completeCount - omniTotal;
+  const [omniPctOfComplete, nonOmniPctOfComplete] = distributePct([omniTotal, nonOmniTotal], completeCount);
+  const shipMap = {};
+  omniRows.forEach(r => {
+    const label = [r.resShippingType, r.resShippingSLA].filter(x => !isBlank(x)).join(' - ') || 'ไม่ระบุ';
+    shipMap[label] = (shipMap[label] || 0) + 1;
+  });
+  // Every Omni row lands in exactly one bucket (falls back to 'ไม่ระบุ' if both shipping
+  // fields are blank), so shipTotal === omniTotal and the %'s always sum to 100% of Omni orders.
+  let shipArr = Object.entries(shipMap).map(([name,count]) => ({name,count})).sort((a,b) => b.count - a.count);
+  const shipTotal = omniTotal;
+  const shipPctArr = distributePct(shipArr.map(s => s.count), shipTotal);
+  shipArr = shipArr.map((s,i) => ({...s, pct: shipPctArr[i]}));
+
   // Order by menu
   const menuCounts = {};
   completeRows.forEach(r => { const m = r.menu || 'Unknown'; menuCounts[m] = (menuCounts[m]||0)+1; });
@@ -1040,6 +1059,7 @@ function computeMetrics(rows){
     otCounts, otTotal, otPct, prebookByGrp, prebookTotal, nonPrebookByGrp,
     prebookPctByGrp, nonPrebookPctByGrp, nonPrebookTotal, prebookPctOfComplete, nonPrebookPctOfComplete,
     stockArr, stockTotal,
+    omniTotal, nonOmniTotal, omniPctOfComplete, nonOmniPctOfComplete, shipArr, shipTotal,
     menuArr,
     mode, buckets, volTotal,
     durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
@@ -1150,6 +1170,20 @@ function buildSkeleton(){
         <div class="card">
           <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
           <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Order Omni &amp; Shipping <span class="tag" id="tag-omnitotal"></span></h2>
+      <div class="rank-subcards subcards-stack">
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Order Omni</h3></div>
+          <div class="card-body soft" id="body-omni"></div>
+        </div>
+        <div class="rank-subcard">
+          <div class="rank-subcard-head"><h3>Shipping Breakdown</h3></div>
+          <div class="rank-list soft" id="body-shipping"></div>
         </div>
       </div>
     </div>
@@ -1655,6 +1689,27 @@ function updateDashboard(rows){
   }).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
   softUpdate(document.getElementById('body-substock'), stockHtml);
   updateStockChart(M);
+
+  // Order Omni & Shipping
+  document.getElementById('tag-omnitotal').textContent = `${fmtNum(M.omniTotal)} orders`;
+  const omniHtml = `<div class="grp-row" style="border-bottom:none;padding-bottom:0;">
+    <div class="grp-name"><span class="dot" style="background:var(--gold)"></span>Order Omni</div>
+    <div class="grp-nums">
+      <div class="n">${fmtNum(M.omniTotal)}</div>
+      <div class="p">${fmtPct(M.omniPctOfComplete)}</div>
+      <div class="pre-badge">ไม่ใช่ Order Omni: <b>${fmtNum(M.nonOmniTotal)}</b> (${fmtPct(M.nonOmniPctOfComplete)})</div>
+      <div class="pre-badge">Order Omni: <b>${fmtNum(M.omniTotal)}</b> (${fmtPct(M.omniPctOfComplete)})</div>
+    </div>
+  </div>`;
+  softUpdate(document.getElementById('body-omni'), M.omniTotal || M.nonOmniTotal ? omniHtml : '<div class="empty">ไม่มีข้อมูล</div>');
+  const shippingHtml = M.shipArr.map((s,i) => {
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    return `<div class="legend-row">
+      <div class="lg-name"><span class="lg-dot" style="background:${c}"></span><span class="lg-label">${esc(s.name)}</span></div>
+      <div><span class="lg-val">${fmtNum(s.count)}</span><span class="lg-pct">${fmtPct(s.pct)}</span></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มี Order Omni</div>';
+  softUpdate(document.getElementById('body-shipping'), shippingHtml);
 
   // Duration overview tiers
   document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
