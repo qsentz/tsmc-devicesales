@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600..900&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     /* Primary — dark warm-black base */
@@ -39,8 +39,8 @@
     --accent-bg:rgba(122,32,32,.20);
 
     --radius:6px;
-    --font-serif:'Fraunces', 'Noto Serif', serif;
-    --font-sans:'IBM Plex Sans Thai','IBM Plex Sans',-apple-system,sans-serif;
+    --font-serif:'Sora', sans-serif;
+    --font-sans:'Prompt', -apple-system, sans-serif;
   }
   *{box-sizing:border-box;}
   html, body{height:100%; margin:0; padding:0;}
@@ -69,8 +69,8 @@
   }
   .topbar-title{display:flex; align-items:center; gap:10px;}
   .topbar h1{
-    font-family:var(--font-serif); font-size:19px; margin:0; font-weight:800; letter-spacing:-.01em;
-    cursor:default; user-select:none; color:var(--text);
+    font-family:var(--font-serif); font-size:18px; margin:0; font-weight:800; letter-spacing:.01em;
+    text-transform:uppercase; cursor:default; user-select:none; color:var(--text);
   }
   .live-chip{
     font-family:var(--font-sans); font-size:9px; font-weight:700; color:var(--bg);
@@ -186,7 +186,8 @@
     display:flex; flex-direction:column;
   }
   .card h2{
-    font-family:var(--font-serif); font-size:13.5px; margin:0 0 8px; font-weight:700; color:var(--text);
+    font-family:var(--font-serif); font-size:13px; margin:0 0 8px; font-weight:700; color:var(--text);
+    text-transform:uppercase; letter-spacing:.03em;
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
   /* Card-header tags now match the pill/badge look used on sub-card tags (see
@@ -228,13 +229,13 @@
   .hero-ring canvas{width:64px; height:64px; display:block;}
   .hero-ring.hero-ring-lg{width:100px; height:100px;}
   .hero-ring.hero-ring-lg canvas{width:100px; height:100px;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:64px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:12.5px; color:var(--accent-bright); margin-top:5px; font-weight:800; letter-spacing:.04em;}
+  .hero-nums .big{font-family:var(--font-serif); font-size:58px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
+  .hero-nums .lbl{font-size:12px; color:var(--accent-bright); margin-top:5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;}
   .hero-nums .of-total{font-size:11px; color:var(--muted); margin-top:5px;}
   .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
   .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
   .hero-right{border-left:1px solid var(--border); padding-left:22px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:12.5px; margin:0 0 7px; font-weight:700; color:var(--text-dim);}
+  .hero-right h3{font-family:var(--font-serif); font-size:11px; margin:0 0 7px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em;}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
   .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft); box-shadow:0 2px 5px rgba(0,0,0,.35); transition:transform .12s ease, box-shadow .12s ease;}
   .tile:hover{transform:translateY(-1px); box-shadow:0 4px 9px rgba(0,0,0,.45);}
@@ -399,11 +400,11 @@
   .rank-subcard{border:1px solid var(--border); border-top:2px solid var(--gold); border-radius:4px; padding:9px 10px; background:var(--surface-alt); min-width:0;}
   .rank-subcard.alt{border-top:2px solid var(--gold);} /* kept as a no-op alias: all subcards now share the same top accent */
   .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
-  .rank-subcard-head h3{font-family:var(--font-serif); font-size:11.5px; margin:0; font-weight:700; color:var(--text);}
+  .rank-subcard-head h3{font-family:var(--font-serif); font-size:11px; margin:0; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.03em;}
   .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
   .rank-section{display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px;}
   .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 6px; background:var(--bg-2); border-radius:4px; margin-bottom:5px;}
-  .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; letter-spacing:.02em;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
   /* Column header row for a plain rankRows()-based .rank-list, matching the look of a real
@@ -531,7 +532,7 @@
   .img-preview img{display:block; width:130px; height:130px; object-fit:contain; border-radius:4px; background:#fff;}
 
   table{width:100%; border-collapse:collapse; font-size:10.5px;}
-  th{text-align:left; color:var(--muted); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--border); font-size:9px; position:sticky; top:0; background:var(--surface);}
+  th{text-align:left; color:var(--muted); font-weight:700; padding:4px 6px; border-bottom:1px solid var(--border); font-size:9px; text-transform:uppercase; letter-spacing:.02em; position:sticky; top:0; background:var(--surface);}
   td{padding:5px 6px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
   tr:last-child td{border-bottom:none;}
   tbody tr{transition:background .12s ease;}
@@ -714,6 +715,12 @@ let lastMetrics = null;
 // near-duplicates of each other, even when several categories are shown at once.
 const STOCK_PALETTE = ['#38BDF2','#A78BFA','#FBBF24','#34D399','#F472B6','#FB923C','#EF4444','#94A3B8'];
 
+// Keep every Chart.js-drawn label (axis ticks, legends, tooltips) on the same typeface as the
+// rest of the dashboard instead of falling back to Chart.js's own default font.
+if (typeof Chart !== 'undefined'){
+  Chart.defaults.font.family = "'Prompt','IBM Plex Sans Thai',sans-serif";
+}
+
 const TOOLTIP_STYLE = {
   backgroundColor:'#141F35',
   titleColor:'#E9EEF9',
@@ -727,8 +734,8 @@ const TOOLTIP_STYLE = {
   boxPadding:4,
   usePointStyle:true,
   displayColors:true,
-  titleFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11.5, weight:'700' },
-  bodyFont:{ family:"'IBM Plex Sans Thai','IBM Plex Sans',sans-serif", size:11 }
+  titleFont:{ family:"'Prompt','IBM Plex Sans Thai',sans-serif", size:11.5, weight:'700' },
+  bodyFont:{ family:"'Prompt','IBM Plex Sans Thai',sans-serif", size:11 }
 };
 
 function getConfig(){
@@ -1170,7 +1177,7 @@ function drawRing(canvasEl, pct, color, size){
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
     ctx.fillStyle = '#E9EEF9';
-    ctx.font = `700 ${fontSize}px "IBM Plex Sans Thai",-apple-system,sans-serif`;
+    ctx.font = `700 ${fontSize}px "Sora",-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(cur.toFixed(1) + '%', cx, cy);
     if (p < 1) requestAnimationFrame(frame);
@@ -1336,7 +1343,7 @@ function computeMetrics(rows){
   }).sort((a,b) => b.cnt - a.cnt).slice(0, 8);
 
   const slowest = durRows.filter(r => r.tier === 'red')
-    .sort((a,b) => b.durationMs - a.durationMs).slice(0, 8)
+    .sort((a,b) => b.durationMs - a.durationMs).slice(0, 30)
     .map(r => ({
       id: r.transactionId || r.orderId,
       orderType: r.orderType || '-',
@@ -1625,6 +1632,11 @@ function buildSkeleton(){
                 <thead><tr><th>ORDER / TRANSACTION ID</th><th>ORDER TYPE</th><th>TIME</th></tr></thead>
                 <tbody id="body-slowest"></tbody>
               </table>
+            </div>
+            <div class="rank-slider-row">
+              <span class="rank-slider-lbl">SHOW</span>
+              <input type="range" min="5" max="30" step="5" value="10" id="sliderSlowest">
+              <span class="rank-slider-val" id="sliderSlowestVal">10</span>
             </div>
           </div>
         </div>
@@ -2069,6 +2081,19 @@ function renderCampaignService(){
   document.getElementById('body-camp-list').innerHTML = rankRows(lastMetrics.campTop, n, 'var(--gold)');
   document.getElementById('body-svc-list').innerHTML = rankRows(lastMetrics.svcTop, n, 'var(--stone)');
 }
+function renderSlowest(){
+  if (!lastMetrics) return;
+  const slider = document.getElementById('sliderSlowest');
+  if (!slider) return;
+  const n = parseInt(slider.value, 10);
+  document.getElementById('sliderSlowestVal').textContent = n;
+  const slowHtml = lastMetrics.slowest.slice(0, n).map(s => `<tr>
+    <td class="mono">${esc(s.id)}</td>
+    <td>${esc(s.orderType)}</td>
+    <td class="red-txt">${esc(s.durLabel)}</td>
+  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
+  softUpdate(document.getElementById('body-slowest'), slowHtml);
+}
 
 function updateDashboard(rows){
   const M = computeMetrics(rows);
@@ -2215,12 +2240,7 @@ function updateDashboard(rows){
   renderTrackingOrders();
 
   // Slowest orders
-  const slowHtml = M.slowest.map(s => `<tr>
-    <td class="mono">${esc(s.id)}</td>
-    <td>${esc(s.orderType)}</td>
-    <td class="red-txt">${esc(s.durLabel)}</td>
-  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มี order ที่ช้ากว่า 30 นาที</td></tr>`;
-  softUpdate(document.getElementById('body-slowest'), slowHtml);
+  renderSlowest();
 
   // Branch & stock flow
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
@@ -2633,6 +2653,7 @@ async function loadData(isAuto){
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
     const sliderTrack = document.getElementById('sliderTrack');
+    const sliderSlowest = document.getElementById('sliderSlowest');
     const trackFilter = document.getElementById('trackFilter');
     if (sliderDevice && !sliderDevice.dataset.bound) {
       sliderDevice.addEventListener('input', renderDeviceAccessory);
@@ -2645,6 +2666,10 @@ async function loadData(isAuto){
     if (sliderTrack && !sliderTrack.dataset.bound) {
       sliderTrack.addEventListener('input', renderTrackingOrders);
       sliderTrack.dataset.bound = '1';
+    }
+    if (sliderSlowest && !sliderSlowest.dataset.bound) {
+      sliderSlowest.addEventListener('input', renderSlowest);
+      sliderSlowest.dataset.bound = '1';
     }
     if (trackFilter && !trackFilter.dataset.bound) {
       trackFilter.addEventListener('input', renderTrackingOrders);
@@ -2695,10 +2720,11 @@ async function loadData(isAuto){
     const sliderDevice = document.getElementById('sliderDevice');
     const sliderCampaign = document.getElementById('sliderCampaign');
     const sliderTrack = document.getElementById('sliderTrack');
+    const sliderSlowest = document.getElementById('sliderSlowest');
     const trackFilter = document.getElementById('trackFilter');
-    if (sliderDevice || sliderCampaign || sliderTrack || trackFilter) {
+    if (sliderDevice || sliderCampaign || sliderTrack || sliderSlowest || trackFilter) {
       bindRankSliders();
-      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound && sliderTrack?.dataset.bound && trackFilter?.dataset.bound) {
+      if (sliderDevice?.dataset.bound && sliderCampaign?.dataset.bound && sliderTrack?.dataset.bound && sliderSlowest?.dataset.bound && trackFilter?.dataset.bound) {
         clearInterval(sliderBinderTimer);
       }
     }
