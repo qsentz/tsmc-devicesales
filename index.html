@@ -767,6 +767,7 @@
 <script>
 /* ===================== CONFIG / STATE ===================== */
 const LS_KEY = 'orderDashboardConfig';
+const SS_SECRET_KEY = 'orderDashboardSecretKey'; // sessionStorage — tab-lifetime only, see getConfig()
 const AUTO_REFRESH_MS = 10000;
 let charts = {};
 let dashboardBuilt = false;
@@ -806,15 +807,33 @@ const TOOLTIP_STYLE = {
 function getConfig(){
   const params = new URLSearchParams(location.search);
   const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+  // One-time migration: earlier versions kept secretKey inside this same localStorage
+  // object, so it would sit on disk indefinitely across browser restarts. If an old value
+  // is still there, move it into sessionStorage (this tab only) and strip it out of
+  // localStorage for good, instead of leaving it duplicated in the more persistent store.
+  if (saved.secretKey !== undefined){
+    if (saved.secretKey && !sessionStorage.getItem(SS_SECRET_KEY)) sessionStorage.setItem(SS_SECRET_KEY, saved.secretKey);
+    delete saved.secretKey;
+    localStorage.setItem(LS_KEY, JSON.stringify(saved));
+  }
   return {
     sheetId: params.get('sheetId') || saved.sheetId || '',
     sheetName: params.get('sheetName') || saved.sheetName || 'Order',
-    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up
-    // in browser history / shared links / server logs — only ever from localStorage.
-    secretKey: saved.secretKey || ''
+    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up in
+    // browser history / shared links / server logs — and kept in sessionStorage rather than
+    // localStorage so it survives a refresh but is gone the moment the tab/browser closes.
+    secretKey: sessionStorage.getItem(SS_SECRET_KEY) || ''
   };
 }
-function saveConfig(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
+// sheetId/sheetName only — secretKey is intentionally never written here, see saveSecretKey().
+function saveConfig(cfg){
+  const { sheetId, sheetName } = cfg;
+  localStorage.setItem(LS_KEY, JSON.stringify({ sheetId, sheetName }));
+}
+function saveSecretKey(secretKey){
+  if (secretKey) sessionStorage.setItem(SS_SECRET_KEY, secretKey);
+  else sessionStorage.removeItem(SS_SECRET_KEY);
+}
 
 /* ===================== COLUMN MAP ===================== */
 const COL = {
@@ -862,7 +881,8 @@ const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
    base64( 8-byte random IV ++ XOR(plaintext, keystream) ), where the keystream is built from
    repeated HMAC-SHA256(secretKey, ivHex + '|' + counter) blocks. Decrypting here needs the same
    Secret Key that Code.gs's setupEncryptionKey() saved to Script Properties — entered once in
-   the config panel above and kept only in this browser's localStorage; it is never sent anywhere. */
+   the config panel above and kept only in this browser tab's sessionStorage (cleared when the
+   tab/browser closes, unlike localStorage); it is never sent anywhere. */
 let hmacKeyCache = null;        // { secretKey, cryptoKeyPromise } — one-slot cache
 const decryptCache = new Map(); // `${secretKey}::${cipherB64}` -> Promise<string>
 
@@ -2747,8 +2767,7 @@ async function loadData(isAuto){
 
   const applySecretKey = () => {
     const secretKey = document.getElementById('inputSecretKey').value.trim();
-    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-    saveConfig({ ...saved, secretKey });
+    saveSecretKey(secretKey);
     clearDecryptCache();
     closeTrackTooltip();
     renderTrackingOrders();
@@ -2824,7 +2843,8 @@ async function loadData(isAuto){
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
     const secretKey = document.getElementById('inputSecretKey').value.trim();
     if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
-    saveConfig({sheetId, sheetName, secretKey});
+    saveConfig({sheetId, sheetName});
+    saveSecretKey(secretKey);
     document.getElementById('configPanel').classList.remove('open');
     loadData(false);
     startAutoRefresh();
