@@ -162,7 +162,6 @@
      see the corner-bracket comment on .dash-content::before/::after. */
   .dash-content{
     position:relative; display:flex; flex-direction:column; gap:12px;
-    flex:1 1 auto; min-height:0;
   }
   /* HUD corner brackets — the console's recurring visual signature, echoed on .card too.
      Anchored to .dash-content (not .dash-section) on purpose: .dash-section is the box
@@ -207,6 +206,13 @@
      table now stretch to fill the available viewport height, with the table itself scrolling
      internally instead of the page having dead space under a short table. */
   #trackingSection.is-fullscreen{overflow:hidden;}
+  /* Only trackingSection's wrapper needs to be forced to fill the section exactly — its
+     .card+table are meant to fit the viewport with the table scrolling internally, not the
+     section itself. summarySection's .dash-content is left at its default (natural content
+     height) on purpose, so it overflows #summarySection and the section-level overflow:auto
+     scrolls it — which is also what lets its corner brackets land at the content's real end
+     instead of collapsing back to the viewport edge. */
+  #trackingSection.is-fullscreen .dash-content{flex:1 1 auto; min-height:0;}
   #trackingSection.is-fullscreen .card{flex:1 1 auto; min-height:0;}
   #trackingSection.is-fullscreen .track-table-scroll{flex:1 1 auto; max-height:none;}
 
