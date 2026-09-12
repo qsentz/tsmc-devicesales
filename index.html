@@ -964,6 +964,10 @@ function parseGvizDate(v){
 const COMPARE_SHEET_NAME = 'Compare_data';
 let compareData = [];          // [{date: Date, count: Number}], sorted ascending by date
 let compareDataLoadedFor = null;
+// Backing store for the Year-over-Year chart's tooltip callbacks (see updateCompareChart) —
+// mutated in place on every refresh so the callbacks (bound once, at first chart creation)
+// always read the latest values instead of whichever load first created the Chart instance.
+let compareChartState = { labels: [], thisYearData: [], lastYearData: [], thisYearDates: [], lastYearDates: [] };
 // Full, UNFILTERED rows from the last "Order" sheet fetch (all ~3 days it currently holds),
 // kept separately from the filterToLatestDate()-trimmed set the rest of the dashboard renders
 // from. Only the Year-over-Year compareCard reads this — see computeDayCounts()/updateCompareChart().
@@ -2439,6 +2443,24 @@ function updateCompareChart(M){
   const tagEl = document.getElementById('tag-comparetotal');
   if (tagEl) tagEl.textContent = `${fmtNum(thisYearTotal)} vs ${fmtNum(lastYearTotal)}`;
 
+  // The tooltip callbacks below used to close over these `labels`/`thisYearData`/etc. consts
+  // directly. That worked for the chart's very first render, but on every later auto-refresh
+  // this function runs again with brand-new local arrays while the *existing* Chart instance
+  // (created once, in the `if (!charts.compare)` branch below) keeps the exact callback
+  // functions — and therefore the exact array references — it was first built with. Only
+  // `chart.data.datasets[...].data` gets reassigned on refresh (so the bars move correctly);
+  // the tooltip text silently kept showing the first load's numbers until a full page reload
+  // recreated the chart from scratch. Writing into this persistent, shared object instead
+  // (mutating its properties rather than the outer variables) means the callbacks — which
+  // read `compareChartState.xxx` at hover-time, not at chart-creation-time — always see
+  // whatever this function last computed, on every refresh, without needing to rebuild the
+  // chart or its callbacks.
+  compareChartState.labels = labels;
+  compareChartState.thisYearData = thisYearData;
+  compareChartState.lastYearData = lastYearData;
+  compareChartState.thisYearDates = thisYearDates;
+  compareChartState.lastYearDates = lastYearDates;
+
   const ctx = document.getElementById('chartCompare');
   if (!ctx) return;
   if (!charts.compare){
@@ -2469,7 +2491,8 @@ function updateCompareChart(M){
             callbacks:{
               title: items => {
                 const i = items[0].dataIndex;
-                return `${labels[i]} (ปีนี้ ${thisYearDates[i]} / ปีที่แล้ว ${lastYearDates[i]})`;
+                const s = compareChartState;
+                return `${s.labels[i]} (ปีนี้ ${s.thisYearDates[i]} / ปีที่แล้ว ${s.lastYearDates[i]})`;
               },
               label: c => `${c.dataset.label}: ${fmtNum(c.parsed.y)}`,
               // Difference + % difference between the two series for this day, shown below
@@ -2477,7 +2500,8 @@ function updateCompareChart(M){
               // the person having to do the subtraction themselves.
               afterBody: items => {
                 const i = items[0].dataIndex;
-                const ty = thisYearData[i], ly = lastYearData[i];
+                const s = compareChartState;
+                const ty = s.thisYearData[i], ly = s.lastYearData[i];
                 const diff = ty - ly;
                 const sign = diff > 0 ? '+' : (diff < 0 ? '' : '±');
                 const pct = ly ? (diff / ly * 100) : (ty ? 100 : 0);
