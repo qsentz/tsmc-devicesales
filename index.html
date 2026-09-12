@@ -160,8 +160,8 @@
     content:''; position:absolute; width:10px; height:10px; pointer-events:none; opacity:.55;
     border-color:var(--accent); border-style:solid;
   }
-  .dash-section::before{top:-1px; left:-1px; border-width:2px 0 0 2px;}
-  .dash-section::after{bottom:-1px; right:-1px; border-width:0 2px 2px 0;}
+  .dash-section::before{top:0; left:0; border-width:2px 0 0 2px;}
+  .dash-section::after{bottom:0; right:0; border-width:0 2px 2px 0;}
   .section-label{
     position:absolute; top:-9px; left:14px; background:var(--bg-2); color:var(--accent-bright);
     font-family:var(--font-serif); font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
@@ -239,16 +239,14 @@
 
   /* ---------- HERO: Total Order Completed ---------- */
   .hero{
-    position:relative; background:linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
+    position:relative;
+    background:
+      radial-gradient(460px 460px at 94% -25%, rgba(255,106,61,.16), transparent 60%),
+      linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
     border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius);
     padding:20px 26px 20px; box-shadow:0 10px 30px rgba(0,0,0,.45);
     display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center;
     animation:fadeInUp .4s ease both;
-    overflow:hidden;
-  }
-  .hero::after{
-    content:''; position:absolute; top:-40%; right:-8%; width:280px; height:280px; pointer-events:none;
-    background:radial-gradient(circle, rgba(255,106,61,.14), transparent 70%);
   }
   .hero-sticker{
     position:absolute; top:-11px; left:20px; background:var(--accent); color:#1B0D06;
