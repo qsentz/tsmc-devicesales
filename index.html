@@ -162,6 +162,7 @@
      see the corner-bracket comment on .dash-content::before/::after. */
   .dash-content{
     position:relative; display:flex; flex-direction:column; gap:12px;
+    flex:1 1 auto; min-height:0;
   }
   /* HUD corner brackets — the console's recurring visual signature, echoed on .card too.
      Anchored to .dash-content (not .dash-section) on purpose: .dash-section is the box
@@ -206,13 +207,6 @@
      table now stretch to fill the available viewport height, with the table itself scrolling
      internally instead of the page having dead space under a short table. */
   #trackingSection.is-fullscreen{overflow:hidden;}
-  /* Only trackingSection's wrapper needs to be forced to fill the section exactly — its
-     .card+table are meant to fit the viewport with the table scrolling internally, not the
-     section itself. summarySection's .dash-content is left at its default (natural content
-     height) on purpose, so it overflows #summarySection and the section-level overflow:auto
-     scrolls it — which is also what lets its corner brackets land at the content's real end
-     instead of collapsing back to the viewport edge. */
-  #trackingSection.is-fullscreen .dash-content{flex:1 1 auto; min-height:0;}
   #trackingSection.is-fullscreen .card{flex:1 1 auto; min-height:0;}
   #trackingSection.is-fullscreen .track-table-scroll{flex:1 1 auto; max-height:none;}
 
@@ -767,7 +761,6 @@
 <script>
 /* ===================== CONFIG / STATE ===================== */
 const LS_KEY = 'orderDashboardConfig';
-const SS_SECRET_KEY = 'orderDashboardSecretKey'; // sessionStorage — tab-lifetime only, see getConfig()
 const AUTO_REFRESH_MS = 10000;
 let charts = {};
 let dashboardBuilt = false;
@@ -807,33 +800,15 @@ const TOOLTIP_STYLE = {
 function getConfig(){
   const params = new URLSearchParams(location.search);
   const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
-  // One-time migration: earlier versions kept secretKey inside this same localStorage
-  // object, so it would sit on disk indefinitely across browser restarts. If an old value
-  // is still there, move it into sessionStorage (this tab only) and strip it out of
-  // localStorage for good, instead of leaving it duplicated in the more persistent store.
-  if (saved.secretKey !== undefined){
-    if (saved.secretKey && !sessionStorage.getItem(SS_SECRET_KEY)) sessionStorage.setItem(SS_SECRET_KEY, saved.secretKey);
-    delete saved.secretKey;
-    localStorage.setItem(LS_KEY, JSON.stringify(saved));
-  }
   return {
     sheetId: params.get('sheetId') || saved.sheetId || '',
     sheetName: params.get('sheetName') || saved.sheetName || 'Order',
-    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up in
-    // browser history / shared links / server logs — and kept in sessionStorage rather than
-    // localStorage so it survives a refresh but is gone the moment the tab/browser closes.
-    secretKey: sessionStorage.getItem(SS_SECRET_KEY) || ''
+    // Deliberately not read from the URL (unlike sheetId/sheetName) so it can't end up
+    // in browser history / shared links / server logs — only ever from localStorage.
+    secretKey: saved.secretKey || ''
   };
 }
-// sheetId/sheetName only — secretKey is intentionally never written here, see saveSecretKey().
-function saveConfig(cfg){
-  const { sheetId, sheetName } = cfg;
-  localStorage.setItem(LS_KEY, JSON.stringify({ sheetId, sheetName }));
-}
-function saveSecretKey(secretKey){
-  if (secretKey) sessionStorage.setItem(SS_SECRET_KEY, secretKey);
-  else sessionStorage.removeItem(SS_SECRET_KEY);
-}
+function saveConfig(cfg){ localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
 /* ===================== COLUMN MAP ===================== */
 const COL = {
@@ -881,8 +856,7 @@ const STATES = ['COMPLETE','WAITING_PAYMENT','READY_TO_PAY','PENDING','DELETE'];
    base64( 8-byte random IV ++ XOR(plaintext, keystream) ), where the keystream is built from
    repeated HMAC-SHA256(secretKey, ivHex + '|' + counter) blocks. Decrypting here needs the same
    Secret Key that Code.gs's setupEncryptionKey() saved to Script Properties — entered once in
-   the config panel above and kept only in this browser tab's sessionStorage (cleared when the
-   tab/browser closes, unlike localStorage); it is never sent anywhere. */
+   the config panel above and kept only in this browser's localStorage; it is never sent anywhere. */
 let hmacKeyCache = null;        // { secretKey, cryptoKeyPromise } — one-slot cache
 const decryptCache = new Map(); // `${secretKey}::${cipherB64}` -> Promise<string>
 
@@ -1757,7 +1731,7 @@ function buildSkeleton(){
     <div class="card">
       <h2><span class="h2-title"><svg class="h2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>TRANCKING ORDER</span> <span class="tag" id="tag-tracktotal"></span></h2>
       <div class="track-toolbar">
-        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / เบอร์โทร / Order Type / รุ่นเครื่อง..." title="ค้นหาด้วยชื่อลูกค้าหรือเบอร์โทรได้เมื่อกรอก Secret Key ในแผงตั้งค่าแล้วเท่านั้น (ข้อมูลถูกเข้ารหัสไว้ในชีต)">
+        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / เบอร์โทร / Order Type / รุ่นเครื่อง...">
         <div class="track-slider-row">
           <span class="rank-slider-lbl">SHOW</span>
           <input type="range" min="25" max="500" step="25" value="50" id="sliderTrack">
@@ -1911,7 +1885,7 @@ async function buildTrackTooltipHtml(r){
   const secretKey = getSecretKey();
   let piiHtml;
   if (!secretKey){
-    piiHtml = `<div class="tt-lock">🔒 กรอก Secret Key ในแผงตั้งค่า (ดับเบิลคลิกหัวข้อ "Order Dashboard") เพื่อดูชื่อ-เบอร์โทรเต็ม</div>`;
+    piiHtml = `<div class="tt-lock">🔒 Fill Secret Key</div>`;
   } else {
     const [first, last, mobile] = await Promise.all([
       decryptCached(r.custFirstName, secretKey),
@@ -1919,7 +1893,7 @@ async function buildTrackTooltipHtml(r){
       decryptCached(r.custMobileNo, secretKey)
     ]);
     if ([first, last, mobile].includes('__DECRYPT_FAILED__')){
-      piiHtml = `<div class="tt-lock">⚠️ ถอดรหัสไม่สำเร็จ — ตรวจสอบว่า Secret Key ตรงกับที่ตั้งไว้ใน Code.gs</div>`;
+      piiHtml = `<div class="tt-lock">⚠️ ถอดรหัสไม่สำเร็จ</div>`;
     } else {
       const fullName = (first + ' ' + last).trim() || '-';
       piiHtml = `<div class="tt-pii">
@@ -2136,7 +2110,7 @@ async function renderTrackingOrders(){
     const isOpen = openTrackKey === key;
     const tsLabel = r.ts ? r.ts.toLocaleString('th-TH') : '-';
     const custName = secretKey ? (maskedByKey[key] || '-') : '🔒';
-    const custAttr = secretKey ? '' : ' class="cust-name-cell" data-tip="กรอก Secret Key ในแผงตั้งค่าเพื่อถอดรหัสชื่อ"';
+    const custAttr = secretKey ? '' : ' class="cust-name-cell" data-tip="Fill Secret Key"';
     return `<tr>
       <td class="col-info"><button type="button" class="info-btn${isOpen ? ' open' : ''}" data-track-toggle="${esc(key)}" title="ดูรายละเอียดเพิ่มเติม">i</button></td>
       <td class="col-no">${i+1}</td>
@@ -2767,7 +2741,8 @@ async function loadData(isAuto){
 
   const applySecretKey = () => {
     const secretKey = document.getElementById('inputSecretKey').value.trim();
-    saveSecretKey(secretKey);
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+    saveConfig({ ...saved, secretKey });
     clearDecryptCache();
     closeTrackTooltip();
     renderTrackingOrders();
@@ -2843,8 +2818,7 @@ async function loadData(isAuto){
     const sheetName = document.getElementById('inputSheetName').value.trim() || 'Order';
     const secretKey = document.getElementById('inputSecretKey').value.trim();
     if (!sheetId) { showBanner('กรุณากรอก Google Sheet ID'); return; }
-    saveConfig({sheetId, sheetName});
-    saveSecretKey(secretKey);
+    saveConfig({sheetId, sheetName, secretKey});
     document.getElementById('configPanel').classList.remove('open');
     loadData(false);
     startAutoRefresh();
