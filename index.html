@@ -197,11 +197,6 @@
     background:var(--bg-2); padding:1px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;
     border:1px solid var(--border-soft);
   }
-  /* Optional small header icon (Order Source & Stock Destination / Order Volume, etc.) —
-     grouped with the title text in .h2-title so `.card h2`'s justify-content:space-between
-     still only has two flex children (title group vs. the .tag on the far right). */
-  .h2-title{display:inline-flex; align-items:center; gap:6px;}
-  .h2-icon{width:14px; height:14px; flex:0 0 auto; color:var(--gold);}
   .card-body{min-height:0;}
   .soft{transition:opacity .28s ease;}
 
@@ -289,7 +284,7 @@
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
   @media(min-width:900px){ .grid-duo-equal{grid-template-columns:1fr 1fr;} }
 
-  /* AIS/Partner — plain row layout, used as-is by the single "Order Omni" summary row */
+  /* AIS/Partner */
   .grp-row{display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border-soft);}
   .grp-row:last-child{border-bottom:none;}
   .grp-name{display:flex; align-items:center; gap:6px; font-weight:700; font-size:11px;}
@@ -299,19 +294,6 @@
   .grp-nums .p{font-size:9.5px; color:var(--muted);}
   .pre-badge{font-size:9px; color:var(--muted); margin-top:2px;}
   .pre-badge b{color:var(--text-dim); font-weight:700;}
-
-  /* AIS Shop vs Partner — the two groups as side-by-side boxed tiles instead of stacked
-     rows, so AIS and PARTNER read as directly comparable cards under the split bar. Scoped
-     to .grp-grid (higher specificity than the plain .grp-row above) so the single-row
-     "Order Omni" summary elsewhere keeps its original row layout untouched. */
-  .grp-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:2px;}
-  .grp-grid .grp-row{
-    display:flex; flex-direction:column; align-items:flex-start; gap:3px;
-    border:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:4px;
-    background:var(--surface); padding:8px 9px; min-width:0;
-  }
-  .grp-grid .grp-nums{text-align:left; width:100%;}
-  @media(max-width:480px){ .grp-grid{grid-template-columns:1fr;} }
 
   /* AIS Shop vs Partner — split bar chart */
   .split-bar{display:flex; width:100%; height:16px; border-radius:4px; overflow:hidden; background:var(--border-soft); margin-bottom:4px;}
@@ -587,14 +569,6 @@
     display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; vertical-align:bottom; border-bottom:1px dashed var(--muted);
   }
-  /* Branch & Stock Flow: "Branch / Source" and "Top Stock" columns: constrain column
-     width so long values ellipsis (via .cust-name-cell above) instead of stretching the
-     narrow sub-card, and surface the full value through the same themed [data-tip] hover
-     card the rest of the dashboard uses, instead of a plain native title="" bubble. */
-  .branch-stock-table th.col-branch, .branch-stock-table td.col-branch,
-  .branch-stock-table td:nth-child(1){max-width:90px;}
-  .branch-stock-table th.col-topstock, .branch-stock-table td.col-topstock,
-  .branch-stock-table td:nth-child(3){max-width:130px;}
 
   /* ---------- Generic hover tooltip ----------
      Replaces native title="" attributes on truncated / supplementary data (Commercial Name,
@@ -602,8 +576,8 @@
      card instead of the browser's plain OS tooltip. Triggered via [data-tip] + #hoverTip,
      wired up once in initHoverTips(). */
   [data-tip]{cursor:help;}
-  /* Kept as a fallback cursor cue for any plain native title="" tooltip elsewhere in the
-     dashboard — all dynamic table cells (incl. Branch & Stock Flow) now use [data-tip] above. */
+  /* A few table cells (e.g. the Branch & Stock Flow name column) still use a plain native
+     title="" tooltip rather than the custom [data-tip] one above — same hover cue for those. */
   td[title]{cursor:help;}
 
   /* Chart.js canvases: cursor is switched between this default and "help" by each chart's own
@@ -994,6 +968,27 @@ function buildRows(cols, rawRows){
     resShippingType: str(get(r,'resShippingType')),
     resShippingSLA: str(get(r,'resShippingSLA'))
   })).filter(r => r.orderId);
+}
+
+// Keeps only the rows whose TIMESTAMP falls on the most recent calendar date present in the
+// sheet (e.g. sheet spans 10/09/2026–12/09/2026 -> only 12/09/2026 rows are kept). Rows with an
+// unparseable/missing ts are dropped, since they can't be attributed to any date. This only
+// applies to the main "Order" sheet feed (parsed via buildRows) — the Year-over-Year
+// compareCard reads from the separate Compare_data sheet/loadCompareDataIfNeeded and is
+// untouched by this filter, as required.
+function filterToLatestDate(rows){
+  let latestKey = -Infinity;
+  rows.forEach(r => {
+    if (!r.ts) return;
+    const key = new Date(r.ts.getFullYear(), r.ts.getMonth(), r.ts.getDate()).getTime();
+    if (key > latestKey) latestKey = key;
+  });
+  if (latestKey === -Infinity) return rows; // no valid dates at all — leave as-is, nothing to filter by
+  return rows.filter(r => {
+    if (!r.ts) return false;
+    const key = new Date(r.ts.getFullYear(), r.ts.getMonth(), r.ts.getDate()).getTime();
+    return key === latestKey;
+  });
 }
 
 /* ===================== HELPERS ===================== */
@@ -1483,7 +1478,7 @@ function buildSkeleton(){
     <div class="grid-asym">
       <div class="col-narrow">
         <div class="card" id="cardOrderSource">
-          <h2><span class="h2-title"><svg class="h2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>Order Source &amp; Stock Destination</span></h2>
+          <h2>Order Source &amp; Stock Destination</h2>
           <div class="rank-subcards subcards-stack subcards-fill-eq">
             <div class="rank-subcard">
               <div class="rank-subcard-head"><h3>AIS Shop vs Partner</h3><span class="tag" id="tag-prebooktotal"></span></div>
@@ -1502,7 +1497,7 @@ function buildSkeleton(){
 
       <div class="col-wide">
         <div class="card" id="cardVolume">
-          <h2><span class="h2-title"><svg class="h2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Order Volume — Hourly Order Count</span> <span class="tag" id="tag-voltotal"></span></h2>
+          <h2>Order Volume — Hourly Order Count <span class="tag" id="tag-voltotal"></span></h2>
           <div class="chart-wrap"><canvas id="chartVolume"></canvas></div>
         </div>
         <div class="card" id="cardOmni">
@@ -1563,8 +1558,8 @@ function buildSkeleton(){
           <div class="rank-subcard alt">
             <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
             <div class="table-scroll">
-              <table class="branch-stock-table">
-                <thead><tr><th class="col-branch">Branch / Source</th><th>Orders</th><th class="col-topstock">Top Stock</th></tr></thead>
+              <table>
+                <thead><tr><th>Branch / Source</th><th>Orders</th><th>Top Stock</th></tr></thead>
                 <tbody id="body-branch-stock"></tbody>
               </table>
             </div>
@@ -2019,9 +2014,9 @@ function updateDashboard(rows){
     </div>`;
   const grpRow = (name, color, count, pct, preCount, prePct, nonPrebookCount, nonPrePct) => {
     return `<div class="grp-row">
-      <div class="grp-name" style="color:${color}"><span class="dot" style="background:${color}"></span>${name}</div>
+      <div class="grp-name"><span class="dot" style="background:${color}"></span>${name}</div>
       <div class="grp-nums">
-        <div class="n" style="color:${color}">${fmtNum(count)}</div>
+        <div class="n">${fmtNum(count)}</div>
         <div class="p">${fmtPct(pct)}</div>
         <div class="pre-badge">Non Pre-Booking: <b>${fmtNum(nonPrebookCount)}</b> (${fmtPct(nonPrePct)})</div>
         <div class="pre-badge">Pre-Booking: <b>${fmtNum(preCount)}</b> (${fmtPct(prePct)})</div>
@@ -2030,10 +2025,8 @@ function updateDashboard(rows){
   };
   softUpdate(document.getElementById('body-aispartner'),
     splitBarHtml +
-    `<div class="grp-grid">` +
     grpRow('AIS', AIS_PARTNER_COLORS.AIS, M.otCounts.AIS, M.otPct.AIS, M.prebookByGrp.AIS, M.prebookPctByGrp.AIS, M.nonPrebookByGrp.AIS, M.nonPrebookPctByGrp.AIS) +
-    grpRow('PARTNER', AIS_PARTNER_COLORS.PARTNER, M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER) +
-    `</div>`);
+    grpRow('PARTNER', AIS_PARTNER_COLORS.PARTNER, M.otCounts.PARTNER, M.otPct.PARTNER, M.prebookByGrp.PARTNER, M.prebookPctByGrp.PARTNER, M.nonPrebookByGrp.PARTNER, M.nonPrebookPctByGrp.PARTNER));
 
   // Sub stock destination
   const stockHtml = M.stockArr.map((s,i) => {
@@ -2142,9 +2135,9 @@ function updateDashboard(rows){
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
   softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
   const branchStockHtml = M.locTop.map(b => `<tr>
-    <td><span class="mono cust-name-cell" data-tip="${esc(b.name)}">${esc(b.name)}</span></td>
+    <td class="mono" title="${esc(b.name)}">${esc(b.name)}</td>
     <td>${fmtNum(b.count)}</td>
-    <td>${b.topStock ? `<span class="cust-name-cell" data-tip="${esc(b.topStock)}">${esc(b.topStock)}</span> <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
+    <td>${b.topStock ? `${esc(b.topStock)} <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
   </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
   softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
 
@@ -2489,7 +2482,7 @@ async function loadData(isAuto){
     // browser refresh or a "LOAD DATA" click to pick it up.
     await loadCompareDataIfNeeded(cfg.sheetId, true);
     const {cols, rows} = await fetchSheet(cfg.sheetId, cfg.sheetName);
-    const parsed = buildRows(cols, rows);
+    const parsed = filterToLatestDate(buildRows(cols, rows));
     updateDashboard(parsed);
     hideBanner();
     setStatus('ok', 'อัปเดตล่าสุด ' + new Date().toLocaleTimeString('th-TH'));
