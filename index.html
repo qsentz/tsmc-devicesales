@@ -1358,10 +1358,12 @@ function computeMetrics(rows){
       .map(x => ({date: x.date, avg: x.sum / x.n}));
   }
 
-  // Top selling device / accessory
+  // Top selling device / accessory — grouped by orders.device.productType, not menu:
+  // DEVICE -> Device column; anything else (ACCESSORY, GADGET, IOT, blank, etc.) -> Accessory column.
   const validName = n => n && n !== '-' && n !== 'Invalid' && n.length < 100;
-  const devRows = completeRows.filter(r => r.menu !== 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
-  const accRows = completeRows.filter(r => r.menu === 'AccessoriesGadgetIOTOnly' && validName(r.commercialName));
+  const isDeviceType = r => (r.productType || '').trim().toUpperCase() === 'DEVICE';
+  const devRows = completeRows.filter(r => isDeviceType(r) && validName(r.commercialName));
+  const accRows = completeRows.filter(r => !isDeviceType(r) && validName(r.commercialName));
   const deviceTop = topN(devRows, 'commercialName', 30);
   const accessoryTop = topN(accRows, 'commercialName', 30);
   const deviceItems = new Set(devRows.map(r => r.commercialName)).size;
