@@ -368,8 +368,10 @@
   .tier-box .l{font-size:9.5px; margin-top:2px; font-weight:600;}
   .tier-box .p{font-size:9px; opacity:.85;}
 
-  .menu-sub{font-size:9px; color:var(--muted); margin-top:3px;}
+  .menu-sub{font-size:9px; color:var(--muted); margin-top:3px; display:flex; gap:14px;}
   .menu-sub b{color:var(--gold); font-weight:700;}
+  .menu-sub .menu-sub-col{display:flex; flex-direction:column;}
+  .menu-sub .menu-sub-col .pct{margin-top:1px;}
 
   /* Sub Stock Destination — large donut + legend filling the sub-card */
   .stock-donut-wrap{display:flex; align-items:center; gap:16px; flex:1 1 auto; min-height:0;}
@@ -2174,7 +2176,8 @@ function updateDashboard(rows){
   const menuHtml = M.menuArr.map((m,i) => {
     const fillPct = m.orderCount / maxMenu * 100;
     const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
-    const preLabel = `Non Pre-Booking: <b>${fmtNum(m.nonPrebookCount)}</b> (${fmtPct(m.nonPrebookPct)}) • Pre-Booking: <b>${fmtNum(m.prebookCount)}</b> (${fmtPct(m.prebookPct)})`;
+    const menuSubCol = (label, count, pct) => `<div class="menu-sub-col"><div>${label}: <b>${fmtNum(count)}</b></div><div class="pct">(${fmtPct(pct)})</div></div>`;
+    const preLabel = menuSubCol('Non Pre-Booking', m.nonPrebookCount, m.nonPrebookPct) + menuSubCol('Pre-Booking', m.prebookCount, m.prebookPct);
     return `<div class="bar-row">
       <div class="top"><span class="name" data-tip="${esc(m.menu)}">${esc(m.menu)}</span><span class="val">${fmtNum(m.orderCount)}</span></div>
       <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
@@ -2271,9 +2274,9 @@ function updateCharts(M){
       charts.volume = new Chart(ctx1, {
         type: 'bar',
         data: { labels, datasets: [
-          {type:'bar', label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
-          {type:'bar', label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y'},
-          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#F5B841', backgroundColor:'#F5B841', borderWidth:2, pointRadius:2, pointBackgroundColor:'#F5B841', tension:.3, fill:false, yAxisID:'y1', order:0}
+          {type:'bar', label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y', order:2},
+          {type:'bar', label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y', order:2},
+          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#F5B841', backgroundColor:'#F5B841', borderWidth:2, pointRadius:2, pointBackgroundColor:'#F5B841', tension:.3, fill:false, yAxisID:'y1', order:1}
         ]},
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
