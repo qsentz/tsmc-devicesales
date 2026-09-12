@@ -155,13 +155,27 @@
     position:relative; display:flex; flex-direction:column; gap:12px;
     padding:26px 4px 4px; border:1px solid var(--border-soft); border-radius:4px;
   }
-  /* HUD corner brackets — the console's recurring visual signature, echoed on .card too */
-  .dash-section::before, .dash-section::after{
+  /* Everything a section actually shows (besides the label/expand-button, which are
+     position:absolute decorations pinned to the section's own corner) lives inside this
+     wrapper instead of directly under .dash-section. That's what lets the HUD corner
+     marks below track the real end of the content instead of the visible viewport —
+     see the corner-bracket comment on .dash-content::before/::after. */
+  .dash-content{
+    position:relative; display:flex; flex-direction:column; gap:12px;
+    flex:1 1 auto; min-height:0;
+  }
+  /* HUD corner brackets — the console's recurring visual signature, echoed on .card too.
+     Anchored to .dash-content (not .dash-section) on purpose: .dash-section is the box
+     that gets overflow:auto in fullscreen, so IT stays viewport-sized while its content
+     scrolls inside it. .dash-content is that scrolling content's own wrapper — its box is
+     exactly as tall as the real content, so bottom:0/right:0 here lands on the content's
+     true last pixel, not the screen's, in both normal and fullscreen mode. */
+  .dash-content::before, .dash-content::after{
     content:''; position:absolute; width:10px; height:10px; pointer-events:none; opacity:.55;
     border-color:var(--accent); border-style:solid;
   }
-  .dash-section::before{top:0; left:0; border-width:2px 0 0 2px;}
-  .dash-section::after{bottom:0; right:0; border-width:0 2px 2px 0;}
+  .dash-content::before{top:0; left:0; border-width:2px 0 0 2px;}
+  .dash-content::after{bottom:0; right:0; border-width:0 2px 2px 0;}
   .section-label{
     position:absolute; top:-9px; left:14px; background:var(--bg-2); color:var(--accent-bright);
     font-family:var(--font-serif); font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
@@ -1535,6 +1549,7 @@ function buildSkeleton(){
     <section class="dash-section" id="summarySection">
       <button type="button" class="fs-btn" onclick="toggleFullscreen('summarySection')" title="ขยายเต็มจอ">⛶</button>
       <div class="section-label">Summary</div>
+    <div class="dash-content">
     <div class="hero-row" id="heroRow">
     <div class="hero">
       <div class="hero-sticker">COMPLETED</div>
@@ -1706,11 +1721,13 @@ function buildSkeleton(){
         </div>
       </div>
     </div>
+    </div>
     </section>
 
     <section class="dash-section" id="trackingSection">
       <button type="button" class="fs-btn" onclick="toggleFullscreen('trackingSection')" title="ขยายเต็มจอ">⛶</button>
       <div class="section-label">Order Tracking</div>
+    <div class="dash-content">
     <div class="card">
       <h2><span class="h2-title"><svg class="h2-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>TRANCKING ORDER</span> <span class="tag" id="tag-tracktotal"></span></h2>
       <div class="track-toolbar">
@@ -1743,6 +1760,7 @@ function buildSkeleton(){
           <tbody id="body-track"></tbody>
         </table>
       </div>
+    </div>
     </div>
     </section>
   `;
