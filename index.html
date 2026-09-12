@@ -409,9 +409,9 @@
   /* Column header row for a plain rankRows()-based .rank-list, matching the look of a real
      <thead> (same muted/uppercase/bordered style as `th` above) and the same two-column grid
      as .rank-row below it, so the name/count columns line up. Opt-in via .rank-list-head +
-     wrapping element — only "Top Branches by Completed Orders" uses it (to match its sibling
-     "Branch -> Top Stock Destination" table's header), not every rank-list (device/accessory/
-     campaign/service lists intentionally keep their existing headerless look). */
+     wrapping element — only "Top Branches by Completed Orders" uses it, not every rank-list
+     (device/accessory/campaign/service lists intentionally keep their existing headerless
+     look). */
   .rank-list-head{
     display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:9px;
     padding:0 6px 4px; margin-bottom:3px; border-bottom:1px solid var(--border);
@@ -619,14 +619,8 @@
     display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis;
     white-space:nowrap; vertical-align:bottom; border-bottom:1px dashed var(--muted);
   }
-  /* Branch & Stock Flow: "Branch / Source" and "Top Stock" columns: constrain column
-     width so long values ellipsis (via .cust-name-cell above) instead of stretching the
-     narrow sub-card, and surface the full value through the same themed [data-tip] hover
-     card the rest of the dashboard uses, instead of a plain native title="" bubble. */
-  .branch-stock-table th.col-branch, .branch-stock-table td.col-branch,
-  .branch-stock-table td:nth-child(1){max-width:190px;}
-  .branch-stock-table th.col-topstock, .branch-stock-table td.col-topstock,
-  .branch-stock-table td:nth-child(3){max-width:130px;}
+  /* Branch & Stock Flow "Branch / Source" long-value ellipsis, shared with the rank-list
+     name cells via the same [data-tip] hover card pattern (see .cust-name-cell above). */
 
   /* ---------- Generic hover tooltip ----------
      Replaces native title="" attributes on truncated / supplementary data (Commercial Name,
@@ -768,6 +762,7 @@ const COL = {
 const COL_OPTIONAL = {
   locationSource: 'locationSource',
   imageUrl: 'orders.device.imageUrl',
+  productType: 'orders.device.productType',
   // Fields below only power the "Tracking Order" card. Kept optional so the
   // rest of the dashboard still works fine on an older Sheet that hasn't
   // added these columns yet — the table just shows '-' for whatever is missing.
@@ -1014,6 +1009,7 @@ function buildRows(cols, rawRows){
     menu: str(r[idx.menu]),
     locationSource: str(get(r,'locationSource')),
     imageUrl: str(get(r,'imageUrl')),
+    productType: str(get(r,'productType')),
     userId: str(get(r,'userId')),
     custFirstName: str(get(r,'custFirstName')),
     custLastName: str(get(r,'custLastName')),
@@ -1275,6 +1271,16 @@ function computeMetrics(rows){
     return { menu, orderCount, prebookCount, nonPrebookCount, prebookPct, nonPrebookPct };
   }).sort((a,b) => b.orderCount - a.orderCount);
 
+  // Product Type (orders.device.productType) — COMPLETE orders only, with market share %
+  const productTypeCounts = {};
+  completeRows.forEach(r => { const p = r.productType || 'Unknown'; productTypeCounts[p] = (productTypeCounts[p]||0)+1; });
+  let productTypeArr = Object.entries(productTypeCounts).map(([name,count]) => ({name,count})).sort((a,b) => b.count - a.count);
+  const productTypeTotal = completeCount;
+  const productTypePctArr = distributePct(productTypeArr.map(p => p.count), productTypeTotal);
+  productTypeArr = productTypeArr.map((p,i) => ({...p, pct: productTypePctArr[i]}));
+  const productTypeItems = productTypeArr.length;
+
+
   // Hourly volume bucketing
   const tsRows = completeRows.filter(r => r.ts);
   let mode = 'min10', buckets = [];
@@ -1377,14 +1383,11 @@ function computeMetrics(rows){
   const locRows = completeRows.filter(r => !isBlank(r.locationSource));
   const locMap = {};
   locRows.forEach(r => {
-    const a = locMap[r.locationSource] || (locMap[r.locationSource] = {count:0, stockMap:{}});
+    const a = locMap[r.locationSource] || (locMap[r.locationSource] = {count:0});
     a.count++;
-    if (!isBlank(r.subStockDestination)) a.stockMap[r.subStockDestination] = (a.stockMap[r.subStockDestination]||0) + 1;
   });
   const locTop = Object.entries(locMap).map(([code,v]) => {
-    let topStock = null, topStockCount = 0;
-    Object.entries(v.stockMap).forEach(([s,c]) => { if (c > topStockCount){ topStock = s; topStockCount = c; } });
-    return { code, name: locationDisplayName(code), count: v.count, topStock, topStockPct: v.count ? topStockCount/v.count*100 : 0 };
+    return { code, name: locationDisplayName(code), count: v.count };
   }).sort((a,b) => b.count - a.count).slice(0, 10);
   const locTotal = locRows.length;
   const locItems = Object.keys(locMap).length;
@@ -1423,6 +1426,7 @@ function computeMetrics(rows){
     stockArr, stockTotal,
     omniTotal, nonOmniTotal, omniPctOfComplete, nonOmniPctOfComplete, shipArr, shipTotal,
     menuArr,
+    productTypeArr, productTypeItems,
     mode, buckets, volTotal, dayCounts,
     durTotal, tierCounts, tierPct, otDur, slowest, durBuckets,
     deviceTop, accessoryTop, deviceItems, accessoryItems, deviceOrders, accessoryOrders,
@@ -1633,13 +1637,8 @@ function buildSkeleton(){
             <div class="rank-list soft" id="body-branch-list"></div>
           </div>
           <div class="rank-subcard alt">
-            <div class="rank-subcard-head"><h3>Branch &rarr; Top Stock Destination</h3></div>
-            <div class="table-scroll">
-              <table class="branch-stock-table">
-                <thead><tr><th class="col-branch">Branch / Source</th><th>Orders</th><th class="col-topstock">Top Stock</th></tr></thead>
-                <tbody id="body-branch-stock"></tbody>
-              </table>
-            </div>
+            <div class="rank-subcard-head"><h3>Product Type (COMPLETE)</h3><span class="tag" id="tag-producttype"></span></div>
+            <div class="card-body soft" id="body-producttype"></div>
           </div>
         </div>
       </div>
@@ -2224,12 +2223,19 @@ function updateDashboard(rows){
   // Branch & stock flow
   document.getElementById('tag-loctotal').textContent = M.locItems ? `${fmtNum(M.locItems)} branches` : '';
   softUpdate(document.getElementById('body-branch-list'), rankRows(M.locTop, M.locTop.length, 'var(--slate)'));
-  const branchStockHtml = M.locTop.map(b => `<tr>
-    <td><span class="mono cust-name-cell" data-tip="${esc(b.name)}">${esc(b.name)}</span></td>
-    <td>${fmtNum(b.count)}</td>
-    <td>${b.topStock ? `<span class="cust-name-cell" data-tip="${esc(b.topStock)}">${esc(b.topStock)}</span> <span style="color:var(--muted)">(${fmtPct(b.topStockPct)})</span>` : '<span class="empty" style="padding:0;">-</span>'}</td>
-  </tr>`).join('') || `<tr><td colspan="3" class="empty">ไม่มีข้อมูล locationSource</td></tr>`;
-  softUpdate(document.getElementById('body-branch-stock'), branchStockHtml);
+
+  // Product Type (orders.device.productType) — COMPLETE orders, with market share %
+  document.getElementById('tag-producttype').textContent = M.productTypeItems ? `${fmtNum(M.productTypeItems)} types` : '';
+  const maxProductType = Math.max(1, ...M.productTypeArr.map(p => p.count));
+  const productTypeHtml = M.productTypeArr.map((p,i) => {
+    const c = STOCK_PALETTE[i % STOCK_PALETTE.length];
+    const fillPct = p.count / maxProductType * 100;
+    return `<div class="bar-row">
+      <div class="top"><span class="name" data-tip="${esc(p.name)}">${esc(p.name)}</span><span class="val">${fmtNum(p.count)} (${fmtPct(p.pct)})</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${fillPct}%;background:${c}"></div></div>
+    </div>`;
+  }).join('') || '<div class="empty">ไม่มีข้อมูล productType</div>';
+  softUpdate(document.getElementById('body-producttype'), productTypeHtml);
 
   document.getElementById('dashboard').style.display = 'flex';
   document.getElementById('placeholder').style.display = 'none';
