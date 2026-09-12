@@ -7,40 +7,43 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Prompt:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* Primary — dark warm-black base */
-    --bg:#0B1220;
-    --bg-2:#0F1B2E;
-    --surface:#141F35;
-    --surface-alt:#1C2C4A;
-    --border:#2C3F63;
-    --border-soft:#1F2D48;
+    /* Primary — deep ink-navy base, evokes an ops / control-tower console rather than a
+       generic dark-mode SaaS panel */
+    --bg:#090D18;
+    --bg-2:#0D1322;
+    --surface:#121A2C;
+    --surface-alt:#1A2439;
+    --border:#28334C;
+    --border-soft:#1B2438;
 
     /* Text */
-    --text:#E9EEF9;
-    --text-dim:#BAC6DC;
-    --muted:#7C8AA8;
+    --text:#EDF1FA;
+    --text-dim:#A6B0C6;
+    --muted:#69728A;
 
-    /* Secondary — brass/stone */
-    --gold:#22B8CF;
-    --gold-bg:rgba(180,134,62,.16);
-    --stone:#6C7A93;
-    --stone-bg:rgba(120,106,90,.20);
-    --slate:#7C93F5;
-    --slate-bg:rgba(91,122,140,.16);
-    --green:#3FBE83;
-    --green-bg:rgba(92,122,84,.20);
+    /* Secondary — signal amber (dispatch/attention) + steel + cyan, used across badges,
+       rings and category bars */
+    --gold:#E3A23C;
+    --gold-bg:rgba(227,162,60,.16);
+    --stone:#7C89A4;
+    --stone-bg:rgba(124,137,164,.18);
+    --slate:#45B8C4;
+    --slate-bg:rgba(69,184,196,.16);
+    --green:#3ED696;
+    --green-bg:rgba(62,214,150,.16);
 
-    /* Accent — targeted accent color */
-    --accent:#4F46E5;
-    --accent-bright:#6D64F2;
-    --accent-bg:rgba(122,32,32,.20);
+    /* Accent — primary interactive color (buttons, focus, hero) */
+    --accent:#5B5FE9;
+    --accent-bright:#7B7FFF;
+    --accent-bg:rgba(91,95,233,.18);
 
-    --radius:6px;
-    --font-serif:'Sora', sans-serif;
-    --font-sans:'Prompt', -apple-system, sans-serif;
+    --radius:8px;
+    --radius-sm:4px;
+    --font-serif:'Space Grotesk', sans-serif;
+    --font-sans:'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, sans-serif;
   }
   *{box-sizing:border-box;}
   html, body{height:100%; margin:0; padding:0;}
@@ -74,20 +77,20 @@
   }
   .live-chip{
     font-family:var(--font-sans); font-size:9px; font-weight:700; color:var(--bg);
-    background:var(--accent); padding:2px 7px 1px; border-radius:3px; transform:rotate(-2deg);
+    background:var(--accent); padding:2px 7px 1px; border-radius:3px;
     display:inline-block; letter-spacing:.02em;
   }
   .topbar .sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
   .topbar-right{display:flex; align-items:center; gap:10px;}
   .btn{
-    font-family:var(--font-sans); border:1.5px solid var(--text); background:var(--surface); color:var(--text);
-    padding:5px 14px; border-radius:999px; font-size:11px; cursor:pointer; font-weight:700;
-    box-shadow:2px 2px 0 var(--border); transition:transform .1s ease, box-shadow .1s ease;
+    font-family:var(--font-sans); border:1.5px solid var(--border); background:var(--surface); color:var(--text);
+    padding:5px 14px; border-radius:999px; font-size:11px; cursor:pointer; font-weight:600;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
-  .btn:hover{background:var(--surface-alt);}
-  .btn:active{transform:translate(1px,1px); box-shadow:1px 1px 0 var(--border);}
-  .btn.primary{background:var(--accent); color:#F5F3FF; border-color:var(--accent); box-shadow:2px 2px 0 rgba(0,0,0,.45);}
-  .btn.primary:hover{background:var(--accent-bright);}
+  .btn:hover{background:var(--surface-alt); border-color:var(--text-dim);}
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--accent); color:#F5F4FF; border-color:var(--accent);}
+  .btn.primary:hover{background:var(--accent-bright); border-color:var(--accent-bright);}
   .btn.hidden-cfg{display:none;}
 
   .live-wrap{display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--text-dim);}
@@ -139,8 +142,8 @@
     padding:26px 4px 4px; border:1px solid var(--border-soft); border-radius:8px;
   }
   .section-label{
-    position:absolute; top:-9px; left:14px; background:var(--bg-2); color:var(--muted);
-    font-size:9.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    position:absolute; top:-9px; left:14px; background:var(--bg-2); color:var(--accent-bright);
+    font-family:var(--font-serif); font-size:9.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
     padding:1px 8px; border:1px solid var(--border-soft); border-radius:999px;
   }
   .fs-btn{
@@ -149,11 +152,10 @@
     border:1.5px solid var(--border); background:var(--surface); color:var(--text-dim);
     font-size:14px; line-height:1; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:2px 2px 0 var(--border-soft);
     transition:background .15s ease, color .15s ease, transform .1s ease;
   }
   .fs-btn:hover{background:var(--accent); color:#fff; border-color:var(--accent);}
-  .fs-btn:active{transform:translate(1px,1px);}
+  .fs-btn:active{transform:scale(.93);}
   #trackingSection .fs-btn{ top:8px; right:8px; }
   .dash-section.is-fullscreen{
     position:fixed; inset:0; z-index:600; margin:0; border-radius:0;
@@ -186,7 +188,7 @@
     display:flex; flex-direction:column;
   }
   .card h2{
-    font-family:var(--font-serif); font-size:13px; margin:0 0 8px; font-weight:700; color:var(--text);
+    font-family:var(--font-serif); font-size:13px; margin:0 0 8px; font-weight:600; color:var(--text);
     text-transform:uppercase; letter-spacing:.03em;
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
@@ -195,7 +197,7 @@
      them look inconsistent with tags like "Pre-Booking: 1" elsewhere on the same dashboard. */
   .card h2 .tag{
     font-family:var(--font-sans); font-size:9.5px; color:var(--muted); font-weight:600; letter-spacing:0;
-    background:var(--bg-2); padding:1px 7px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;
+    background:var(--bg-2); padding:1px 7px; border-radius:3px; display:inline-block;
     border:1px solid var(--border-soft);
   }
   /* Optional small header icon (Order Source & Stock Destination / Order Volume, etc.) —
@@ -214,15 +216,15 @@
   /* ---------- HERO: Total Order Completed ---------- */
   .hero{
     position:relative; background:linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
-    border:2px solid var(--accent); border-radius:var(--radius);
-    padding:20px 26px; box-shadow:6px 6px 0 var(--accent-bg);
+    border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius);
+    padding:20px 26px 20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
     display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center;
     animation:fadeInUp .4s ease both;
   }
   .hero-sticker{
-    position:absolute; top:-12px; left:20px; background:var(--accent); color:#F5F3FF;
-    font-size:11px; font-weight:800; padding:3px 11px 2px; border-radius:3px; transform:rotate(-2deg);
-    box-shadow:3px 3px 0 rgba(0,0,0,.4); letter-spacing:.05em;
+    position:absolute; top:-11px; left:20px; background:var(--accent); color:#F5F4FF;
+    font-family:var(--font-serif); font-size:11px; font-weight:600; padding:3px 11px 2px; border-radius:3px;
+    box-shadow:0 3px 8px rgba(0,0,0,.4); letter-spacing:.05em;
   }
   .hero-left{display:flex; align-items:center; gap:20px;}
   .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
@@ -417,7 +419,7 @@
   .rank-subcard.alt{border-top:2px solid var(--gold);} /* kept as a no-op alias: all subcards now share the same top accent */
   .rank-subcard-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;}
   .rank-subcard-head h3{font-family:var(--font-serif); font-size:11px; margin:0; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.03em;}
-  .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; transform:rotate(-1.5deg); display:inline-block;}
+  .rank-subcard-head .tag{font-size:9.5px; color:var(--muted); font-weight:600; background:var(--bg-2); padding:1px 6px; border-radius:3px; display:inline-block;}
   .rank-section{display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:10px;}
   .rank-col-header{display:flex; justify-content:space-between; align-items:center; gap:6px; padding:4px 6px; background:var(--bg-2); border-radius:4px; margin-bottom:5px;}
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; letter-spacing:.02em;}
@@ -543,7 +545,7 @@
   .img-preview{
     position:fixed; z-index:9999; pointer-events:none; display:none;
     background:var(--surface); border:1px solid var(--border); border-radius:6px;
-    padding:6px; box-shadow:4px 4px 0 rgba(0,0,0,.5);
+    padding:6px; box-shadow:0 10px 26px rgba(0,0,0,.45);
   }
   .img-preview img{display:block; width:130px; height:130px; object-fit:contain; border-radius:4px; background:#fff;}
 
@@ -601,7 +603,7 @@
   .track-tooltip{
     position:fixed; z-index:1000; display:none; width:280px; max-width:calc(100vw - 20px);
     background:var(--surface); border:1.5px solid var(--gold); border-radius:6px;
-    box-shadow:4px 4px 0 rgba(0,0,0,.45); padding:10px 12px 12px; font-size:11px;
+    box-shadow:0 14px 30px rgba(0,0,0,.5); padding:10px 12px 12px; font-size:11px;
   }
   .track-tooltip.show{display:block; animation:fadeInUp .16s ease both;}
   .track-tooltip .tt-close{
@@ -657,7 +659,7 @@
   .hover-tip{
     position:fixed; z-index:1200; display:none; max-width:240px;
     background:var(--surface); border:1px solid var(--gold); border-radius:5px;
-    box-shadow:3px 3px 0 rgba(0,0,0,.4); padding:6px 9px; font-size:10.5px;
+    box-shadow:0 8px 20px rgba(0,0,0,.4); padding:6px 9px; font-size:10.5px;
     color:var(--text-dim); line-height:1.6; pointer-events:none; word-break:break-word;
     white-space:pre-line;
   }
