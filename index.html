@@ -385,6 +385,21 @@
   .legend-row .lg-label{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .legend-row .lg-val{flex:0 0 auto; font-weight:800; color:var(--text);}
   .legend-row .lg-pct{flex:0 0 auto; font-size:9px; color:var(--muted); margin-left:4px;}
+
+  /* These list/legend bodies were reading as bold as the Card's own <h2>/<h3> title, so their
+     item-name text is set back to normal weight here — scoped by container id so it doesn't
+     touch other places that reuse .rank-name / .bar-row .top .name / .legend-row .lg-label
+     (e.g. the Order-by-Menu bars), which are meant to stay bold. */
+  #body-device-list .rank-name,
+  #body-accessory-list .rank-name,
+  #body-camp-list .rank-name,
+  #body-svc-list .rank-name,
+  #body-branch-list .rank-name,
+  #body-producttype .bar-row .top .name,
+  #body-shipping .bar-row .top .name,
+  #body-substock .legend-row .lg-label{
+    font-weight:400;
+  }
   @media(max-width:600px){
     .stock-donut-wrap{gap:10px;}
     .chart-wrap.donut{width:min(150px, 40%);}
@@ -1665,7 +1680,7 @@ function buildSkeleton(){
     <div class="card">
       <h2>TRANCKING ORDER <span class="tag" id="tag-tracktotal"></span></h2>
       <div class="track-toolbar">
-        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / Order Type / รุ่นเครื่อง...">
+        <input type="text" id="trackFilter" class="track-filter-input" placeholder="ค้นหา Transaction ID / User ID / ชื่อลูกค้า / เบอร์โทร / Order Type / รุ่นเครื่อง..." title="ค้นหาด้วยชื่อลูกค้าหรือเบอร์โทรได้เมื่อกรอก Secret Key ในแผงตั้งค่าแล้วเท่านั้น (ข้อมูลถูกเข้ารหัสไว้ในชีต)">
         <div class="track-slider-row">
           <span class="rank-slider-lbl">SHOW</span>
           <input type="range" min="25" max="500" step="25" value="50" id="sliderTrack">
@@ -1979,16 +1994,40 @@ async function renderTrackingOrders(){
   document.getElementById('sliderTrackVal').textContent = n;
   document.getElementById('tag-tracktotal').textContent = `${fmtNum(lastMetrics.trackGrandTotal)} orders`;
 
+  const myToken = ++trackRenderToken;
+  const secretKey = getSecretKey();
   const q = ((filterInput && filterInput.value) || '').trim().toLowerCase();
   let list = lastMetrics.trackAll;
+
   if (q){
+    // ชื่อลูกค้า / เบอร์โทร (custFirstName / custLastName / custMobileNo) ถูกเก็บในชีตเป็น
+    // ciphertext ที่มี IV สุ่มทุกครั้งที่เข้ารหัส — เข้ารหัสข้อความค้นหาแล้วเทียบ ciphertext ตรง ๆ
+    // จะไม่มีทาง match กัน วิธีเดียวที่ค้นหาด้วยเบอร์โทร/ชื่อ (เป็นข้อความปกติ) แล้วเจอได้จริง คือ
+    // ต้องถอดรหัส (decrypt) ทุกแถวด้วย Secret Key ก่อน แล้วค่อยเทียบกับคำค้นหา
+    if (secretKey){
+      await Promise.all(list.map(async r => {
+        const [first, last, mobile] = await Promise.all([
+          decryptCached(r.custFirstName, secretKey),
+          decryptCached(r.custLastName, secretKey),
+          decryptCached(r.custMobileNo, secretKey)
+        ]);
+        r._searchFirst = first === '__DECRYPT_FAILED__' ? '' : first.toLowerCase();
+        r._searchLast = last === '__DECRYPT_FAILED__' ? '' : last.toLowerCase();
+        r._searchMobile = mobile === '__DECRYPT_FAILED__' ? '' : mobile.toLowerCase();
+      }));
+      if (myToken !== trackRenderToken) return; // a newer render call superseded this one
+    }
+
     list = list.filter(r =>
       (r.transactionId||'').toLowerCase().includes(q) ||
       (r.userId||'').toLowerCase().includes(q) ||
-      (r.custFirstName||'').toLowerCase().includes(q) ||
-      (r.custLastName||'').toLowerCase().includes(q) ||
       (r.orderType||'').toLowerCase().includes(q) ||
-      (r.commercialName||'').toLowerCase().includes(q)
+      (r.commercialName||'').toLowerCase().includes(q) ||
+      (secretKey && (
+        (r._searchFirst||'').includes(q) ||
+        (r._searchLast||'').includes(q) ||
+        (r._searchMobile||'').includes(q)
+      ))
     );
   }
   list = list.slice(0, n);
@@ -1998,8 +2037,8 @@ async function renderTrackingOrders(){
 
   // Decrypt just enough to build the masked "Customer Name" cell for every visible row
   // (full name/mobile are only ever decrypted for the one row shown in the pinned tooltip).
-  const myToken = ++trackRenderToken;
-  const secretKey = getSecretKey();
+  // When a search query already decrypted these rows above, decryptCached() makes this a
+  // free cache hit rather than repeated work.
   const maskedByKey = {};
   if (secretKey){
     await Promise.all(list.map(async r => {
