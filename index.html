@@ -7,48 +7,54 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* Primary — deep ink-navy base, evokes an ops / control-tower console rather than a
-       generic dark-mode SaaS panel */
-    --bg:#090D18;
-    --bg-2:#0D1322;
-    --surface:#121A2C;
-    --surface-alt:#1A2439;
-    --border:#28334C;
-    --border-soft:#1B2438;
+    /* Primary — warm graphite/carbon base, evokes a physical NOC signal console rather than
+       a generic navy-tinted dark-mode SaaS panel */
+    --bg:#0B0C0D;
+    --bg-2:#101213;
+    --surface:#17191B;
+    --surface-alt:#202325;
+    --border:#33383B;
+    --border-soft:#212527;
 
     /* Text */
-    --text:#EDF1FA;
-    --text-dim:#A6B0C6;
-    --muted:#69728A;
+    --text:#ECEFEE;
+    --text-dim:#9AA3A2;
+    --muted:#5D6666;
 
-    /* Secondary — signal amber (dispatch/attention) + steel + cyan, used across badges,
+    /* Secondary — amber (dispatch/attention) + steel + teal, used across badges,
        rings and category bars */
-    --gold:#E3A23C;
-    --gold-bg:rgba(227,162,60,.16);
-    --stone:#7C89A4;
-    --stone-bg:rgba(124,137,164,.18);
-    --slate:#45B8C4;
-    --slate-bg:rgba(69,184,196,.16);
-    --green:#3ED696;
-    --green-bg:rgba(62,214,150,.16);
+    --gold:#F0A93C;
+    --gold-bg:rgba(240,169,60,.16);
+    --stone:#84918F;
+    --stone-bg:rgba(132,145,143,.18);
+    --slate:#2FB6C4;
+    --slate-bg:rgba(47,182,196,.16);
+    --green:#38D986;
+    --green-bg:rgba(56,217,134,.16);
 
-    /* Accent — primary interactive color (buttons, focus, hero) */
-    --accent:#5B5FE9;
-    --accent-bright:#7B7FFF;
-    --accent-bg:rgba(91,95,233,.18);
+    /* Accent — signal copper-orange, the console's primary interactive/brand color
+       (buttons, focus, hero) */
+    --accent:#FF6A3D;
+    --accent-bright:#FF9163;
+    --accent-bg:rgba(255,106,61,.18);
 
-    --radius:8px;
-    --radius-sm:4px;
-    --font-serif:'Space Grotesk', sans-serif;
+    --radius:5px;
+    --radius-sm:3px;
+    --font-serif:'Chakra Petch', sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
     --font-sans:'IBM Plex Sans Thai', 'IBM Plex Sans', -apple-system, sans-serif;
   }
   *{box-sizing:border-box;}
   html, body{height:100%; margin:0; padding:0;}
   body{
-    background:var(--bg); color:var(--text);
+    background:
+      radial-gradient(1100px 640px at 12% -8%, rgba(255,106,61,.05), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0px, rgba(255,255,255,.012) 1px, transparent 1px, transparent 3px),
+      var(--bg);
+    color:var(--text);
     font-family:var(--font-sans);
     font-size:12px;
     position:relative;
@@ -58,7 +64,7 @@
   /* subtle grain background overlay */
   body::before{
     content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
-    opacity:.05; mix-blend-mode:overlay;
+    opacity:.045; mix-blend-mode:overlay;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
   ::-webkit-scrollbar{width:5px; height:5px;}
@@ -69,27 +75,35 @@
   .topbar{
     display:flex; align-items:center; justify-content:space-between; gap:16px;
     padding:10px 20px; background:var(--bg-2); border-bottom:1.5px solid var(--border);
+    border-top:2px solid var(--accent);
   }
   .topbar-title{display:flex; align-items:center; gap:10px;}
   .topbar h1{
-    font-family:var(--font-serif); font-size:18px; margin:0; font-weight:800; letter-spacing:.01em;
+    font-family:var(--font-serif); font-size:18px; margin:0; font-weight:700; letter-spacing:.03em;
     text-transform:uppercase; cursor:default; user-select:none; color:var(--text);
   }
   .live-chip{
-    font-family:var(--font-sans); font-size:9px; font-weight:700; color:var(--bg);
-    background:var(--accent); padding:2px 7px 1px; border-radius:3px;
-    display:inline-block; letter-spacing:.02em;
+    font-family:var(--font-mono); font-size:9px; font-weight:700; color:var(--bg);
+    background:var(--accent); padding:2px 7px 1px; border-radius:2px;
+    display:inline-block; letter-spacing:.06em;
+    box-shadow:0 0 0 1px rgba(255,106,61,.35), 0 0 10px rgba(255,106,61,.45);
+    animation:liveGlow 2.4s ease-in-out infinite;
+  }
+  @keyframes liveGlow{
+    0%,100%{box-shadow:0 0 0 1px rgba(255,106,61,.35), 0 0 10px rgba(255,106,61,.45);}
+    50%{box-shadow:0 0 0 1px rgba(255,106,61,.5), 0 0 3px rgba(255,106,61,.25);}
   }
   .topbar .sub{font-size:10.5px; color:var(--muted); margin-top:2px;}
   .topbar-right{display:flex; align-items:center; gap:10px;}
   .btn{
-    font-family:var(--font-sans); border:1.5px solid var(--border); background:var(--surface); color:var(--text);
-    padding:5px 14px; border-radius:999px; font-size:11px; cursor:pointer; font-weight:600;
+    font-family:var(--font-mono); border:1.5px solid var(--border); background:var(--surface); color:var(--text);
+    padding:5px 14px; border-radius:var(--radius-sm); font-size:10.5px; cursor:pointer; font-weight:600;
+    letter-spacing:.04em;
     transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
   .btn:hover{background:var(--surface-alt); border-color:var(--text-dim);}
   .btn:active{transform:scale(.97);}
-  .btn.primary{background:var(--accent); color:#F5F4FF; border-color:var(--accent);}
+  .btn.primary{background:var(--accent); color:#1B0D06; border-color:var(--accent);}
   .btn.primary:hover{background:var(--accent-bright); border-color:var(--accent-bright);}
   .btn.hidden-cfg{display:none;}
 
@@ -130,7 +144,7 @@
     flex:1 1 auto; max-width:1600px; width:100%; margin:0 auto; padding:12px 16px 20px;
     display:flex; flex-direction:column; gap:12px; min-height:0;
   }
-  #banner{display:none; padding:8px 12px; border-radius:4px; background:var(--accent-bg); border:1px solid var(--accent); color:#D9D6FB; font-size:11.5px; line-height:1.4;}
+  #banner{display:none; padding:8px 12px; border-radius:4px; background:var(--accent-bg); border:1px solid var(--accent); color:#FFDCC9; font-size:11.5px; line-height:1.4;}
   #banner.show{display:block;}
   #banner code{background:var(--surface-alt); padding:1px 5px; border-radius:3px;}
 
@@ -139,16 +153,23 @@
   /* ---------- Summary / Order Tracking sections + fullscreen toggle ---------- */
   .dash-section{
     position:relative; display:flex; flex-direction:column; gap:12px;
-    padding:26px 4px 4px; border:1px solid var(--border-soft); border-radius:8px;
+    padding:26px 4px 4px; border:1px solid var(--border-soft); border-radius:4px;
   }
+  /* HUD corner brackets — the console's recurring visual signature, echoed on .card too */
+  .dash-section::before, .dash-section::after{
+    content:''; position:absolute; width:10px; height:10px; pointer-events:none; opacity:.55;
+    border-color:var(--accent); border-style:solid;
+  }
+  .dash-section::before{top:-1px; left:-1px; border-width:2px 0 0 2px;}
+  .dash-section::after{bottom:-1px; right:-1px; border-width:0 2px 2px 0;}
   .section-label{
     position:absolute; top:-9px; left:14px; background:var(--bg-2); color:var(--accent-bright);
-    font-family:var(--font-serif); font-size:9.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase;
-    padding:1px 8px; border:1px solid var(--border-soft); border-radius:999px;
+    font-family:var(--font-serif); font-size:9.5px; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
+    padding:1px 8px; border:1px solid var(--border-soft); border-radius:2px;
   }
   .fs-btn{
     position:absolute; top:8px; right:8px; z-index:6;
-    width:28px; height:28px; border-radius:50%; padding:0;
+    width:26px; height:26px; border-radius:var(--radius-sm); padding:0;
     border:1.5px solid var(--border); background:var(--surface); color:var(--text-dim);
     font-size:14px; line-height:1; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
@@ -184,12 +205,15 @@
   .card{
     position:relative; min-width:0;
     background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    border-top:1px solid var(--border); border-left:2px solid var(--border-soft);
     padding:10px 12px;
     display:flex; flex-direction:column;
+    transition:border-color .18s ease;
   }
+  .card:hover{border-left-color:var(--accent);}
   .card h2{
-    font-family:var(--font-serif); font-size:13px; margin:0 0 8px; font-weight:600; color:var(--text);
-    text-transform:uppercase; letter-spacing:.03em;
+    font-family:var(--font-serif); font-size:12.5px; margin:0 0 8px; font-weight:600; color:var(--text);
+    text-transform:uppercase; letter-spacing:.06em;
     display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
   }
   /* Card-header tags now match the pill/badge look used on sub-card tags (see
@@ -217,31 +241,36 @@
   .hero{
     position:relative; background:linear-gradient(135deg, var(--surface) 0%, var(--surface-alt) 100%);
     border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius);
-    padding:20px 26px 20px; box-shadow:0 10px 30px rgba(0,0,0,.35);
+    padding:20px 26px 20px; box-shadow:0 10px 30px rgba(0,0,0,.45);
     display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center;
     animation:fadeInUp .4s ease both;
+    overflow:hidden;
+  }
+  .hero::after{
+    content:''; position:absolute; top:-40%; right:-8%; width:280px; height:280px; pointer-events:none;
+    background:radial-gradient(circle, rgba(255,106,61,.14), transparent 70%);
   }
   .hero-sticker{
-    position:absolute; top:-11px; left:20px; background:var(--accent); color:#F5F4FF;
-    font-family:var(--font-serif); font-size:11px; font-weight:600; padding:3px 11px 2px; border-radius:3px;
-    box-shadow:0 3px 8px rgba(0,0,0,.4); letter-spacing:.05em;
+    position:absolute; top:-11px; left:20px; background:var(--accent); color:#1B0D06;
+    font-family:var(--font-mono); font-size:10px; font-weight:700; padding:3px 11px 2px; border-radius:2px;
+    box-shadow:0 3px 8px rgba(0,0,0,.4); letter-spacing:.08em;
   }
   .hero-left{display:flex; align-items:center; gap:20px;}
   .hero-ring{position:relative; width:64px; height:64px; flex:0 0 auto;}
   .hero-ring canvas{width:64px; height:64px; display:block;}
   .hero-ring.hero-ring-lg{width:100px; height:100px;}
   .hero-ring.hero-ring-lg canvas{width:100px; height:100px;}
-  .hero-nums .big{font-family:var(--font-serif); font-size:58px; font-weight:800; line-height:1; color:var(--text); letter-spacing:-.01em;}
-  .hero-nums .lbl{font-size:12px; color:var(--accent-bright); margin-top:5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;}
+  .hero-nums .big{font-family:var(--font-mono); font-size:56px; font-weight:700; line-height:1; color:var(--text); letter-spacing:-.01em;}
+  .hero-nums .lbl{font-family:var(--font-serif); font-size:12px; color:var(--accent-bright); margin-top:5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;}
   .hero-nums .of-total{font-size:11px; color:var(--muted); margin-top:5px;}
   .hero-nums .prebook-badge{margin-top:2px; color:var(--gold); font-weight:700;}
   .hero-nums .prebook-badge b{color:var(--text); font-weight:800;}
-  .hero-right{border-left:1px solid var(--border); padding-left:22px;}
-  .hero-right h3{font-family:var(--font-serif); font-size:11px; margin:0 0 7px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.03em;}
+  .hero-right{border-left:1px solid var(--border); padding-left:22px; position:relative; z-index:1;}
+  .hero-right h3{font-family:var(--font-serif); font-size:11px; margin:0 0 7px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.06em;}
   .tiles{display:grid; grid-template-columns:repeat(auto-fit, minmax(80px,1fr)); gap:6px;}
-  .tile{border-radius:4px; padding:6px 4px; text-align:center; border:1px solid var(--border-soft); box-shadow:0 2px 5px rgba(0,0,0,.35); transition:transform .12s ease, box-shadow .12s ease;}
-  .tile:hover{transform:translateY(-1px); box-shadow:0 4px 9px rgba(0,0,0,.45);}
-  .tile .n{font-size:14px; font-weight:800;}
+  .tile{border-radius:var(--radius-sm); padding:6px 4px; text-align:center; border:1px solid var(--border-soft); box-shadow:0 2px 5px rgba(0,0,0,.4); transition:transform .12s ease, box-shadow .12s ease;}
+  .tile:hover{transform:translateY(-1px); box-shadow:0 4px 9px rgba(0,0,0,.5);}
+  .tile .n{font-family:var(--font-mono); font-size:14px; font-weight:700;}
   .tile .p{font-size:9.5px; opacity:.85;}
   .tile .l{font-size:8.5px; margin-top:2px; opacity:.85; word-break:break-word;}
 
@@ -731,7 +760,7 @@ let lastMetrics = null;
 // Breakdown, and Order by Menu) — each color sits far apart on the color wheel (blue, violet,
 // amber, green, pink, orange, red, gray) so adjacent legend entries never look like
 // near-duplicates of each other, even when several categories are shown at once.
-const STOCK_PALETTE = ['#38BDF2','#A78BFA','#FBBF24','#34D399','#F472B6','#FB923C','#EF4444','#94A3B8'];
+const STOCK_PALETTE = ['#FF6A3D','#2FB6C4','#F0A93C','#38D986','#F472B6','#8B93FF','#EF4444','#84918F'];
 
 // Keep every Chart.js-drawn label (axis ticks, legends, tooltips) on the same typeface as the
 // rest of the dashboard instead of falling back to Chart.js's own default font.
@@ -740,10 +769,10 @@ if (typeof Chart !== 'undefined'){
 }
 
 const TOOLTIP_STYLE = {
-  backgroundColor:'#141F35',
-  titleColor:'#E9EEF9',
-  bodyColor:'#BAC6DC',
-  borderColor:'#2C3F63',
+  backgroundColor:'#1B1E20',
+  titleColor:'#ECEFEE',
+  bodyColor:'#9AA3A2',
+  borderColor:'#33383B',
   borderWidth:1,
   cornerRadius:5,
   padding:8,
@@ -1192,13 +1221,13 @@ function drawRing(canvasEl, pct, color, size){
     const cur = from + (target - from) * eased;
     ctx.clearRect(0, 0, size, size);
     ctx.lineWidth = lineWidth; ctx.lineCap = 'round';
-    ctx.strokeStyle = '#2C3F63';
+    ctx.strokeStyle = '#33383B';
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
     ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + (cur/100)*Math.PI*2);
     ctx.stroke();
-    ctx.fillStyle = '#E9EEF9';
+    ctx.fillStyle = '#ECEFEE';
     ctx.font = `700 ${fontSize}px "Sora",-apple-system,sans-serif`;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillText(cur.toFixed(1) + '%', cx, cy);
@@ -2151,7 +2180,7 @@ function updateDashboard(rows){
     `<div style="color:var(--muted); font-weight:600;">Non Pre-Booking: <b>${fmtNum(M.nonPrebookTotal)}</b> (${fmtPct(M.nonPrebookPctOfComplete)})</div>` +
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
-  drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2', 100);
+  drawRing(document.getElementById('ringComplete'), M.completePct, '#FF6A3D', 100);
   const statusColors = STATUS_BADGE;
   const tilesHtml = M.statusTiles.map(t => {
     const [bg,fg] = statusColors[t.state] || ['var(--border-soft)','var(--text)'];
@@ -2350,7 +2379,7 @@ function updateCharts(M){
         data: { labels, datasets: [
           {type:'bar', label:'AIS', data: aisData, backgroundColor:'#22B8CF', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y', order:2},
           {type:'bar', label:'PARTNER', data: partnerData, backgroundColor:'#6C7A93', stack:'s', borderRadius:3, maxBarThickness:42, yAxisID:'y', order:2},
-          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#F5B841', backgroundColor:'#F5B841', borderWidth:2, pointRadius:2, pointBackgroundColor:'#F5B841', tension:.3, fill:false, yAxisID:'y1', order:1}
+          {type:'line', label:'สะสม (Cumulative)', data: cumulativeData, borderColor:'#FF9163', backgroundColor:'#FF9163', borderWidth:2, pointRadius:2, pointBackgroundColor:'#FF9163', tension:.3, fill:false, yAxisID:'y1', order:1}
         ]},
         options: {
           responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
@@ -2364,12 +2393,12 @@ function updateCharts(M){
           interaction:{mode:'index', intersect:false},
           onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
           scales:{
-            x:{stacked:true, grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
-            y:{stacked:true, beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9.5}}},
-            y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, ticks:{color:'#F5B841', font:{size:9.5}}}
+            x:{stacked:true, grid:{display:false}, ticks:{color:'#6E7877', font:{size:9.5}}},
+            y:{stacked:true, beginAtZero:true, grid:{color:'#232729'}, ticks:{color:'#6E7877', font:{size:9.5}}},
+            y1:{position:'right', beginAtZero:true, grid:{drawOnChartArea:false}, ticks:{color:'#FF9163', font:{size:9.5}}}
           },
           plugins:{
-            legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#BAC6DC'}},
+            legend:{position:'top', labels:{boxWidth:10, font:{size:10.5}, color:'#9AA3A2'}},
             tooltip:{
               ...TOOLTIP_STYLE,
               mode:'index', intersect:false,
@@ -2470,7 +2499,7 @@ function updateCompareChart(M){
       // previous cyan-vs-gray pairing, so the two series stay easy to tell apart at a glance.
       data: { labels, datasets: [
         {label:'ปีนี้', data: thisYearData, backgroundColor:'#22B8CF', borderRadius:3, maxBarThickness:28},
-        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#F5B841', borderRadius:3, maxBarThickness:28}
+        {label:'ปีที่แล้ว', data: lastYearData, backgroundColor:'#FF9163', borderRadius:3, maxBarThickness:28}
       ]},
       options: {
         responsive:true, maintainAspectRatio:false, animation:{duration:450, easing:'easeOutQuart'},
@@ -2480,11 +2509,11 @@ function updateCompareChart(M){
         interaction:{mode:'index', intersect:false},
         onHover: (evt, elements, chart) => { chart.canvas.style.cursor = elements.length ? 'help' : 'default'; },
         scales:{
-          x:{grid:{display:false}, ticks:{color:'#7C8AA8', font:{size:9}}},
-          y:{beginAtZero:true, grid:{color:'#1F2D48'}, ticks:{color:'#7C8AA8', font:{size:9}}}
+          x:{grid:{display:false}, ticks:{color:'#6E7877', font:{size:9}}},
+          y:{beginAtZero:true, grid:{color:'#232729'}, ticks:{color:'#6E7877', font:{size:9}}}
         },
         plugins:{
-          legend:{position:'top', labels:{boxWidth:8, font:{size:9.5}, color:'#BAC6DC'}},
+          legend:{position:'top', labels:{boxWidth:8, font:{size:9.5}, color:'#9AA3A2'}},
           tooltip:{
             ...TOOLTIP_STYLE,
             mode:'index', intersect:false,
@@ -2533,7 +2562,7 @@ function updateStockChart(M){
   if (!charts.stock){
     charts.stock = new Chart(ctx, {
       type: 'doughnut',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#141F35', borderWidth: 2 }] },
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderColor: '#1B1E20', borderWidth: 2 }] },
       options: {
         responsive:true, maintainAspectRatio:false, cutout:'66%',
         animation:{duration:450, easing:'easeOutQuart'},
