@@ -283,7 +283,16 @@
      height overrides entirely so cards just size to their own content. */
   @media(min-width:900px){ .grid-asym{grid-template-columns:34% 1fr;} }
   .col-narrow, .col-wide{display:flex; flex-direction:column; gap:12px; min-width:0; min-height:0;}
-  .col-wide > .card{flex:1 1 0; min-height:0;}
+  /* flex:1 1 0 + min-height:0 makes cards in .col-wide compete for a shared, evenly-split
+     height — only meaningful once .grid-asym is actually a two-column layout (>=900px, see
+     above) and syncSummaryCardHeights() has given the column a real height to divide up.
+     Below 900px the grid collapses to a single stacked column with no such height to divide,
+     so min-height:0 there just strips each card's normal content-based min-height, letting a
+     flex item (e.g. #cardVolume, whose own height comes from a fixed-height chart canvas)
+     collapse to near-zero and its 180px canvas overflow downward on top of the card below it.
+     Scoping this rule to the same >=900px breakpoint as the rest of .grid-asym keeps mobile
+     cards sized to their own content instead. */
+  @media(min-width:900px){ .col-wide > .card{flex:1 1 0; min-height:0;} }
   .col-narrow > .card{flex:1 1 auto;}
 
   .grid-duo-equal{display:grid; grid-template-columns:1fr; gap:12px; align-items:stretch;}
@@ -320,6 +329,15 @@
   /* Order Omni — larger ring chart that uses the available sub-card space */
   #cardOmni .rank-subcards{flex:1 1 auto; min-height:0;}
   #cardOmni .rank-subcard{display:flex; flex-direction:column; min-height:0;}
+  /* Shipping Breakdown list: this subcard is stretched to match "Order Omni"'s ring-subcard
+     height (via .subcards-duo .rank-subcard{height:100%} below), which can be shorter than the
+     list itself once there are many shipping-type rows — previously the extra rows just
+     overflowed past the card's bottom edge with nothing to catch them. Scrolls internally
+     instead, the same overflow:auto pattern used by .table-scroll elsewhere (e.g. Slowest
+     Orders) — flex:1 1 auto lets it claim the subcard's leftover height below the heading,
+     min-height:0 lets it shrink below its content's natural height so overflow:auto can kick
+     in rather than being pushed out by it. */
+  #body-shipping{flex:1 1 auto; min-height:0; overflow-y:auto;}
   .omni-ring-wrap{display:flex; align-items:center; gap:18px; flex:1 1 auto; min-height:0;}
   .omni-ring-wrap .hero-ring{width:clamp(96px, 13vw, 140px); height:clamp(96px, 13vw, 140px); flex:0 0 auto;}
   .omni-ring-wrap .hero-ring canvas{width:100% !important; height:100% !important; display:block;}
@@ -386,6 +404,18 @@
   .rank-col-header .lbl{font-size:9.5px; font-weight:700; color:var(--text-dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rank-col-header .cnt{font-size:11px; font-weight:800; color:var(--text); flex:0 0 auto;}
   .rank-list{display:flex; flex-direction:column; gap:1px;}
+  /* Column header row for a plain rankRows()-based .rank-list, matching the look of a real
+     <thead> (same muted/uppercase/bordered style as `th` above) and the same two-column grid
+     as .rank-row below it, so the name/count columns line up. Opt-in via .rank-list-head +
+     wrapping element — only "Top Branches by Completed Orders" uses it (to match its sibling
+     "Branch -> Top Stock Destination" table's header), not every rank-list (device/accessory/
+     campaign/service lists intentionally keep their existing headerless look). */
+  .rank-list-head{
+    display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:9px;
+    padding:0 6px 4px; margin-bottom:3px; border-bottom:1px solid var(--border);
+    color:var(--muted); font-weight:700; font-size:9px; text-transform:uppercase; letter-spacing:.02em;
+  }
+  .rank-list-head span:last-child{text-align:right; min-width:36px;}
   /* In-cell data bar
      The label and its data bar are now ONE visual data cell. The bar sits
      beneath the label, so it never crosses/competes with the text or count.
@@ -1597,6 +1627,7 @@ function buildSkeleton(){
         <div class="rank-subcards subcards-stack">
           <div class="rank-subcard">
             <div class="rank-subcard-head"><h3>Top Branches by Completed Orders</h3></div>
+            <div class="rank-list-head"><span>Branch / Source</span><span>Orders</span></div>
             <div class="rank-list soft" id="body-branch-list"></div>
           </div>
           <div class="rank-subcard alt">
@@ -1671,12 +1702,20 @@ function customerNameMasked(first, last){
   return combined || '-';
 }
 
+// Tracking Order badge colors — previously several statuses/states/duration tiers shared
+// near-identical pale lavender/blue/gray tones (readable individually but hard to tell apart
+// at a glance in the same column, e.g. READY_TO_PAY vs PENDING vs DELETE were all a similar
+// light purple-blue). Replaced with a small set of clearly distinct, more saturated hues, one
+// per semantic meaning, reused consistently across Status/State/Duration and the KPI status
+// tiles above. Kept as dedicated rgba() literals here rather than the shared --gold-bg/
+// --slate-bg/--stone-bg/--accent-bg CSS variables (those stay as-is for hover states, the
+// error banner, etc. elsewhere, so recoloring badges here doesn't cascade to them).
 const STATUS_BADGE = {
-  COMPLETE: ['var(--green-bg)','#8FE8BE'],
-  WAITING_PAYMENT: ['var(--gold-bg)','#7DE0EE'],
-  READY_TO_PAY: ['var(--slate-bg)','#B9C6FA'],
-  PENDING: ['var(--stone-bg)','#C7D0E3'],
-  DELETE: ['var(--accent-bg)','#C9C4FA']
+  COMPLETE: ['rgba(74,222,128,.18)','#4ADE80'],        // green  — done
+  WAITING_PAYMENT: ['rgba(251,191,36,.18)','#FBBF24'],  // amber  — awaiting action
+  READY_TO_PAY: ['rgba(56,189,248,.18)','#38BDF8'],     // blue   — ready
+  PENDING: ['rgba(192,132,252,.18)','#C084FC'],         // violet — in progress
+  DELETE: ['rgba(248,113,113,.18)','#F87171']           // red    — cancelled/removed
 };
 function statusBadgeHtml(state){
   const [bg,fg] = STATUS_BADGE[state] || ['var(--border-soft)','var(--text-dim)'];
@@ -1684,16 +1723,19 @@ function statusBadgeHtml(state){
 }
 
 // Order "state" tiers (granular workflow step, e.g. DEVICE_SELECTED,
-// PAYMENT_PAID) — same three groups & colors as the source Vega table.
+// PAYMENT_PAID) — same three groups as the source Vega table, recolored to match the
+// STATUS_BADGE palette above (green/blue reused for the same "done"/"ready" meaning; orange
+// instead of the old near-identical light-blue "gold" tone so it reads apart from both the
+// green/blue state groups and the amber WAITING_PAYMENT status in the column next to it).
 const ORDER_STATE_GREEN = new Set(['PAYMENT_PAID','PRE_PROVISION_COMPLETED','PERSO_COMPLETED','CONTRACT_COMPLETED','SIM_REGISTRATION_COMPLETED','BILLING_COMPLETED']);
 const ORDER_STATE_BLUE = new Set(['ORDER_REQUESTED','KYC_VERIFIED','SIM_IDENTIFIED','APPLEWATCH_VERIFIED','MOBILENO_VERIFIED','NEWCA_VERIFIED','EFORM_SIGNED','IDCARD_IDENTIFIED','VERIFY_PASSPORT','REPI_VERIFY_MOBILE','MOBILE_IDENTIFIED','PROFILE_VERIFIED']);
 const ORDER_STATE_ORANGE = new Set(['ACCESSORY_SELECTED','CART_PREPARED','CART_SELECTED','PAYMENT_SELECTED','PAYMENT_SUMMARIZED','CARE_SELECTED','SHARE_PACKAGE_SELECTED','NUMBER_SELECTED','PACKAGE_SELECTED','ORDER_SUMMARIZED','SIMTYPE_SELECTED','DEVICE_SELECTED','EXTRADOC_UPLOADED','BILL_SELECTED']);
 function orderStateBadgeHtml(state){
   if (isBlank(state)) return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
   let bg = 'var(--border-soft)', fg = 'var(--text-dim)';
-  if (ORDER_STATE_GREEN.has(state)) { bg = 'var(--green-bg)'; fg = '#8FE8BE'; }
-  else if (ORDER_STATE_BLUE.has(state)) { bg = 'var(--slate-bg)'; fg = '#B9C6FA'; }
-  else if (ORDER_STATE_ORANGE.has(state)) { bg = 'var(--gold-bg)'; fg = '#7DE0EE'; }
+  if (ORDER_STATE_GREEN.has(state)) { bg = 'rgba(74,222,128,.18)'; fg = '#4ADE80'; }
+  else if (ORDER_STATE_BLUE.has(state)) { bg = 'rgba(56,189,248,.18)'; fg = '#38BDF8'; }
+  else if (ORDER_STATE_ORANGE.has(state)) { bg = 'rgba(251,146,60,.18)'; fg = '#FB923C'; }
   return `<span class="badge" style="background:${bg};color:${fg}">${esc(state)}</span>`;
 }
 
@@ -1716,8 +1758,12 @@ function durationBadgeHtml(durationMs, createdMs){
   if (durationMs == null){
     return '<span class="badge" style="background:var(--border-soft);color:var(--text-dim)">-</span>';
   }
-  const bg = durationMs < 600000 ? 'var(--green-bg)' : durationMs < 1800000 ? 'var(--gold-bg)' : 'var(--accent-bg)';
-  const fg = durationMs < 600000 ? '#8FE8BE' : durationMs < 1800000 ? '#7DE0EE' : '#C9C4FA';
+  // Same 3-tier thresholds as the "Duration Overview" card (< 10m fast, 10-30m medium,
+  // >= 30m slow), recolored green/orange/red to match STATUS_BADGE/ORDER_STATE above instead
+  // of the old green/cyan/purple set (where "slow" being purple read as neither a warning nor
+  // clearly different from the other tiers at a glance).
+  const bg = durationMs < 600000 ? 'rgba(74,222,128,.18)' : durationMs < 1800000 ? 'rgba(251,146,60,.18)' : 'rgba(248,113,113,.18)';
+  const fg = durationMs < 600000 ? '#4ADE80' : durationMs < 1800000 ? '#FB923C' : '#F87171';
   const startLabel = createdMs != null ? new Date(createdMs).toLocaleString('th-TH') : '-';
   const totalSec = Math.floor(durationMs / 1000);
   const fullLabel = `${Math.floor(totalSec/3600)}h ${Math.floor((totalSec%3600)/60)}m ${totalSec%60}s`;
@@ -2032,12 +2078,7 @@ function updateDashboard(rows){
     `<div>Pre-Booking: <b>${fmtNum(M.prebookTotal)}</b> (${fmtPct(M.prebookPctOfComplete)})</div>`;
   animateNumber(document.getElementById('val-complete'), M.completeCount);
   drawRing(document.getElementById('ringComplete'), M.completePct, '#6D64F2', 100);
-  const statusColors = {
-    WAITING_PAYMENT: ['var(--gold-bg)','#7DE0EE'],
-    READY_TO_PAY: ['var(--slate-bg)','#B9C6FA'],
-    PENDING: ['var(--stone-bg)','#C7D0E3'],
-    DELETE: ['var(--accent-bg)','#C9C4FA']
-  };
+  const statusColors = STATUS_BADGE;
   const tilesHtml = M.statusTiles.map(t => {
     const [bg,fg] = statusColors[t.state] || ['var(--border-soft)','var(--text)'];
     return `<div class="tile" style="background:${bg};color:${fg};">
@@ -2113,9 +2154,9 @@ function updateDashboard(rows){
   // Duration overview tiers
   document.getElementById('tag-durtotal').textContent = `${fmtNum(M.durTotal)} orders`;
   const tierDefs = [
-    {key:'green', label:'FAST < 10m', fg:'#8FE8BE', bg:'var(--green-bg)'},
-    {key:'yellow', label:'MED 10-30m', fg:'#7DE0EE', bg:'var(--gold-bg)'},
-    {key:'red', label:'SLOW >= 30m', fg:'#C9C4FA', bg:'var(--accent-bg)'}
+    {key:'green', label:'FAST < 10m', fg:'#4ADE80', bg:'rgba(74,222,128,.18)'},
+    {key:'yellow', label:'MED 10-30m', fg:'#FB923C', bg:'rgba(251,146,60,.18)'},
+    {key:'red', label:'SLOW >= 30m', fg:'#F87171', bg:'rgba(248,113,113,.18)'}
   ];
   const tierHtml = tierDefs.map(t => {
     const c = M.tierCounts[t.key] || 0;
